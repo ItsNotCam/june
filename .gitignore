@@ -38,3 +38,5 @@ qdrant_storage/*
 .DS_Store
 
 node_modules/
+
+.claude/settings.json
