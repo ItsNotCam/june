@@ -10,6 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@june/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0"
   }
 }

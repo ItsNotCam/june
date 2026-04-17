@@ -1,0 +1,12 @@
+FROM oven/bun:1
+WORKDIR /app
+
+# Copy workspace manifests so dep install is cached independently of source changes
+COPY package.json bun.lock ./
+COPY packages/next/package.json ./packages/next/
+
+RUN bun install
+
+WORKDIR /app/packages/next
+# Source is mounted by docker-compose — node_modules stays from the layer above
+CMD ["bunx", "--bun", "next", "dev", "--turbopack", "--hostname", "0.0.0.0"]

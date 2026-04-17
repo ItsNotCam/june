@@ -11,3 +11,38 @@ services:
       - "6334:6334"
     volumes:
       - ./qdrant_storage:/qdrant/storage
+
+  next:
+    <<: *env
+    build:
+      context: .
+      dockerfile: packages/next/Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./packages/next:/app/packages/next
+
+  server:
+    <<: *env
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile.dev
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./packages/server:/app/packages/server
+    depends_on:
+      - qdrant
+
+  mcp:
+    <<: *env
+    build:
+      context: .
+      dockerfile: packages/mcp/Dockerfile.dev
+    volumes:
+      - ./packages/mcp:/app/packages/mcp
+      - ./packages/shared:/app/packages/shared
+    stdin_open: true
+    tty: true
+    depends_on:
+      - qdrant
