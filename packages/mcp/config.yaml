@@ -1,0 +1,6 @@
+# june MCP server configuration
+mcp_server:
+  name: june-mcp
+  version: 0.1.0
+
+ollama_embedding_model: nomic-embed-text

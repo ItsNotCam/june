@@ -39,6 +39,9 @@ services:
     build:
       context: .
       dockerfile: packages/mcp/Dockerfile.dev
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      OLLAMA_URL: http://localhost:11434
     volumes:
       - ./packages/mcp:/app/packages/mcp
       - ./packages/shared:/app/packages/shared
@@ -46,3 +49,21 @@ services:
     tty: true
     depends_on:
       - qdrant
+      # - ollama
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+
+volumes:
+  ollama_data:

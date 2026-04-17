@@ -2,7 +2,8 @@ import { z } from "zod";
 import { BaseEnvSchema, createEnv } from "@june/shared";
 
 const EnvSchema = BaseEnvSchema.extend({
-  QUADRANT_URL: z.url(),
+  QDRANT_URL: z.url(),
+  OLLAMA_URL: z.url()
 });
 
 /** Inferred from EnvSchema — never define manually. */
