@@ -5,6 +5,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit && bun run --filter='*' typecheck"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

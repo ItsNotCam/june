@@ -11,5 +11,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "winston": "^3.19.0",
+    "zod": "^4.3.6"
   }
 }

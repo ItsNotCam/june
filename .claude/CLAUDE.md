@@ -1,7 +1,7 @@
 ## Working conventions
 
-### FlyonUI docs
-Whenever fetching a FlyonUI documentation page, save the content as a markdown file under `.claude/docs/flyonui-<component>.md`. Docs already saved: card, stat, progress.
+### READMEs
+After every commit, update the README for any package whose files were changed. If no README exists for that package yet, create one. The root README should also be updated if the change affects the overall project structure or public API.
 
 ## Current Repo State (as of April 2026)
 
