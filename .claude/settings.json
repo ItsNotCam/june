@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun install *)",
+      "Bash(bunx create-next-app@latest packages/next --typescript --tailwind --eslint --app --no-src-dir --no-import-alias --turbopack)",
+      "WebFetch(domain:flyonui.com)",
+      "Bash(bun add *)",
+      "Bash(bun remove *)",
+      "Bash(bunx shadcn@latest add badge --yes)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "mcp__june-mcp__*",
+      "Bash(gh repo *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "additionalDirectories": [
+      "/app/.claude",
+      ".claude"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "june",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@qdrant/js-client-rest": "^1.17.0",
+    "winston": "^3.19.0",
+    "zod": "^4.3.6"
+  }
+}
