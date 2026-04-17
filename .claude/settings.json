@@ -12,7 +12,10 @@
       "mcp__june-mcp__*",
       "Bash(gh repo *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git rm *)",
+      "Bash(rm -rf packages/next/.git)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "/app/.claude",
