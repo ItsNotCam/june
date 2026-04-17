@@ -1,21 +1,42 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const THEMES = ["light", "dark", "orange"] as const;
+type Theme = (typeof THEMES)[number];
+
+const NEXT_THEME: Record<Theme, Theme> = {
+  light: "dark",
+  dark: "orange",
+  orange: "light",
+};
+
+const ICON = {
+  light: <Moon size={16} />,
+  dark: <Flame size={16} />,
+  orange: <Sun size={16} />,
+};
+
+const LABEL: Record<Theme, string> = {
+  light: "Switch to dark mode",
+  dark: "Switch to orange mode",
+  orange: "Switch to light mode",
+};
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const theme = (THEMES.includes(resolvedTheme as Theme) ? resolvedTheme : "light") as Theme;
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={LABEL[theme]}
+      onClick={() => setTheme(NEXT_THEME[theme])}
     >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
+      {ICON[theme]}
     </Button>
   );
 }

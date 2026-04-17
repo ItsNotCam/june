@@ -16,8 +16,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${poppins.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem themes={["light", "dark", "orange"]} scriptProps={{ suppressHydrationWarning: true }}>
           <div className="fixed top-3 right-3 z-50">
             <ThemeToggleClient />
           </div>
