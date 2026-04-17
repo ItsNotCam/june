@@ -1,5 +1,17 @@
 ## Working conventions
 
+### Git commits
+
+Commit messages must always start with a conventional commit type in parentheses:
+
+```
+(feat) add user authentication
+(fix) resolve null pointer in payment flow
+(chore) remove .claude/settings.json from version control
+```
+
+Valid types: `(feat)`, `(fix)`, `(chore)`, `(refactor)`, `(docs)`, `(test)`, `(style)`, `(perf)`, `(ci)`, `(build)`
+
 ### READMEs
 After every commit, update the README for any package whose files were changed. If no README exists for that package yet, create one. The root README should also be updated if the change affects the overall project structure or public API.
 
