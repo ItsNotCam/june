@@ -1,5 +1,36 @@
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PreviewCharts } from "@/components/PreviewCharts";
+
+const RECENT_ACTIVITY = [
+  { id: "q-4821", query: "explain the event loop", source: "web", latency: "0.9s", status: "ok" },
+  { id: "q-4820", query: "what is memoization", source: "api", latency: "1.4s", status: "ok" },
+  { id: "q-4819", query: "compare quicksort vs mergesort", source: "web", latency: "5.2s", status: "slow" },
+  { id: "q-4818", query: "redis vs memcached", source: "api", latency: "1.1s", status: "ok" },
+  { id: "q-4817", query: "what is hoisting", source: "web", latency: "0.8s", status: "ok" },
+  { id: "q-4816", query: "CAP theorem explained", source: "api", latency: "2.3s", status: "warn" },
+] as const;
+
+const ALERTS = [
+  { type: "error", title: "Embed service unreachable", detail: "3 retries failed — circuit open", time: "2m ago" },
+  { type: "warn", title: "Cache hit rate dropped", detail: "73% → 69% in the last hour", time: "14m ago" },
+  { type: "info", title: "Re-index completed", detail: "84,231 chunks indexed in 4m 12s", time: "1h ago" },
+  { type: "success", title: "Canary deploy passed", detail: "All latency gates under threshold", time: "2h ago" },
+] as const;
+
+const STATUS_STYLES = {
+  ok: "text-success",
+  warn: "text-warning-foreground",
+  slow: "text-destructive",
+} as const;
+
+const ALERT_STYLES = {
+  error: { bar: "bg-destructive", icon: "✕" },
+  warn: { bar: "bg-warning", icon: "!" },
+  info: { bar: "bg-chart-2", icon: "i" },
+  success: { bar: "bg-success", icon: "✓" },
+} as const;
 
 export default function Preview() {
   return (
@@ -11,6 +42,111 @@ export default function Preview() {
           <h1 className="text-4xl font-bold tracking-tight">june. component preview</h1>
           <p className="text-muted-foreground mt-1 text-sm">Theming sandbox — shadcn/ui primitives</p>
         </div>
+
+        {/* Stats */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Stats</h2>
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: "Chunks indexed", value: "84,231", delta: "↑ 1,204 today", color: "text-foreground" },
+              { label: "Avg latency", value: "1.2s", delta: "Under 3s ✓", color: "text-success" },
+              { label: "Queries today", value: "412", delta: "Peak at 10:42 AM", color: "text-foreground" },
+              { label: "Cache hit rate", value: "73%", delta: "↓ 4% this week", color: "text-destructive" },
+            ].map(({ label, value, delta, color }) => (
+              <div key={label} className="bg-card rounded-xl border p-5 space-y-1">
+                <p className="text-muted-foreground text-sm">{label}</p>
+                <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                <p className="text-muted-foreground text-xs">{delta}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <PreviewCharts />
+
+        {/* Alerts */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Alerts</CardTitle>
+            <CardDescription>Recent system events</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {ALERTS.map((alert) => {
+              const style = ALERT_STYLES[alert.type];
+              return (
+                <div key={alert.title} className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
+                  <div className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${style.bar}`}>
+                    {style.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-tight">{alert.title}</p>
+                    <p className="text-muted-foreground text-xs">{alert.detail}</p>
+                  </div>
+                  <span className="text-muted-foreground shrink-0 text-xs">{alert.time}</span>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Recent activity table */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Recent activity</h2>
+          <div className="bg-card rounded-xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Query</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Source</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Latency</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {RECENT_ACTIVITY.map((row, i) => (
+                  <tr
+                    key={row.id}
+                    className={`border-b last:border-0 ${i % 2 === 0 ? "" : "bg-muted/20"}`}
+                  >
+                    <td className="px-4 py-3 font-mono text-muted-foreground">{row.id}</td>
+                    <td className="px-4 py-3 max-w-52 truncate">{row.query}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-xs">{row.source}</Badge>
+                    </td>
+                    <td className="px-4 py-3 font-mono">{row.latency}</td>
+                    <td className={`px-4 py-3 font-medium ${STATUS_STYLES[row.status]}`}>
+                      {row.status}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Progress */}
+        <section className="bg-card rounded-xl border p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Progress</h2>
+          <div className="space-y-3">
+            {[
+              { label: "Embedding coverage", pct: 94 },
+              { label: "Metadata completeness", pct: 81 },
+              { label: "Freshness score", pct: 67 },
+              { label: "Authority signal", pct: 55 },
+            ].map(({ label, pct }) => (
+              <div key={label} className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>{label}</span>
+                  <span className="text-muted-foreground font-mono">{pct}%</span>
+                </div>
+                <div className="bg-muted h-2 w-full rounded-full overflow-hidden">
+                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Buttons */}
         <section className="bg-card rounded-xl border p-6 space-y-4">
@@ -40,48 +176,6 @@ export default function Preview() {
             <Badge variant="secondary">Secondary</Badge>
             <Badge variant="outline">Outline</Badge>
             <Badge variant="destructive">Destructive</Badge>
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Stats</h2>
-          <div className="grid grid-cols-4 gap-4">
-            {[
-              { label: "Chunks indexed", value: "84,231", delta: "↑ 1,204 today", color: "text-foreground" },
-              { label: "Avg latency", value: "1.2s", delta: "Under 3s ✓", color: "text-green-600" },
-              { label: "Queries today", value: "412", delta: "Peak at 10:42 AM", color: "text-foreground" },
-              { label: "Cache hit rate", value: "73%", delta: "↓ 4% this week", color: "text-red-500" },
-            ].map(({ label, value, delta, color }) => (
-              <div key={label} className="bg-card rounded-xl border p-5 space-y-1">
-                <p className="text-muted-foreground text-sm">{label}</p>
-                <p className={`text-3xl font-bold ${color}`}>{value}</p>
-                <p className="text-muted-foreground text-xs">{delta}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Progress */}
-        <section className="bg-card rounded-xl border p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Progress</h2>
-          <div className="space-y-3">
-            {[
-              { label: "Embedding coverage", pct: 94 },
-              { label: "Metadata completeness", pct: 81 },
-              { label: "Freshness score", pct: 67 },
-              { label: "Authority signal", pct: 55 },
-            ].map(({ label, pct }) => (
-              <div key={label} className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>{label}</span>
-                  <span className="text-muted-foreground font-mono">{pct}%</span>
-                </div>
-                <div className="bg-muted h-2 w-full rounded-full overflow-hidden">
-                  <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            ))}
           </div>
         </section>
 
@@ -115,7 +209,7 @@ export default function Preview() {
             <input disabled className="border-input bg-muted ring-offset-background placeholder:text-muted-foreground flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none cursor-not-allowed opacity-50" placeholder="Disabled input" />
             <div className="flex gap-2 col-span-2">
               <input className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2" placeholder="Search docs..." />
-              <Button>Search</Button>
+              <Button className="h-full">Search</Button>
             </div>
           </div>
         </section>
@@ -153,8 +247,8 @@ export default function Preview() {
             <span className="text-secondary-foreground">secondary</span>
             <span className="text-muted-foreground">muted</span>
             <span className="text-destructive">destructive</span>
-            <span className="text-green-600">success</span>
-            <span className="text-yellow-600">warning</span>
+            <span className="text-success">success</span>
+            <span className="text-warning-foreground">warning</span>
           </div>
         </section>
 
@@ -173,6 +267,11 @@ export default function Preview() {
               ["bg-accent", "accent"],
               ["bg-destructive", "destructive"],
               ["bg-border border", "border"],
+              ["bg-chart-1", "chart-1"],
+              ["bg-chart-2", "chart-2"],
+              ["bg-chart-3", "chart-3"],
+              ["bg-chart-4", "chart-4"],
+              ["bg-chart-5", "chart-5"],
             ].map(([cls, label]) => (
               <div key={label} className="flex flex-col items-center gap-1">
                 <div className={`${cls} size-12 rounded-lg border border-black/10`} />

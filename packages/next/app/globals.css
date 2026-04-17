@@ -9,152 +9,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  /* ─── surfaces ──────────────────────────────────────────────
-   * three-layer cream palette. the canvas sits at --background,
-   * raised panels (sidebar, popovers, cards-on-page) lift up to
-   * --surface-raised, and wells (hovers, inputs, active rows)
-   * sink down to --surface-sunken. no "cream" anywhere in the
-   * names — we're describing layering, not color.
-   */
-  --background:       #faf7f2;
-  --surface-raised:   #f4efe5;
-  --surface-sunken:   #efe9dc;
-
-  /* ─── foreground scale ─────────────────────────────────────
-   * four steps of readability. primary ink for headings and
-   * body, a softened variant for long-form reading, a subtle
-   * step for meta / labels / captions, and a faint step for
-   * decoration (dividers-as-text, placeholder glyphs, etc).
-   */
-  --foreground:          #2a2622;
-  --foreground-muted:    #4a4540;
-  --foreground-subtle:   #8a8277;
-  --foreground-faint:    #b5ad9f;
-
-  /* ─── primary (action) ─────────────────────────────────────
-   * the one hue in the system that carries intent. active tabs,
-   * primary buttons, focus rings, citation marks, live dots —
-   * anything the eye should track. the hover step is for
-   * interactive darkening, not a different role.
-   */
-  --primary:              #4a6b4a;
-  --primary-hover:        #3d5a3d;
-  --primary-foreground:   #faf7f2;
-
-  /* ─── accent (tinted primary) ──────────────────────────────
-   * a desaturated wash of primary for soft highlights — the
-   * active ToC row, a selected list item, a focused card
-   * background. presence without weight.
-   */
-  --accent:               #eaefe6;
-  --accent-foreground:    #4a6b4a;
-
-  /* ─── secondary (neutral action) ───────────────────────────
-   * for buttons and chips that need structure but shouldn't
-   * compete with primary. same value as surface-raised on
-   * purpose — secondary actions read as "lifted panel".
-   */
-  --secondary:              #f4efe5;
-  --secondary-foreground:   #2a2622;
-
-  /* ─── muted (background + text pair) ───────────────────────
-   * shadcn convention: a muted background with matched
-   * foreground for meta text that sits on it. the foreground
-   * value intentionally aliases --foreground-subtle so both
-   * semantic routes land in the same place.
-   */
-  --muted:                #efe9dc;
-  --muted-foreground:     #8a8277;
-
-  /* ─── borders & inputs ─────────────────────────────────────
-   * two steps: structural (panel edges, input borders) and
-   * subtle (in-document section dividers, table rows). ring
-   * is primary — focus always points at the action color.
-   */
-  --border:               #e5ded0;
-  --border-subtle:        #ede6d6;
-  --input:                #e5ded0;
-  --ring:                 #4a6b4a;
-
-  /* ─── semantic status ──────────────────────────────────────
-   * calibrated to the warm palette — none of them clash
-   * against the cream. destructive is a muted brick, not a
-   * web-red. success is the live-dot green from the presence
-   * indicator. warning is the "gotcha" sand from the graph.
-   */
-  --destructive:              #b8594a;
-  --destructive-foreground:   #faf7f2;
-  --success:                  #6aa26a;
-  --success-foreground:       #faf7f2;
-  --warning:                  #d8b08a;
-  --warning-foreground:       #2a2622;
-
-  /* ─── card / popover ───────────────────────────────────────
-   * shadcn conventions. cards sit on the canvas so they share
-   * --background. popovers float above, so they take raised.
-   */
-  --card:                 #faf7f2;
-  --card-foreground:      #2a2622;
-  --popover:              #f4efe5;
-  --popover-foreground:   #2a2622;
-
-  /* ─── sidebar ──────────────────────────────────────────────
-   * full shadcn v4 sidebar token set. lives on the raised
-   * surface, primary handles active items, accent handles
-   * hover + secondary active states.
-   */
-  --sidebar:                          #f4efe5;
-  --sidebar-foreground:               #2a2622;
-  --sidebar-primary:                  #4a6b4a;
-  --sidebar-primary-foreground:       #faf7f2;
-  --sidebar-accent:                   #efe9dc;
-  --sidebar-accent-foreground:        #2a2622;
-  --sidebar-border:                   #e5ded0;
-  --sidebar-ring:                     #4a6b4a;
-
-  /* ─── chart palette ────────────────────────────────────────
-   * derived from the graph view's node tiers — core, concept,
-   * mechanism, warn, aux. earthy, hierarchy-readable, no two
-   * colors fight. numbered per shadcn convention; semantic
-   * role lives in the comment.
-   */
-  --chart-1:   #4a6b4a;   /* core / primary entity            */
-  --chart-2:   #6d8e6d;   /* concept / direct relation         */
-  --chart-3:   #a8bca8;   /* mechanism / detail                */
-  --chart-4:   #d8b08a;   /* warn / gotcha / edge case         */
-  --chart-5:   #8a6e4a;   /* auxiliary / cross-reference       */
-
-  /* ─── radii ────────────────────────────────────────────────
-   * the mockup favors tight corners (3–4px). shadcn's default
-   * --radius-md becomes the everyday value, with sm for
-   * chips/tags and lg/xl available when something needs air.
-   */
-  --radius-sm:    0.1875rem;  /* 3px  — chips, tags, kbd      */
-  --radius-md:    0.25rem;    /* 4px  — default (buttons, inputs, cards) */
-  --radius-lg:    0.375rem;   /* 6px  — larger panels         */
-  --radius-xl:    0.5rem;     /* 8px  — modals, dialogs       */
-  --radius-full:  9999px;
-
-  /* ─── typography ───────────────────────────────────────────
-   * Poppins for everything prose. JetBrains Mono for anything
-   * structural: labels, breadcrumbs, kbd, code, meta strips,
-   * citation numbers. the tracking + leading tokens are used
-   * by section headings, labels, and long-form reading blocks.
-   */
-  --font-sans:    'Poppins', system-ui, -apple-system, sans-serif;
-  --font-mono:    'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
-
-  --tracking-tight:     -0.01em;
-  --tracking-tighter:   -0.02em;
-  --tracking-label:      0.1em;
-  --tracking-mono:       0.02em;
-
-  --leading-prose:    1.68;
-  --leading-snug:     1.4;
-  --leading-tight:    1.3;
-}
-
 /* ═══════════════════════════════════════════════════════════════
  * expose the tokens as tailwind v4 utilities. this is what turns
  * --primary into bg-primary / text-primary / border-primary etc.
@@ -241,12 +95,211 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
- * base — minimum setup so <body> defaults feel right. shadcn
- * components handle their own styling from the tokens above.
+ * base layer — :root tokens + dark overrides + element resets.
+ *
+ * IMPORTANT: both :root and .dark must be inside @layer base.
+ * Unlayered CSS always beats layered CSS in the cascade, so if
+ * :root is unlayered it silently wins over .dark in @layer base
+ * no matter what specificity .dark has. Keeping both in the same
+ * layer lets normal source-order specificity decide: .dark comes
+ * after :root, so it wins when html.dark is present.
  * ═══════════════════════════════════════════════════════════════
  */
 
 @layer base {
+  :root {
+    /* ─── surfaces ──────────────────────────────────────────────
+     * three-layer cream palette. the canvas sits at --background,
+     * raised panels (sidebar, popovers, cards-on-page) lift up to
+     * --surface-raised, and wells (hovers, inputs, active rows)
+     * sink down to --surface-sunken.
+     */
+    --background:       #faf7f2;
+    --surface-raised:   #f4efe5;
+    --surface-sunken:   #efe9dc;
+
+    /* ─── foreground scale ─────────────────────────────────────
+     * four steps of readability. primary ink for headings and
+     * body, softened for long-form, subtle for meta / labels,
+     * faint for decoration (dividers, placeholders).
+     */
+    --foreground:          #2a2622;
+    --foreground-muted:    #4a4540;
+    --foreground-subtle:   #8a8277;
+    --foreground-faint:    #b5ad9f;
+
+    /* ─── primary (action) ─────────────────────────────────────
+     * the one hue that carries intent. active tabs, primary
+     * buttons, focus rings, citation marks, live dots.
+     */
+    --primary:              #4a6b4a;
+    --primary-hover:        #3d5a3d;
+    --primary-foreground:   #faf7f2;
+
+    /* ─── accent (tinted primary) ──────────────────────────────
+     * desaturated wash of primary for soft highlights.
+     */
+    --accent:               #eaefe6;
+    --accent-foreground:    #4a6b4a;
+
+    /* ─── secondary (neutral action) ───────────────────────────
+     * buttons and chips that need structure without competing
+     * with primary. same value as surface-raised on purpose.
+     */
+    --secondary:              #f4efe5;
+    --secondary-foreground:   #2a2622;
+
+    /* ─── muted ─────────────────────────────────────────────── */
+    --muted:                #efe9dc;
+    --muted-foreground:     #8a8277;
+
+    /* ─── borders & inputs ─────────────────────────────────────
+     * structural (panel edges, input borders) and subtle
+     * (in-document dividers, table rows).
+     */
+    --border:               #e5ded0;
+    --border-subtle:        #ede6d6;
+    --input:                #e5ded0;
+    --ring:                 #4a6b4a;
+
+    /* ─── semantic status ──────────────────────────────────────
+     * calibrated to the warm palette.
+     */
+    --destructive:              #b8594a;
+    --destructive-foreground:   #faf7f2;
+    --success:                  #6aa26a;
+    --success-foreground:       #faf7f2;
+    --warning:                  #d8b08a;
+    --warning-foreground:       #2a2622;
+
+    /* ─── card / popover ───────────────────────────────────────
+     * cards share --background; popovers float above on raised.
+     */
+    --card:                 #faf7f2;
+    --card-foreground:      #2a2622;
+    --popover:              #f4efe5;
+    --popover-foreground:   #2a2622;
+
+    /* ─── sidebar ──────────────────────────────────────────────
+     * full shadcn v4 sidebar token set.
+     */
+    --sidebar:                          #f4efe5;
+    --sidebar-foreground:               #2a2622;
+    --sidebar-primary:                  #4a6b4a;
+    --sidebar-primary-foreground:       #faf7f2;
+    --sidebar-accent:                   #efe9dc;
+    --sidebar-accent-foreground:        #2a2622;
+    --sidebar-border:                   #e5ded0;
+    --sidebar-ring:                     #4a6b4a;
+
+    /* ─── chart palette ────────────────────────────────────────
+     * derived from the graph view's node tiers.
+     */
+    --chart-1:   #4a6b4a;
+    --chart-2:   #6d8e6d;
+    --chart-3:   #a8bca8;
+    --chart-4:   #d8b08a;
+    --chart-5:   #8a6e4a;
+
+    /* ─── radii ────────────────────────────────────────────────
+     * the mockup favors tight corners (3–4px).
+     */
+    --radius-sm:    0.1875rem;
+    --radius-md:    0.25rem;
+    --radius-lg:    0.375rem;
+    --radius-xl:    0.5rem;
+    --radius-full:  9999px;
+
+    /* ─── typography ───────────────────────────────────────────
+     * Poppins for prose, JetBrains Mono for structural/code.
+     */
+    --font-sans:    'Poppins', system-ui, -apple-system, sans-serif;
+    --font-mono:    'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+    --tracking-tight:     -0.01em;
+    --tracking-tighter:   -0.02em;
+    --tracking-label:      0.1em;
+    --tracking-mono:       0.02em;
+
+    --leading-prose:    1.68;
+    --leading-snug:     1.4;
+    --leading-tight:    1.3;
+  }
+
+  /* ─── dark mode ──────────────────────────────────────────────
+   * same semantic names, warm-dark palette.
+   * triggered by the .dark class on <html> (next-themes).
+   * must come after :root in the same @layer so source order
+   * lets it win with equal specificity.
+   */
+  .dark {
+    /* surfaces */
+    --background:       #1c1917;
+    --surface-raised:   #231f1b;
+    --surface-sunken:   #161311;
+
+    /* foreground scale */
+    --foreground:          #f5f0e8;
+    --foreground-muted:    #c9c0b3;
+    --foreground-subtle:   #8a8277;
+    --foreground-faint:    #5a5248;
+
+    /* primary — muted green for dark bg */
+    --primary:              #4a7550;
+    --primary-hover:        #5a8a5a;
+    --primary-foreground:   #e8f0e8;
+
+    /* accent */
+    --accent:               #1e2a1e;
+    --accent-foreground:    #4a7550;
+
+    /* secondary */
+    --secondary:              #2d2824;
+    --secondary-foreground:   #f5f0e8;
+
+    /* muted */
+    --muted:                #2d2824;
+    --muted-foreground:     #8a8277;
+
+    /* borders & inputs */
+    --border:               #3a342e;
+    --border-subtle:        #322c27;
+    --input:                #3a342e;
+    --ring:                 #4a7550;
+
+    /* semantic status */
+    --destructive:              #c97060;
+    --destructive-foreground:   #f5f0e8;
+    --success:                  #4a7550;
+    --success-foreground:       #e8f0e8;
+    --warning:                  #d8b08a;
+    --warning-foreground:       #1c1917;
+
+    /* card / popover */
+    --card:                 #1c1917;
+    --card-foreground:      #f5f0e8;
+    --popover:              #231f1b;
+    --popover-foreground:   #f5f0e8;
+
+    /* sidebar */
+    --sidebar:                          #231f1b;
+    --sidebar-foreground:               #f5f0e8;
+    --sidebar-primary:                  #4a7550;
+    --sidebar-primary-foreground:       #e8f0e8;
+    --sidebar-accent:                   #2d2824;
+    --sidebar-accent-foreground:        #f5f0e8;
+    --sidebar-border:                   #3a342e;
+    --sidebar-ring:                     #4a7550;
+
+    /* chart palette — darkened green for dark bg */
+    --chart-1:   #4a7550;
+    --chart-2:   #5a8a5a;
+    --chart-3:   #a8c4a8;
+    --chart-4:   #d8b08a;
+    --chart-5:   #a88a6a;
+  }
+
+  /* ─── element resets ─────────────────────────────────────── */
   * {
     border-color: var(--border);
   }
@@ -261,9 +314,14 @@
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    cursor: default;
   }
 
   code, kbd, pre, samp {
     font-family: var(--font-mono);
+  }
+
+  button, [role="button"] {
+    cursor: pointer;
   }
 }
