@@ -2,28 +2,27 @@ import type { Config } from "@/config";
 import type { Env } from "@/env";
 import { embed } from "@june/shared";
 import z from "zod";
+import type { McpTool } from "@/types";
 
-export type EmbedToolProps = { 
-	input: string,
-	config: Config,
-	env: Env 
-}
+const inputSchema = { input: z.string().describe("Input to embed") };
 
-export const EmbedTool = {
+/**
+ * Creates the embed tool with config and env captured in the closure.
+ * Calls the Ollama embedding model specified in config and returns the raw EmbedResponse as JSON.
+ *
+ * @param config - Loaded app config; provides the Ollama embedding model name.
+ * @param env - Validated env; provides OLLAMA_URL.
+ */
+export const createEmbedTool = (config: Config, env: Env): McpTool<typeof inputSchema> => ({
 	name: "embed",
-	tool_definition: { 
+	tool_definition: {
 		description: "Embed a message",
-		inputSchema: { input: z.string().describe("Input to embed") }
+		inputSchema,
 	},
-	function: async ({ input, config, env }: EmbedToolProps) => {
-		const embedding = await embed(
-			config.ollama_embedding_model, 
-			input, 
-			env.OLLAMA_URL
-		);
-		
+	function: async ({ input }) => {
+		const embedding = await embed(config.ollama_embedding_model, input, env.OLLAMA_URL);
 		return {
-			content: [{ type: "text" as const, text: JSON.stringify(embedding) }]
-		}
-	}
-}
+			content: [{ type: "text" as const, text: JSON.stringify(embedding) }],
+		};
+	},
+});

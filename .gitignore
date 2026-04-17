@@ -40,3 +40,6 @@ qdrant_storage/*
 node_modules/
 
 .claude/settings.json
+
+# MCP client config (contains local paths/secrets)
+.mcp.json
