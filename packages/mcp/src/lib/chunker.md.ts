@@ -17,7 +17,8 @@ export const chunkMarkdown = (markdownRawText: string, source: string): Markdown
 			const headingRow = searchResult?.[0]!;
 			const heading = searchResult?.[1]!.replace(/#+$/g, "").trim();
 
-			const text = `${heading}\n\n${cleanedContent.replace(headingRow, "")}`.trim();
+			const body = cleanedContent.slice(headingRow.length).trim();
+			const text = `${heading}\n\n${body}`.trim()
 			return { heading, text }
 		}).filter((x): x is MarkdownParagraph => x !== null);
 
