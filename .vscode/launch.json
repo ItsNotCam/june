@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Bun Test File",
+      "type": "bun",
+      "request": "launch",
+      "program": "${file}",
+      "args": ["--inspect-brk"],
+      "cwd": "${workspaceFolder}",
+      "watchMode": false
+    }
+  ]
+}

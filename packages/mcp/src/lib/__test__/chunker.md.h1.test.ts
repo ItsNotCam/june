@@ -1,42 +1,42 @@
 import { describe, it, expect } from "bun:test";
 import { chunkMarkdown } from "../chunker.md";
-import { MarkdownDelimiter } from "../chunker.types";
+import { BREADCRUMB_DELIMITER } from "../chunker.types";
 
-const D = MarkdownDelimiter;
+const D = BREADCRUMB_DELIMITER;
 
 // ---------------------------------------------------------------------------
 // h1-only splitting
 // ---------------------------------------------------------------------------
 
 describe("h1-only splitting", () => {
-  it("single h1 produces one chunk", () => {
+  it("produces one chunk when document has a single h1", () => {
     const chunks = chunkMarkdown("# Hello\nbody", "f.md");
     expect(chunks).toHaveLength(1);
   });
 
-  it("two h1s produce two chunks", () => {
+  it("produces two chunks when document has two h1s", () => {
     const chunks = chunkMarkdown("# First\nbody one\n# Second\nbody two", "f.md");
     expect(chunks).toHaveLength(2);
   });
 
-  it("three h1s produce three chunks", () => {
+  it("produces three chunks when document has three h1s", () => {
     const chunks = chunkMarkdown("# A\nbody\n# B\nbody\n# C\nbody", "f.md");
     expect(chunks).toHaveLength(3);
   });
 
-  it("each h1 chunk has a single-entry breadcrumb", () => {
+  it("sets single-entry breadcrumb when document has one h1", () => {
     const chunks = chunkMarkdown("# First\nbody\n# Second\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["First"]);
     expect(chunks[1]!.breadcrumb).toEqual(["Second"]);
   });
 
-  it("each h1 chunk content starts with the heading text as prefix", () => {
+  it("starts content with heading text as prefix when h1 is present", () => {
     const chunks = chunkMarkdown("# First\nbody\n# Second\nbody", "f.md");
     expect(chunks[0]!.content.startsWith("First")).toBe(true);
     expect(chunks[1]!.content.startsWith("Second")).toBe(true);
   });
 
-  it("body text is captured under the correct h1", () => {
+  it("captures body text under the correct h1 when two h1s are present", () => {
     const chunks = chunkMarkdown("# First\nalpha\n# Second\nbeta", "f.md");
     expect(chunks[0]!.content).toContain("alpha");
     expect(chunks[0]!.content).not.toContain("beta");
@@ -44,7 +44,7 @@ describe("h1-only splitting", () => {
     expect(chunks[1]!.content).not.toContain("alpha");
   });
 
-  it("multiline body under a single h1 is captured in full", () => {
+  it("captures all lines of a multiline body under a single h1", () => {
     const md = "# Heading\nline one\nline two\nline three";
     const chunks = chunkMarkdown(md, "f.md");
     expect(chunks[0]!.content).toContain("line one");
@@ -52,7 +52,7 @@ describe("h1-only splitting", () => {
     expect(chunks[0]!.content).toContain("line three");
   });
 
-  it("h1 with no body produces a chunk with prefix but no body text", () => {
+  it("produces a chunk with empty body when h1 is immediately followed by another h1", () => {
     const chunks = chunkMarkdown("# Empty\n# Next\nbody", "f.md");
     const empty = chunks.find(c => c.breadcrumb[0] === "Empty")!;
     expect(empty).toBeDefined();
@@ -60,10 +60,34 @@ describe("h1-only splitting", () => {
     expect(body).toBe("");
   });
 
-  it("no delimiter appears in h1-only chunks", () => {
+  it("separates prefix and body with a blank line when h1 has body content", () => {
+    const chunks = chunkMarkdown("# Heading\nbody text", "f.md");
+    expect(chunks[0]!.content).toBe("Heading\n\nbody text");
+  });
+
+  it("omits delimiter from content when document has only h1 chunks", () => {
     const chunks = chunkMarkdown("# One\nbody\n# Two\nbody", "f.md");
     expect(chunks[0]!.content).not.toContain(D);
     expect(chunks[1]!.content).not.toContain(D);
+  });
+
+  it("sets source on every chunk when document has multiple h1s", () => {
+    const chunks = chunkMarkdown("# A\nbody\n# B\nbody", "guide.md");
+    expect(chunks[0]!.source).toBe("guide.md");
+    expect(chunks[1]!.source).toBe("guide.md");
+  });
+
+  it("preserves whitespace-only lines within body content", () => {
+    const md = "# Heading\nparagraph one\n   \nparagraph two";
+    const chunks = chunkMarkdown(md, "f.md");
+    expect(chunks[0]!.content).toContain("paragraph one");
+    expect(chunks[0]!.content).toContain("paragraph two");
+  });
+
+  it("preserves a very long heading text in breadcrumb without truncation", () => {
+    const longHeading = "A".repeat(500);
+    const chunks = chunkMarkdown(`# ${longHeading}\nbody`, "f.md");
+    expect(chunks[0]!.breadcrumb).toEqual([longHeading]);
   });
 });
 
@@ -72,42 +96,42 @@ describe("h1-only splitting", () => {
 // ---------------------------------------------------------------------------
 
 describe("pre-heading content", () => {
-  it("text before the first heading produces an extra chunk", () => {
+  it("produces an extra chunk when text appears before the first heading", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "f.md");
     expect(chunks).toHaveLength(2);
   });
 
-  it("pre-heading chunk is the first chunk", () => {
+  it("places pre-heading chunk first when text appears before the first heading", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual([]);
   });
 
-  it("pre-heading chunk contains the pre-heading text", () => {
+  it("captures pre-heading text verbatim in content when it appears before the first heading", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "f.md");
     expect(chunks[0]!.content).toBe("intro text");
   });
 
-  it("pre-heading chunk has correct source", () => {
+  it("sets source correctly on pre-heading chunk", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "readme.md");
     expect(chunks[0]!.source).toBe("readme.md");
   });
 
-  it("pre-heading chunk content contains no delimiter", () => {
+  it("omits delimiter from pre-heading chunk content", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "f.md");
     expect(chunks[0]!.content).not.toContain(D);
   });
 
-  it("heading chunk after pre-heading content has correct breadcrumb", () => {
+  it("sets correct breadcrumb on heading chunk that follows pre-heading content", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "f.md");
     expect(chunks[1]!.breadcrumb).toEqual(["Heading"]);
   });
 
-  it("heading chunk body after pre-heading content does not include the pre-heading text", () => {
+  it("excludes pre-heading text from heading chunk content when both are present", () => {
     const chunks = chunkMarkdown("intro text\n# Heading\nbody", "f.md");
     expect(chunks[1]!.content).not.toContain("intro text");
   });
 
-  it("multiline pre-heading text is captured in full", () => {
+  it("captures all lines of multiline pre-heading text in content", () => {
     const md = "line one\nline two\nline three\n# Heading\nbody";
     const chunks = chunkMarkdown(md, "f.md");
     expect(chunks[0]!.content).toContain("line one");
@@ -121,14 +145,14 @@ describe("pre-heading content", () => {
 // ---------------------------------------------------------------------------
 
 describe("heading detection edge cases", () => {
-  it("hash with no space (#NoSpace) is not treated as a heading and its text becomes a headingless chunk", () => {
+  it("treats #NoSpace as body text and produces a headingless chunk", () => {
     const chunks = chunkMarkdown("#NoSpace\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual([]);
     expect(chunks[0]!.content).toContain("#NoSpace");
   });
 
-  it("#NoSpace before a real heading lands in the pre-heading chunk", () => {
+  it("places #NoSpace in pre-heading chunk when a real heading follows", () => {
     const chunks = chunkMarkdown("#NoSpace\n# Real\nbody", "f.md");
     expect(chunks).toHaveLength(2);
     expect(chunks[0]!.breadcrumb).toEqual([]);
@@ -136,36 +160,36 @@ describe("heading detection edge cases", () => {
     expect(chunks[1]!.breadcrumb).toEqual(["Real"]);
   });
 
-  it("heading with trailing whitespace has trimmed text in breadcrumb", () => {
+  it("trims trailing whitespace from heading text in breadcrumb", () => {
     const chunks = chunkMarkdown("# Hello   \nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
   });
 
-  it("heading with numbers in text preserves full text in breadcrumb", () => {
+  it("preserves numbers and punctuation in heading text in breadcrumb", () => {
     const chunks = chunkMarkdown("# 3. Introduction\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["3. Introduction"]);
   });
 
-  it("heading at end of file with no trailing newline still produces a chunk", () => {
+  it("produces a chunk when heading appears at end of file with no trailing newline", () => {
     const chunks = chunkMarkdown("# Heading", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual(["Heading"]);
   });
 
-  it("heading at end of file with no body has empty body after prefix", () => {
+  it("produces empty body when heading is at end of file with no trailing newline", () => {
     const chunks = chunkMarkdown("# Heading", "f.md");
     const body = chunks[0]!.content.split("\n\n").slice(1).join("").trim();
     expect(body).toBe("");
   });
 
-  it("duplicate h1 heading names produce two separate chunks both with the same breadcrumb", () => {
+  it("produces two chunks with identical breadcrumbs when duplicate h1 heading names appear", () => {
     const chunks = chunkMarkdown("# Introduction\nbody one\n# Introduction\nbody two", "f.md");
     expect(chunks).toHaveLength(2);
     expect(chunks[0]!.breadcrumb).toEqual(["Introduction"]);
     expect(chunks[1]!.breadcrumb).toEqual(["Introduction"]);
   });
 
-  it("duplicate h1 heading names keep body text isolated to the correct chunk", () => {
+  it("isolates body text to the correct chunk when duplicate h1 heading names appear", () => {
     const chunks = chunkMarkdown("# Introduction\nbody one\n# Introduction\nbody two", "f.md");
     expect(chunks[0]!.content).toContain("body one");
     expect(chunks[0]!.content).not.toContain("body two");
@@ -179,13 +203,13 @@ describe("heading detection edge cases", () => {
 // ---------------------------------------------------------------------------
 
 describe("source field edge cases", () => {
-  it("source with path separators is preserved exactly on every chunk", () => {
+  it("preserves source with path separators exactly on every chunk", () => {
     const chunks = chunkMarkdown("# A\nbody\n# B\nbody", "docs/guide.md");
     expect(chunks[0]!.source).toBe("docs/guide.md");
     expect(chunks[1]!.source).toBe("docs/guide.md");
   });
 
-  it("source with spaces is preserved exactly", () => {
+  it("preserves source with spaces exactly", () => {
     const chunks = chunkMarkdown("# Hello\nbody", "my file.md");
     expect(chunks[0]!.source).toBe("my file.md");
   });
@@ -196,13 +220,13 @@ describe("source field edge cases", () => {
 // ---------------------------------------------------------------------------
 
 describe("delimiter in body content", () => {
-  it(`${D} in body text is preserved verbatim and does not corrupt content`, () => {
+  it(`preserves ${D} in body text verbatim without corrupting content`, () => {
     const chunks = chunkMarkdown(`# Heading\nbody with ${D} inside`, "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Heading"]);
     expect(chunks[0]!.content).toContain(`body with ${D} inside`);
   });
 
-  it(`${D} in body text does not change chunk count`, () => {
+  it(`does not change chunk count when ${D} appears in body text`, () => {
     const chunks = chunkMarkdown(`# One\nbody ${D} text\n# Two\nbody`, "f.md");
     expect(chunks).toHaveLength(2);
     expect(chunks[0]!.breadcrumb).toEqual(["One"]);
@@ -215,19 +239,19 @@ describe("delimiter in body content", () => {
 // ---------------------------------------------------------------------------
 
 describe("indented headings within valid range", () => {
-  it("heading with 1 leading space is treated as a heading", () => {
+  it("treats heading with 1 leading space as a valid heading", () => {
     const chunks = chunkMarkdown(" # Hello\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
   });
 
-  it("heading with 2 leading spaces is treated as a heading", () => {
+  it("treats heading with 2 leading spaces as a valid heading", () => {
     const chunks = chunkMarkdown("  # Hello\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
   });
 
-  it("heading with 3 leading spaces is treated as a heading", () => {
+  it("treats heading with 3 leading spaces as a valid heading", () => {
     const chunks = chunkMarkdown("   # Hello\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
@@ -239,7 +263,7 @@ describe("indented headings within valid range", () => {
 // ---------------------------------------------------------------------------
 
 describe("tab as separator after hash", () => {
-  it("tab after # is treated as a valid heading separator", () => {
+  it("treats tab after # as a valid heading separator", () => {
     const chunks = chunkMarkdown("#\tTabbed Heading\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual(["Tabbed Heading"]);
@@ -251,13 +275,13 @@ describe("tab as separator after hash", () => {
 // ---------------------------------------------------------------------------
 
 describe("empty ATX heading text", () => {
-  it("bare # with nothing after produces a heading chunk with empty breadcrumb entry", () => {
+  it("produces a headingless chunk when bare # has nothing after it", () => {
     const chunks = chunkMarkdown("#\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual([]);
   });
 
-  it("# followed by only a space produces a heading chunk with empty breadcrumb entry", () => {
+  it("produces a headingless chunk when # is followed by only a space", () => {
     const chunks = chunkMarkdown("# \nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual([]);
@@ -269,7 +293,7 @@ describe("empty ATX heading text", () => {
 // ---------------------------------------------------------------------------
 
 describe("leading spaces in heading text are stripped", () => {
-  it("multiple spaces after # are stripped from breadcrumb text", () => {
+  it("strips multiple spaces after # from breadcrumb text", () => {
     const chunks = chunkMarkdown("#   Hello\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
   });
@@ -280,101 +304,106 @@ describe("leading spaces in heading text are stripped", () => {
 // ---------------------------------------------------------------------------
 
 describe("body content is preserved raw and not stripped like breadcrumb entries", () => {
-  it("bold markers in body text are preserved verbatim", () => {
+  it("preserves bold markers in body text verbatim", () => {
     const chunks = chunkMarkdown("# Heading\n**bold text** in body", "f.md");
     expect(chunks[0]!.content).toContain("**bold text**");
   });
 
-  it("inline code in body text is preserved verbatim", () => {
+  it("preserves inline code in body text verbatim", () => {
     const chunks = chunkMarkdown("# Heading\nuse `someFunction()` here", "f.md");
     expect(chunks[0]!.content).toContain("`someFunction()`");
   });
 
-  it("link syntax in body text is preserved verbatim", () => {
+  it("preserves link syntax in body text verbatim", () => {
     const chunks = chunkMarkdown("# Heading\nsee [link](https://example.com)", "f.md");
     expect(chunks[0]!.content).toContain("[link](https://example.com)");
   });
 });
 
 // ---------------------------------------------------------------------------
-// issue 2: # in heading text must not be stripped (replace(/#+/g,"") bug)
+// hash characters inside heading text are preserved
 // ---------------------------------------------------------------------------
 
 describe("hash characters inside heading text are preserved", () => {
-  it("C# in heading text is not stripped from breadcrumb", () => {
+  it("preserves C# in breadcrumb when heading text contains C#", () => {
     const chunks = chunkMarkdown("# C# Programming\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["C# Programming"]);
   });
 
-  it("# mid-text is not stripped from breadcrumb", () => {
+  it("preserves mid-text # in breadcrumb when heading text contains #", () => {
     const chunks = chunkMarkdown("# Why use # for comments?\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Why use # for comments?"]);
   });
 
-  it("# in heading text does not corrupt body content", () => {
+  it("preserves C# in breadcrumb and captures body when heading is C# Guide", () => {
     const chunks = chunkMarkdown("# C# Guide\nbody text", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["C# Guide"]);
     expect(chunks[0]!.content).toContain("body text");
   });
 
-  it("multiple # inside heading text are all preserved in breadcrumb", () => {
+  it("preserves multiple # inside heading text in breadcrumb", () => {
     const chunks = chunkMarkdown("# Use #tag and #other\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Use #tag and #other"]);
   });
 
-  it("## inside heading text after the marker is preserved in breadcrumb", () => {
+  it("preserves ## inside heading text after the marker in breadcrumb", () => {
     const chunks = chunkMarkdown("# See ##double for details\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["See ##double for details"]);
+  });
+
+  it("strips trailing closing # but preserves C# when heading ends with C# #", () => {
+    const chunks = chunkMarkdown("# C# #\nbody", "f.md");
+    expect(chunks[0]!.breadcrumb).toEqual(["C#"]);
   });
 });
 
 // ---------------------------------------------------------------------------
-// issue 1: fragile replace — regex special chars in heading text
+// regex special characters in heading text
 // ---------------------------------------------------------------------------
 
 describe("regex special characters in heading text", () => {
-  it("parentheses in heading text are preserved in breadcrumb", () => {
+  it("preserves parentheses in breadcrumb when heading text contains them", () => {
     const chunks = chunkMarkdown("# Hello (World)\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello (World)"]);
   });
 
-  it("parentheses in heading text are preserved in body content prefix", () => {
+  it("starts content with parenthesised heading text when heading contains parentheses", () => {
     const chunks = chunkMarkdown("# Hello (World)\nbody", "f.md");
     expect(chunks[0]!.content.startsWith("Hello (World)")).toBe(true);
   });
 
-  it("dot in heading text is preserved", () => {
+  it("preserves dot in breadcrumb when heading text contains a dot", () => {
     const chunks = chunkMarkdown("# hello.exe\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["hello.exe"]);
   });
 
-  it("square brackets in heading text are preserved", () => {
+  it("preserves square brackets in breadcrumb when heading text contains them", () => {
     const chunks = chunkMarkdown("# Array[0]\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Array[0]"]);
   });
 
-  it("dollar sign in heading text is preserved", () => {
+  it("preserves dollar sign in breadcrumb when heading text contains it", () => {
     const chunks = chunkMarkdown("# Price: $10.00\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Price: $10.00"]);
   });
 
-  it("curly braces in heading text are preserved", () => {
+  it("preserves curly braces in breadcrumb when heading text contains them", () => {
     const chunks = chunkMarkdown("# Config {key: value}\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Config {key: value}"]);
   });
 
-  it("pipe character in heading text is preserved", () => {
+  it("preserves pipe character in breadcrumb when heading text contains it", () => {
     const chunks = chunkMarkdown("# A | B\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["A | B"]);
   });
 
-  it("heading text appearing verbatim in body is preserved in body after heading is removed", () => {
+  it("preserves repeated heading word in body when heading text appears again in body", () => {
     const chunks = chunkMarkdown("# Introduction\nbody that mentions Introduction again", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Introduction"]);
     expect(chunks[0]!.content).toContain("mentions Introduction again");
   });
 
-  it("heading line appearing as a full line in body is removed from prefix but preserved in body", () => {
+  it("preserves body reference to heading text when heading line also appears as body content", () => {
     const chunks = chunkMarkdown("# test\nsome body\nreference to test again", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["test"]);
     expect(chunks[0]!.content).toContain("some body");
@@ -387,7 +416,7 @@ describe("regex special characters in heading text", () => {
 // ---------------------------------------------------------------------------
 
 describe("source on pure headingless chunk", () => {
-  it("source is set correctly when the document has no headings at all", () => {
+  it("sets source correctly when document has no headings at all", () => {
     const chunks = chunkMarkdown("just text, no headings", "plain.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.source).toBe("plain.md");
@@ -397,31 +426,32 @@ describe("source on pure headingless chunk", () => {
 
 // ---------------------------------------------------------------------------
 // ATX closing hash sequences
-// CommonMark rule: trailing # chars are stripped ONLY when followed by nothing
-// but optional spaces. A # followed by non-space chars is plain heading text.
 // ---------------------------------------------------------------------------
 
 describe("ATX closing hash sequences", () => {
-  it("trailing # followed by EOL only is stripped — breadcrumb does not include it", () => {
+  it("strips trailing # from breadcrumb when it is followed only by EOL", () => {
     const chunks = chunkMarkdown("# Hello #\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
   });
 
-  it("trailing ### followed by EOL only is stripped — breadcrumb does not include them", () => {
+  it("strips trailing ### from breadcrumb when they are followed only by EOL", () => {
     const chunks = chunkMarkdown("# Hello ###\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello"]);
   });
 
-  it("# followed by a word is NOT a closing sequence — the full text is preserved", () => {
-    // '# Hello # World' — '# World' has 'World' after the #, so nothing is stripped
+  it("preserves # followed by a word in breadcrumb as it is not a closing sequence", () => {
     const chunks = chunkMarkdown("# Hello # World\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello # World"]);
   });
 
-  it("mid-text # followed by word is kept, but a later trailing # is still stripped", () => {
-    // '# Hello # World #' — '# World' is kept (word after #), trailing ' #' is stripped
+  it("preserves mid-text # followed by word and strips only the trailing # in breadcrumb", () => {
     const chunks = chunkMarkdown("# Hello # World #\nbody", "f.md");
     expect(chunks[0]!.breadcrumb).toEqual(["Hello # World"]);
+  });
+
+  it("strips trailing # but preserves C# when heading text ends with C# #", () => {
+    const chunks = chunkMarkdown("# C# #\nbody", "f.md");
+    expect(chunks[0]!.breadcrumb).toEqual(["C#"]);
   });
 });
 
@@ -430,7 +460,7 @@ describe("ATX closing hash sequences", () => {
 // ---------------------------------------------------------------------------
 
 describe("hash characters that are not headings", () => {
-  it("hash mid-line in body text does not start a new chunk", () => {
+  it("does not start a new chunk when hash appears mid-line in body text", () => {
     const chunks = chunkMarkdown("# Section\nSee note # 1 for details", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.content).toContain("See note # 1 for details");
@@ -442,7 +472,7 @@ describe("hash characters that are not headings", () => {
 // ---------------------------------------------------------------------------
 
 describe("blank-line-only pre-heading content", () => {
-  it("only blank lines before first heading do not produce a pre-heading chunk", () => {
+  it("produces no pre-heading chunk when only blank lines appear before first heading", () => {
     const chunks = chunkMarkdown("\n\n\n# Heading\nbody", "f.md");
     expect(chunks).toHaveLength(1);
     expect(chunks[0]!.breadcrumb).toEqual(["Heading"]);
@@ -454,10 +484,15 @@ describe("blank-line-only pre-heading content", () => {
 // ---------------------------------------------------------------------------
 
 describe("body content preservation", () => {
-  it("internal blank lines within a body are preserved", () => {
+  it("preserves internal blank lines within body content", () => {
     const md = "# Heading\nparagraph one\n\nparagraph two";
     const chunks = chunkMarkdown(md, "f.md");
     expect(chunks[0]!.content).toContain("paragraph one");
     expect(chunks[0]!.content).toContain("paragraph two");
+  });
+
+  it("preserves exact body text without leading or trailing whitespace added", () => {
+    const chunks = chunkMarkdown("# Heading\nbody text", "f.md");
+    expect(chunks[0]!.content).toBe("Heading\n\nbody text");
   });
 });
