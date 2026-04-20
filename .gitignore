@@ -43,3 +43,10 @@ node_modules/
 
 # MCP client config (contains local paths/secrets)
 .mcp.json
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+qdrant_storage/
