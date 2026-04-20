@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ThemeToggleClient } from "@/components/theme/ThemeToggleClient";
+import { HslColorPicker } from "@/components/theme/HslColorPicker";
 import "./globals.css";
 import { poppins, geistMono } from "@/app/typography";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
             <ThemeToggleClient />
           </div>
           {children}
+          <HslColorPicker />
         </ThemeProvider>
       </body>
     </html>

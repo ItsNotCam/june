@@ -21,6 +21,36 @@ const ALERTS = [
   { type: "success", title: "Canary deploy passed", detail: "All latency gates under threshold", time: "2h ago" },
 ] as const;
 
+const DOCUMENTS = [
+  { id: "doc-0091", name: "quickstart.md", source: "github", size: "12 KB", chunks: 48, tokens: 9_812, status: "indexed", updated: "2m ago" },
+  { id: "doc-0090", name: "api-reference.md", source: "github", size: "84 KB", chunks: 312, tokens: 64_440, status: "indexed", updated: "2m ago" },
+  { id: "doc-0089", name: "architecture.md", source: "notion", size: "31 KB", chunks: 120, tokens: 24_600, status: "indexed", updated: "15m ago" },
+  { id: "doc-0088", name: "onboarding.pdf", source: "gdrive", size: "2.1 MB", chunks: 88, tokens: 18_304, status: "indexed", updated: "1h ago" },
+  { id: "doc-0087", name: "changelog-v0.9.md", source: "github", size: "8 KB", chunks: 22, tokens: 4_400, status: "indexed", updated: "1h ago" },
+  { id: "doc-0086", name: "pricing-deck.pdf", source: "gdrive", size: "4.7 MB", chunks: 0, tokens: 0, status: "failed", updated: "2h ago" },
+  { id: "doc-0085", name: "sla-agreement.docx", source: "gdrive", size: "190 KB", chunks: 0, tokens: 0, status: "pending", updated: "2h ago" },
+  { id: "doc-0084", name: "ml-design-doc.md", source: "notion", size: "55 KB", chunks: 198, tokens: 41_580, status: "indexed", updated: "3h ago" },
+  { id: "doc-0083", name: "infra-runbook.md", source: "github", size: "22 KB", chunks: 76, tokens: 15_580, status: "stale", updated: "1d ago" },
+  { id: "doc-0082", name: "user-research-q1.pdf", source: "gdrive", size: "1.3 MB", chunks: 214, tokens: 44_296, status: "indexed", updated: "1d ago" },
+  { id: "doc-0081", name: "security-policy.md", source: "notion", size: "18 KB", chunks: 64, tokens: 13_120, status: "stale", updated: "3d ago" },
+  { id: "doc-0080", name: "roadmap-2026.md", source: "notion", size: "9 KB", chunks: 33, tokens: 6_864, status: "indexed", updated: "3d ago" },
+] as const;
+
+type DocStatus = (typeof DOCUMENTS)[number]["status"];
+
+const DOC_STATUS_STYLES: Record<DocStatus, string> = {
+  indexed: "text-success",
+  failed: "text-destructive",
+  pending: "text-warning-foreground",
+  stale: "text-muted-foreground",
+};
+
+const SOURCE_LABELS: Record<(typeof DOCUMENTS)[number]["source"], string> = {
+  github: "GitHub",
+  notion: "Notion",
+  gdrive: "Drive",
+};
+
 const STATUS_STYLES = {
   ok: "text-success",
   warn: "text-warning-foreground",
@@ -122,6 +152,43 @@ export default function Preview() {
                     <td className={`px-4 py-3 font-medium ${STATUS_STYLES[row.status]}`}>
                       {row.status}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Indexed documents table */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Indexed documents</h2>
+          <div className="bg-card rounded-xl border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Source</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Size</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Chunks</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Tokens</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DOCUMENTS.map((doc, i) => (
+                  <tr key={doc.id} className={`border-b last:border-0 ${i % 2 === 0 ? "" : "bg-muted/20"}`}>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{doc.id}</td>
+                    <td className="px-4 py-3 max-w-40 truncate font-medium">{doc.name}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-xs">{SOURCE_LABELS[doc.source]}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground">{doc.size}</td>
+                    <td className="px-4 py-3 text-right font-mono">{doc.chunks > 0 ? doc.chunks.toLocaleString() : "—"}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground">{doc.tokens > 0 ? doc.tokens.toLocaleString() : "—"}</td>
+                    <td className={`px-4 py-3 font-medium ${DOC_STATUS_STYLES[doc.status]}`}>{doc.status}</td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">{doc.updated}</td>
                   </tr>
                 ))}
               </tbody>
