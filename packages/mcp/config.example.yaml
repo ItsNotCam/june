@@ -9,12 +9,11 @@
 #   OLLAMA_SUMMARIZER_MODEL, [QDRANT_API_KEY]
 
 sidecar:
-  path: ./database/june.db                # SQLite file
+  path: ./june.db                # SQLite file
 
 log:
-  level: debug                   # debug | info | warn | error
+  level: info                    # debug | info | warn | error
   output: stdout                 # stdout | <file path>
-  pretty: true                   # true = human-friendly colored output; false = JSON
 
 chunk:
   target_tokens: 500             # ~1800–2200 chars via the /4 proxy
