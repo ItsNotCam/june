@@ -11,12 +11,12 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 ## AI usage disclosure
 
 <!-- authorship-stats-start -->
-_202 tracked source files with authorship attribution_
+_202 tracked source files · 22,379 lines with authorship attribution_
 
-| Author | Files | % |
-|--------|------:|--:|
-| Claude | 183 | 91% |
-| Cam | 19 | 9% |
+| Author | Files | File % | Lines | Line % |
+|--------|------:|-------:|------:|-------:|
+| Claude | 183 | 91% | 21,825 | 98% |
+| Cam | 19 | 9% | 554 | 2% |
 <!-- authorship-stats-end -->
 
 This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository.
