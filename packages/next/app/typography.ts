@@ -1,4 +1,4 @@
-// author: Claude
+// author: Cam
 import { Poppins, Geist_Mono } from "next/font/google";
 
 export const poppins = Poppins({

@@ -1,4 +1,4 @@
-// author: Claude
+// author: Cam
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 

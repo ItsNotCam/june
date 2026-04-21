@@ -1,4 +1,4 @@
-// author: Claude
+// author: Cam
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ThemeToggleClient } from "@/components/theme/ThemeToggleClient";

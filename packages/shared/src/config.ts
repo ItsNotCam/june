@@ -1,4 +1,4 @@
-// author: Claude
+// author: Cam
 import { readFile } from "fs/promises";
 import { parse } from "yaml";
 import { z } from "zod";
