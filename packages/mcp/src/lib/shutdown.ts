@@ -1,3 +1,4 @@
+// author: Claude
 import { logger } from "./logger";
 
 /**

@@ -1,3 +1,4 @@
+// author: Claude
 import { Database } from "bun:sqlite";
 import { getConfig, loadConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";

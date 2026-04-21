@@ -1,3 +1,4 @@
+// author: Claude
 import { buildFallbackClassifierJson, toChunkClassification } from "./fallback";
 import type { Classifier } from "./types";
 

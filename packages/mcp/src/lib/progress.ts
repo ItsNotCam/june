@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * stderr progress reporter ([§27.4](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#274-progress-output)).
  *

@@ -1,3 +1,4 @@
+// author: Claude
 import type { Root as MdastRoot } from "mdast";
 import { sectionize } from "@/lib/chunker/sectionize";
 import { chunkSection } from "@/lib/chunker/split";

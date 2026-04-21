@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 import { TAGS_DEFAULT } from "@/types/vocab";
 import type { ChunkClassification } from "@/types/chunk";

@@ -1,3 +1,4 @@
+// author: Claude
 import { realpath, stat } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";

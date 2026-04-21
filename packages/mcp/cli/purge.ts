@@ -1,3 +1,4 @@
+// author: Claude
 import { buildDeps } from "@/pipeline/factory";
 import { purge } from "@/pipeline/purge";
 import { SidecarLockHeldError } from "@/lib/errors";

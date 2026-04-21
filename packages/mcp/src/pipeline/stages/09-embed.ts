@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 import { bm25Vectorize, type SparseVector } from "@/lib/embedder/bm25";
 import { logger } from "@/lib/logger";

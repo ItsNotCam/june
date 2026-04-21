@@ -1,3 +1,4 @@
+// author: Claude
 import { fileURLToPath } from "node:url";
 import { buildDeps } from "@/pipeline/factory";
 import { SidecarLockHeldError } from "@/lib/errors";

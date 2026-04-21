@@ -1,3 +1,4 @@
+// author: Claude
 import { loadConfig, getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 import { setLogLevel, setPrettyMode } from "@/lib/logger";

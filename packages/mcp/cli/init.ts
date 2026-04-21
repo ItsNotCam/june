@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 import { createOllamaEmbedder } from "@/lib/embedder/ollama";
 import { logger } from "@/lib/logger";

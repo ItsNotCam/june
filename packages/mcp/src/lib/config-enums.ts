@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Re-export of vocab enums used by `lib/config.ts`. Lives in its own module
  * so `config.ts` never pulls in schema files (which would create a cycle via

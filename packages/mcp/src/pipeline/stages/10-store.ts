@@ -1,3 +1,4 @@
+// author: Claude
 import { chunkIdToQdrantPointId } from "@/lib/ids";
 import { logger } from "@/lib/logger";
 import type { SidecarStorage, Tx, VectorPoint, VectorStorage } from "@/lib/storage/types";

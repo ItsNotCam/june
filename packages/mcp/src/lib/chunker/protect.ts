@@ -1,3 +1,4 @@
+// author: Claude
 import type { Root as MdastRoot, RootContent } from "mdast";
 
 /**

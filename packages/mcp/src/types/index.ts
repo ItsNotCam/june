@@ -1,3 +1,4 @@
+// author: Claude
 export type { Chunk, ChunkClassification, ChunkRelationships, ChunkRuntimeSignals, ChunkSpan, ChunkStructuralFeatures, TypeSpecific } from "./chunk";
 export type { Document } from "./document";
 export { InvalidIdError } from "./ids";

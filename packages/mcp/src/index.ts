@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Public surface of the june ingestion-pipeline package ([§32.2](../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#322-public-exports)).
  *

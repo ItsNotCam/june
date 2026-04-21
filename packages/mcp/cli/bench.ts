@@ -1,3 +1,4 @@
+// author: Claude
 import { spawn } from "bun";
 import { join } from "node:path";
 import { parseCommonFlags } from "./shared";

@@ -1,3 +1,4 @@
+// author: Cam
 import { config } from "winston";
 
 /** All valid NODE_ENV values. Zod enum sources from this array. */

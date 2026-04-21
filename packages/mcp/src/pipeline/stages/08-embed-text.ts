@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import type { SidecarStorage } from "@/lib/storage/types";

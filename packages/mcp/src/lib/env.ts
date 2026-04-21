@@ -1,3 +1,4 @@
+// author: Claude
 import { BaseEnvSchema, createEnv } from "@june/shared";
 import { z } from "zod";
 

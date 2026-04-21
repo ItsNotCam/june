@@ -1,3 +1,4 @@
+// author: Claude
 import type { DocId, SectionId, Version } from "./ids";
 
 /**

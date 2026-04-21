@@ -1,3 +1,4 @@
+// author: Claude
 import type { RunId } from "@/types/ids";
 import type { SidecarStorage } from "./storage/types";
 

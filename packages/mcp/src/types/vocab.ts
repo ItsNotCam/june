@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Controlled vocabularies ([§12](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#12-controlled-vocabularies), Appendix D) as runtime `as const` tuples.
  *

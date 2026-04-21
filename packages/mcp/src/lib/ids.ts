@@ -1,3 +1,4 @@
+// author: Claude
 import { createHash } from "node:crypto";
 import {
   asChunkId,

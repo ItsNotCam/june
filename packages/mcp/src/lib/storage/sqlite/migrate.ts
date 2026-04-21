@@ -1,3 +1,4 @@
+// author: Claude
 import { Database } from "bun:sqlite";
 import { mkdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

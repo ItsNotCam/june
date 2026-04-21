@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 
 /**

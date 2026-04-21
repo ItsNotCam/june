@@ -1,3 +1,4 @@
+// author: Claude
 import { dirname, isAbsolute, resolve as resolvePath } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseMarkdown } from "@/lib/parser/markdown";

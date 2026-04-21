@@ -1,3 +1,4 @@
+// author: Claude
 import type { Root as MdastRoot, Heading } from "mdast";
 import { deriveContentHash, deriveSectionId } from "@/lib/ids";
 import type { DocId, Version } from "@/types/ids";

@@ -1,3 +1,4 @@
+// author: Claude
 import { OfflineWhitelistViolation } from "./errors";
 import { logger } from "./logger";
 

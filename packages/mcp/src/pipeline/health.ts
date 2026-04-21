@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";

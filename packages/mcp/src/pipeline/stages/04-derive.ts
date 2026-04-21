@@ -1,3 +1,4 @@
+// author: Claude
 import type { RootContent } from "mdast";
 import { parseMarkdown } from "@/lib/parser/markdown";
 import { approximateTokens } from "@/lib/tokenize";

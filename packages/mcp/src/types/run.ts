@@ -1,3 +1,4 @@
+// author: Claude
 import type { ErrorType } from "@/lib/error-types";
 import type { ChunkId, DocId, RunId, Version } from "./ids";
 import type { IngestStage, ReconcileEventType, ReconcileReason, RunTrigger } from "./vocab";

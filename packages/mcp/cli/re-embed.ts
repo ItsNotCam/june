@@ -1,3 +1,4 @@
+// author: Claude
 import { buildDeps } from "@/pipeline/factory";
 import { createOllamaEmbedder } from "@/lib/embedder/ollama";
 import { reembed } from "@/pipeline/reembed";

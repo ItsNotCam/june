@@ -1,3 +1,4 @@
+<!-- author: Claude -->
 ## Working conventions
 
 ### Git commits
@@ -11,6 +12,30 @@ Commit messages must always start with a conventional commit type in parentheses
 ```
 
 Valid types: `(feat)`, `(fix)`, `(chore)`, `(refactor)`, `(docs)`, `(test)`, `(style)`, `(perf)`, `(ci)`, `(build)`
+
+### Authorship tracking and commit workflow
+
+A PostToolUse hook automatically records Claude's file contributions to `.claude/scratch/authorship.jsonl` after every `Write` or `Edit`. Before writing any commit message, run:
+
+```bash
+bash /home/cam/june/scripts/check-authorship.sh
+```
+
+This prints a per-file table with Claude's `+` line count vs total lines, and two groups:
+
+- **Claude-primary** (Claude > 50% of file): commit with trailer `Co-authored-by: Claude <claude@anthropic.com>`
+- **Cam-primary** (Claude ≤ 50%): commit without trailer
+
+**Split case (files in both groups):**
+1. `git restore --staged .`
+2. `git add <claude-primary files>` → commit with `Co-authored-by: Claude <claude@anthropic.com>`
+3. `git add <cam-primary files>` → commit without trailer
+
+**All same group:** single commit, with or without trailer as appropriate.
+
+**No tracking data for a file** (Cam edited it directly): treat as Cam-primary.
+
+The percentage is `claude_adds / total_lines` where `claude_adds` = lines Claude has added since the last `git commit`. It measures per-session contribution, not lifetime authorship.
 
 ### READMEs
 After every commit, update the README for any package whose files were changed. If no README exists for that package yet, create one. The root README should also be updated if the change affects the overall project structure or public API.

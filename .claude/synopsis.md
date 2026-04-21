@@ -1,3 +1,4 @@
+<!-- author: Cam -->
 # This is june. Here is the synopsis
 
 # june. — Product Planning Synopsis

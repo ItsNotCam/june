@@ -1,3 +1,4 @@
+// author: Claude
 import type { Root as MdastRoot } from "mdast";
 import type { Chunk, ChunkClassification } from "./chunk";
 import type { Document } from "./document";

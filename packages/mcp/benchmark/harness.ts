@@ -1,3 +1,4 @@
+// author: Claude
 #!/usr/bin/env bun
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";

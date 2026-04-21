@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Exponential backoff with jitter ([§25.2](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#252-retry-policy)).
  *

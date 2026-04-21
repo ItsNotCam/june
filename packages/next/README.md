@@ -1,3 +1,4 @@
+<!-- author: Claude -->
 # packages/next
 
 Next.js 16 frontend for the june monorepo.

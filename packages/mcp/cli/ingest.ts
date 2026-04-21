@@ -1,3 +1,4 @@
+// author: Claude
 import { ingestPath } from "@/pipeline/ingest";
 import { buildDeps } from "@/pipeline/factory";
 import { asVersion } from "@/types/ids";

@@ -1,3 +1,4 @@
+// author: Claude
 import { getConfig } from "@/lib/config";
 import { createOllamaClassifier } from "@/lib/classifier/ollama";
 import { createStubClassifier } from "@/lib/classifier/stub";

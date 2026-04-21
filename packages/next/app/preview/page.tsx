@@ -1,9 +1,11 @@
+// author: Claude
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PreviewCharts } from "@/components/layout/PreviewCharts";
-import { PreviewForm } from "@/components/layout/PreviewForm";
-import { PreviewSidebar } from "@/components/layout/PreviewSidebar";
+import { PreviewCharts } from "./_components/PreviewCharts";
+import { PreviewForm } from "./_components/PreviewForm";
+import { PreviewSidebar } from "./_components/PreviewSidebar";
+import { HslColorPicker } from "./_components/HslColorPicker";
 
 const RECENT_ACTIVITY = [
   { id: "q-4821", query: "explain the event loop", source: "web", latency: "0.9s", status: "ok" },
@@ -276,10 +278,10 @@ export default function Preview() {
         <section className="bg-card rounded-xl border p-6 space-y-4">
           <h2 className="text-lg font-semibold">Inputs</h2>
           <div className="grid grid-cols-2 gap-4">
-            <input className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2" placeholder="Default input" />
-            <input disabled className="border-input bg-muted ring-offset-background placeholder:text-muted-foreground flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none cursor-not-allowed opacity-50" placeholder="Disabled input" />
+            <input suppressHydrationWarning className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2" placeholder="Default input" />
+            <input suppressHydrationWarning disabled className="border-input bg-muted ring-offset-background placeholder:text-muted-foreground flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none cursor-not-allowed opacity-50" placeholder="Disabled input" />
             <div className="flex gap-2 col-span-2">
-              <input className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2" placeholder="Search docs..." />
+              <input suppressHydrationWarning className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2" placeholder="Search docs..." />
               <Button className="h-full">Search</Button>
             </div>
           </div>
@@ -623,6 +625,7 @@ export default function Preview() {
 
       </div>
       </div>
+			<HslColorPicker />
     </div>
   );
 }

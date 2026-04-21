@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Typed error classes used across the pipeline.
  *

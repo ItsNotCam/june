@@ -1,6 +1,10 @@
+<!-- author: Claude -->
 # @june/mcp
 
 June's ingestion pipeline: markdown → enriched, embedded chunks, persisted in Qdrant + SQLite. CLI-driven; one process per invocation.
+
+#### AI Disclosure:
+Benchmarking tool, ingestion pipeline, and ingestion pipeline database schema written entirely by Claude after 4 hours of planning and spec development.
 
 ## Prerequisites
 

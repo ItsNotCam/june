@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Canonical `error_type` vocabulary ([§25.6](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#256-error-type-vocabulary) / I9).
  *

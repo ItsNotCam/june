@@ -1,3 +1,4 @@
+// author: Claude
 import type { DocId, RunId, Version } from "./ids";
 import type {
   Category,

@@ -1,3 +1,4 @@
+// author: Claude
 import type { Chunk } from "@/types/chunk";
 import type { Document } from "@/types/document";
 import type { ChunkId, DocId, RunId, Version } from "@/types/ids";

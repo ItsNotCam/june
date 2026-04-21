@@ -1,3 +1,4 @@
+// author: Claude
 #!/usr/bin/env bun
 import { logger } from "@/lib/logger";
 import { installSignalHandlers } from "@/lib/shutdown";

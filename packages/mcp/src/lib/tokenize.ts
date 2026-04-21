@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * The "tokens ≈ characters / 4" proxy ([§16.2](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#162-within-section-chunking-3b--the-recursive-overflow-splitter)). A dependency-free estimator
  * that correlates well enough with embedding-model tokenizers for size

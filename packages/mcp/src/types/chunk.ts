@@ -1,3 +1,4 @@
+// author: Claude
 import type { ChunkId, DocId, RunId, SectionId, Version } from "./ids";
 import type {
   AnswerShape,

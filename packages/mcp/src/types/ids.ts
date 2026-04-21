@@ -1,3 +1,4 @@
+// author: Claude
 /**
  * Branded primitive types for june's deterministic identifiers.
  *

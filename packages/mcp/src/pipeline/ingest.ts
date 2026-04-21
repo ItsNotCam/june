@@ -1,3 +1,4 @@
+// author: Claude
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";

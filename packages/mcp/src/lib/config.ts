@@ -1,3 +1,4 @@
+// author: Claude
 import { ConfigNotInitializedError } from "@june/shared";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";

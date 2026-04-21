@@ -1,3 +1,4 @@
+// author: Claude
 import type { Summarizer, SummarizerInput } from "./types";
 
 /**

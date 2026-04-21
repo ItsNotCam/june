@@ -1,3 +1,4 @@
+// author: Claude
 import { parse as parseYaml } from "yaml";
 import { normalizeBytes } from "@/lib/encoding";
 import type { ErrorType } from "@/lib/error-types";

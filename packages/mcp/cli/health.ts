@@ -1,3 +1,4 @@
+// author: Claude
 import { health } from "@/pipeline/health";
 import { bootstrap, parseCommonFlags } from "./shared";
 

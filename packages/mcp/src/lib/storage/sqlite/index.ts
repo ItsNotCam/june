@@ -1,3 +1,4 @@
+// author: Claude
 import { Database } from "bun:sqlite";
 import { hostname } from "node:os";
 import { SidecarLockHeldError } from "@/lib/errors";

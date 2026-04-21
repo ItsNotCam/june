@@ -1,3 +1,4 @@
+// author: Claude
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { getEnv } from "@/lib/env";
 import { QdrantWriteError } from "@/lib/errors";

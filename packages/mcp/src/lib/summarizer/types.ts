@@ -1,3 +1,4 @@
+// author: Claude
 import type { ChunkId } from "@/types/ids";
 import type { DocumentOutline } from "@/schemas/classifier";
 import type { SummarizerOutput } from "@/types/pipeline";

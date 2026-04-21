@@ -1,3 +1,4 @@
+// author: Claude
 import type { ChunkId } from "@/types/ids";
 import type { EmbeddingResult } from "@/types/pipeline";
 
