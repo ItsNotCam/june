@@ -10,11 +10,22 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 
 ## AI usage disclosure
 
+<!-- authorship-stats-start -->
+_202 tracked source files with authorship attribution_
+
+| Author | Files | % |
+|--------|------:|--:|
+| Claude | 183 | 91% |
+| Cam | 19 | 9% |
+<!-- authorship-stats-end -->
+
 This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository.
 
 ### How it works
 
-A post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
+There are two complementary tracking mechanisms.
+
+**Per-session line attribution** — a post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
 
 ```
 file                          claude_adds  total_lines  pct
@@ -26,7 +37,9 @@ Files where Claude contributed more than 50% of lines since the last commit are 
 
 When a single commit contains both groups, it is split into two separate commits so the attribution is accurate at the file level, not just the commit level.
 
-This tracks **per-session contribution** — lines Claude has added since the last `git commit` — not lifetime authorship. It's a measure of who wrote the code in a given working session, not who owns the codebase.
+This tracks **per-session contribution** — lines Claude added since the last `git commit` — not lifetime authorship.
+
+**Per-file ownership** — every source file carries an `// author: <name>` comment at the top that records who originally created it. The pre-commit hook scans all tracked files for these comments, tallies the counts, and refreshes the table above before each commit. This is a cumulative measure of who owns which files across the lifetime of the project.
 
 ### Why
 
