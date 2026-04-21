@@ -9,11 +9,25 @@
       "Bash(bun install *)",
       "Bash(bun add *)",
       "Bash(bun run *)",
+      "Bash(bash /home/cam/june/scripts/check-authorship.sh)",
       "Bash(find /app/packages -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" -exec wc -l {} +)"
     ],
     "additionalDirectories": [
       "/app/.claude",
       ".claude"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /home/cam/june/scripts/track-authorship.sh"
+          }
+        ]
+      }
     ]
   }
 }
