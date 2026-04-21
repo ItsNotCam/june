@@ -13,14 +13,14 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 <!-- authorship-stats-start -->
 _202 tracked source files · 22,379 total lines · measured by `// author:` ownership_
 
-| Package | Files | Claude file % | Lines | Claude line % |
-|---------|------:|--------------:|------:|--------------:|
-| `mcp/bench` | 76 | 100% | 7,873 | 100% |
-| `mcp/ingest` | 97 | 100% | 12,020 | 100% |
-| `mcp/server` | 7 | 0% | 168 | 0% |
-| `next` | 17 | 53% | 2,094 | 86% |
-| `shared` | 5 | 20% | 224 | 56% |
-| **total** | **202** | **91%** | **22,379** | **98%** |
+| Package | Cam files | Claude files | Cam lines | Claude lines |
+|---------|----------:|-------------:|----------:|-------------:|
+| `mcp/bench` | 0 | 76 | 0 | 7,873 |
+| `mcp/ingest` | 0 | 97 | 0 | 12,020 |
+| `mcp/server` | 7 | 0 | 168 | 0 |
+| `next` | 8 | 9 | 288 | 1,806 |
+| `shared` | 4 | 1 | 98 | 126 |
+| **total** | **19** | **183** | **554** | **21,825** |
 <!-- authorship-stats-end -->
 
 This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository. [→ How it works](#how-it-works)
