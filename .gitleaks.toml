@@ -1,0 +1,50 @@
+# gitleaks configuration — june repo
+# Extends the built-in ruleset with custom rules for personal identifiers.
+# Run manually: gitleaks detect --source . -v
+# Pre-commit hook runs: gitleaks protect --staged -v
+
+title = "june gitleaks config"
+
+[extend]
+# Pull in gitleaks' full built-in ruleset (API keys, tokens, etc.)
+useDefault = true
+
+# ── Custom rules ────────────────────────────────────────────────────────────
+
+[[rules]]
+id = "personal-hostname"
+description = "Personal home-server hostname"
+regex = '''itsnotcam\.dev'''
+tags = ["custom", "pii"]
+
+[[rules]]
+id = "personal-home-path"
+description = "Hardcoded /home/cam path (local machine username)"
+regex = '''/home/cam/'''
+tags = ["custom", "pii"]
+
+[[rules]]
+id = "personal-email"
+description = "Personal email address"
+regex = '''cam@june\.dev|camallanyoung@gmail\.com'''
+tags = ["custom", "pii"]
+
+[[rules]]
+id = "personal-name"
+description = "Author's real name in source/config files"
+regex = '''Cam Young'''
+tags = ["custom", "pii"]
+
+# ── Allowlist ────────────────────────────────────────────────────────────────
+# Entries here are never flagged regardless of content.
+
+[allowlist]
+description = "Files safe to skip"
+paths = [
+  # Lock files contain package hashes that trip generic entropy rules
+  '''bun\.lock''',
+  '''package-lock\.json''',
+  '''yarn\.lock''',
+  # The gitleaks config itself documents the patterns — don't self-flag
+  '''\.gitleaks\.toml''',
+]

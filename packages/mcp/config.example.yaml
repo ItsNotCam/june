@@ -1,0 +1,86 @@
+# june ingestion-pipeline config reference (§29.2).
+#
+# Every tunable below has a shipped default — an operator running june with
+# only the required env vars set will pick these up. Override by copying this
+# file to ./config.yaml (or set CONFIG_PATH) and editing.
+#
+# Secrets + service endpoints live in env vars, NOT here (§29.1 / I13):
+#   OLLAMA_URL, QDRANT_URL, OLLAMA_EMBED_MODEL, OLLAMA_CLASSIFIER_MODEL,
+#   OLLAMA_SUMMARIZER_MODEL, [QDRANT_API_KEY]
+
+sidecar:
+  path: ./june.db                # SQLite file
+
+log:
+  level: info                    # debug | info | warn | error
+  output: stdout                 # stdout | <file path>
+  pretty: true                   # true = human-friendly colored output; false = JSON
+
+chunk:
+  target_tokens: 500             # ~1800–2200 chars via the /4 proxy
+  min_tokens: 100                # fragment floor
+  max_tokens: 1000               # hard ceiling
+  overlap_pct: 0.15              # 15%
+
+ingest:
+  max_file_bytes: 52428800       # 50 MiB
+
+embedding:
+  batch_size: 32                 # per-call batch size for /api/embed
+  matryoshka_dim: null           # opt-in: set to 512/256/... for nomic v1.5
+  max_input_chars: 30000         # truncation boundary for the composed embed-text
+
+bm25:
+  stopwords: []                  # empty = rely on Qdrant IDF modifier
+
+classifier:
+  implementation: ollama         # ollama | stub | mock
+  tag_extensions: []             # allowed-list extension beyond TAGS_DEFAULT
+  fallbacks:
+    category: reference
+    section_role: reference
+    answer_shape: concept
+    audience: [engineering]
+    audience_technicality: 3
+    sensitivity: internal        # conservative
+    lifecycle_status: published
+    stability: stable
+    temporal_scope: current
+    source_trust_tier: derived
+    prerequisites: []
+    self_contained: true
+    negation_heavy: false
+    tags: []
+
+summarizer:
+  implementation: ollama         # ollama | stub | mock
+  long_doc_threshold_tokens: 6000
+
+ollama:
+  embed_timeout_ms: 60000
+  classifier_timeout_ms: 60000
+  summarizer_timeout_ms: 60000
+  first_call_timeout_ms: 300000  # absorbs model-load on first call
+  retry:
+    base_ms: 1000
+    max_attempts: 3
+  embed_retry_max_attempts: 5
+  classifier_retry_max_attempts: 3
+  summarizer_retry_max_attempts: 3
+
+qdrant:
+  upsert_batch_size: 128
+  retry:
+    base_ms: 1000
+    max_attempts: 4
+
+reconcile:
+  mode: manual                   # off | manual | scheduled
+  cron: ""                       # only used when mode = scheduled
+
+sources: {}
+#  /repo/docs/**:
+#    source_system: github
+#    source_type: internal
+#    namespace: org:acme
+#    project: docs

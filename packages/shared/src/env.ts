@@ -1,3 +1,4 @@
+// author: Cam
 import { z } from "zod";
 import { NODE_ENV_VALUES, LOG_LEVEL_VALUES } from "./types.ts";
 

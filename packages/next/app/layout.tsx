@@ -1,17 +1,9 @@
+// author: Claude
 import type { Metadata } from "next";
-import { Poppins, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ThemeToggleClient } from "@/components/theme/ThemeToggleClient";
 import "./globals.css";
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { poppins, geistMono } from "@/app/typography";
 
 export const metadata: Metadata = {
   title: "june.",
@@ -24,8 +16,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${poppins.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem themes={["light", "dark"]} scriptProps={{ suppressHydrationWarning: true }}>
+          <div className="fixed top-3 right-3 z-50">
+            <ThemeToggleClient />
+          </div>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

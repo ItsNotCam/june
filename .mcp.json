@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "june-mcp": {
-      "type": "stdio",
-      "command": "bun",
-      "args": ["run", "/app/packages/mcp/src/index.ts"]
-    }
-  }
-}
