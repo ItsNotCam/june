@@ -8,6 +8,32 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 
 ---
 
+## AI usage disclosure
+
+This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository.
+
+### How it works
+
+A post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
+
+```
+file                          claude_adds  total_lines  pct
+packages/mcp/ingest/src/...   142          198          71%  ← Claude-primary
+scripts/check-authorship.sh   0            44           0%   ← Cam-primary
+```
+
+Files where Claude contributed more than 50% of lines since the last commit are **Claude-primary** and carry a `Co-authored-by: Claude <claude@anthropic.com>` trailer in the commit message. Files at 50% or below are **Cam-primary** and have no trailer.
+
+When a single commit contains both groups, it is split into two separate commits so the attribution is accurate at the file level, not just the commit level.
+
+This tracks **per-session contribution** — lines Claude has added since the last `git commit` — not lifetime authorship. It's a measure of who wrote the code in a given working session, not who owns the codebase.
+
+### Why
+
+AI-assisted development is increasingly normal. This system exists to make the extent of that assistance legible — in the git log, not just in a disclaimer. If you read the history, you can see exactly which parts Claude wrote.
+
+---
+
 ## What it is
 
 june indexes your internal docs, vendor APIs, and codebases into a single queryable knowledge base running entirely on local hardware. No data leaves the building.
@@ -51,29 +77,3 @@ june/
 ```
 
 Bun workspace root. All packages are TypeScript strict, `"type": "module"`, Bun runtime.
-
----
-
-## AI usage disclosure
-
-This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository.
-
-### How it works
-
-A post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
-
-```
-file                          claude_adds  total_lines  pct
-packages/mcp/ingest/src/...   142          198          71%  ← Claude-primary
-scripts/check-authorship.sh   0            44           0%   ← Cam-primary
-```
-
-Files where Claude contributed more than 50% of lines since the last commit are **Claude-primary** and carry a `Co-authored-by: Claude <claude@anthropic.com>` trailer in the commit message. Files at 50% or below are **Cam-primary** and have no trailer.
-
-When a single commit contains both groups, it is split into two separate commits so the attribution is accurate at the file level, not just the commit level.
-
-This tracks **per-session contribution** — lines Claude has added since the last `git commit` — not lifetime authorship. It's a measure of who wrote the code in a given working session, not who owns the codebase.
-
-### Why
-
-AI-assisted development is increasingly normal. This system exists to make the extent of that assistance legible — in the git log, not just in a disclaimer. If you read the history, you can see exactly which parts Claude wrote.
