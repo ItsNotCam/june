@@ -49,6 +49,14 @@ else
   CLAUDE_ADDS="$(printf '%s' "$DIFF_OUTPUT" | grep '^+' | grep -v '^+++' | wc -l | tr -d '[:space:]')"
 fi
 
+# ── Flip // author: comment if Claude crosses the 50% threshold ──────────────
+if [[ "$TOTAL_LINES" -gt 0 ]] && grep -q "^// author: " "$FILE_PATH" 2>/dev/null; then
+  PCT_INT="$(awk "BEGIN { printf \"%d\", ($CLAUDE_ADDS / $TOTAL_LINES) * 100 }")"
+  if [[ "$PCT_INT" -gt 50 ]]; then
+    sed -i "s|^// author: .*$|// author: Claude|" "$FILE_PATH"
+  fi
+fi
+
 mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 RECORD="$(jq -cn \
