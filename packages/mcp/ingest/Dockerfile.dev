@@ -1,0 +1,14 @@
+FROM oven/bun:1
+WORKDIR /app
+
+# Copy workspace manifests so dep install is cached independently of source changes
+COPY package.json bun.lock ./
+COPY packages/mcp/ingest/package.json ./packages/mcp/ingest/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN bun install
+
+WORKDIR /app/packages/mcp/ingest
+# Source is mounted by docker-compose — node_modules stays from the layer above
+# stdin_open + tty in docker-compose keep the stdio transport alive
+CMD ["bun", "run", "--watch", "src/index.ts"]

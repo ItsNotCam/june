@@ -47,12 +47,15 @@ After every commit, update the README for any package whose files were changed. 
 ```
 june/                          ← Bun workspace root
   packages/
-    next/                      ← Frontend (Next.js 16, React 19, Tailwind v4, shadcn/ui)
-    server/                    ← Hono API server (stub — Hello World only)
-    mcp/                       ← MCP package (stub — Hello World only)
+    next/                      ← @june/next — Next.js 16 frontend
+    shared/                    ← @june/shared — shared types, env/config/logger scaffolding
+    mcp/                       ← umbrella (no package.json at this level)
+      ingest/                  ← @june/mcp-ingest — markdown ingestion pipeline + `june` CLI
+      bench/                   ← @june/mcp-bench — synthetic-corpus RAG-quality eval (`june-eval` CLI)
+      server/                  ← @june/mcp-server — MCP server (Hono HTTP + JSON-RPC, scaffold)
 ```
 
-Root `package.json` declares `"workspaces": ["packages/*"]`. All packages are `"type": "module"`, TypeScript strict, Bun runtime.
+Root `package.json` declares `"workspaces": ["packages/*", "packages/mcp/*"]`. All packages are `"type": "module"`, TypeScript strict, Bun runtime.
 
 ### packages/next
 
@@ -64,9 +67,21 @@ Root `package.json` declares `"workspaces": ["packages/*"]`. All packages are `"
 - `page.tsx` is a clean june-branded placeholder using shadcn `Button` — no Next.js boilerplate
 - `packages/next` has its own nested `.git` repo (created by `create-next-app`) — be aware when running git commands from repo root
 
-### packages/server + packages/mcp
+### packages/mcp/ingest
 
-Both are empty Bun stubs (`console.log("Hello via Bun!")`). No dependencies installed yet. These are the next things to build out.
+The markdown ingestion pipeline. Ships the `june` CLI (`init`, `ingest`, `status`, `resume`, `reindex`, `purge`, `reconcile`, `re-embed`, `health`, `bench`). Tests under `__test__/`, pipeline perf harness under `benchmark/`. SQLite sidecar + Qdrant vector store.
+
+### packages/mcp/bench
+
+RAG-quality evaluation. Ships the `june-eval` CLI (`generate`, `run`, `report`, `compare`, `health`). Generates a synthetic corpus, ingests it via the `june` CLI, runs retrieval + reader + LLM judge, and scores recall/MRR/answer correctness. Uses Anthropic, OpenAI, and Ollama providers.
+
+### packages/mcp/server
+
+Scaffold only. Will host the MCP JSON-RPC server that exposes `@june/mcp-ingest` pipeline entry points as MCP tools.
+
+### packages/shared
+
+`@june/shared` provides `BaseEnvSchema`, `createEnv`, and shared types used across all packages.
 
 ### Notes for future work
 

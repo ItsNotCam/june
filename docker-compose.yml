@@ -22,27 +22,33 @@ services:
     volumes:
       - ./packages/next:/app/packages/next
 
-  server:
+  mcp-ingest:
     <<: *env
     build:
       context: .
-      dockerfile: packages/server/Dockerfile.dev
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./packages/server:/app/packages/server
-    depends_on:
-      - qdrant
-
-  mcp:
-    <<: *env
-    build:
-      context: .
-      dockerfile: packages/mcp/Dockerfile.dev
+      dockerfile: packages/mcp/ingest/Dockerfile.dev
     environment:
       QDRANT_URL: http://qdrant:6333
     volumes:
-      - ./packages/mcp:/app/packages/mcp
+      - ./packages/mcp/ingest:/app/packages/mcp/ingest
+      - ./packages/shared:/app/packages/shared
+    stdin_open: true
+    tty: true
+    depends_on:
+      - qdrant
+      # - ollama
+
+  mcp-server:
+    <<: *env
+    build:
+      context: .
+      dockerfile: packages/mcp/server/Dockerfile.dev
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      # OLLAMA_URL: http://ollama:11434
+    volumes:
+      - ./packages/mcp/server:/app/packages/mcp/server
+      - ./packages/mcp/ingest:/app/packages/mcp/ingest
       - ./packages/shared:/app/packages/shared
     stdin_open: true
     tty: true

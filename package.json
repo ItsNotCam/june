@@ -3,7 +3,8 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/mcp/*"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit && bun run --filter='*' typecheck"
