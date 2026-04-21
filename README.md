@@ -11,28 +11,19 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 ## AI usage disclosure
 
 <!-- authorship-stats-start -->
-_202 tracked source files · 22,379 total lines · measured by `// author:` ownership_
+_source: 46 commits · 49,307 lines written_
 
-| Package | Cam files | Claude files | Cam lines | Claude lines |
-|---------|----------:|-------------:|----------:|-------------:|
-| `mcp/bench` | 0 | 76 | 0 | 7,873 |
-| `mcp/ingest` | 0 | 97 | 0 | 12,020 |
-| `mcp/server` | 7 | 0 | 168 | 0 |
-| `next` | 8 | 9 | 288 | 1,806 |
-| `shared` | 4 | 1 | 98 | 126 |
-| **total** | **19** | **183** | **554** | **21,825** |
-| **%** | **9%** | **91%** | **2%** | **98%** |
+| | Cam | Claude |
+|--|--:|--:|
+| Commits | 41 (89%) | 5 (11%) |
+| Lines written | 33,922 (69%) | 15,385 (31%) |
 
 ```mermaid
-pie title Files by author
-    "Cam" : 19
-    "Claude" : 183
-```
-
-```mermaid
-pie title Lines by author
-    "Cam" : 554
-    "Claude" : 21825
+xychart-beta horizontal
+    title "Claude-authored files by package (%)"
+    x-axis ["mcp/bench", "mcp/ingest", "mcp/server", "next", "shared"]
+    y-axis "%" 0 --> 100
+    bar [100, 100, 0, 53, 20]
 ```
 <!-- authorship-stats-end -->
 
@@ -90,7 +81,9 @@ Bun workspace root. All packages are TypeScript strict, `"type": "module"`, Bun 
 
 There are two complementary tracking mechanisms.
 
-**Per-session line attribution** — a post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
+**Git history (primary)** — the most honest and immutable record. Every commit where Claude wrote the majority of the code carries a `Co-authored-by: Claude <claude@anthropic.com>` trailer. The pre-commit hook reads the full `git log --numstat` to count lines inserted in Claude co-authored commits vs Cam commits, and updates the table above on every commit. This is the authoritative number.
+
+A post-tool-use hook records Claude's per-file line contributions to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
 
 ```
 file                          claude_adds  total_lines  pct
@@ -98,13 +91,9 @@ packages/mcp/ingest/src/...   142          198          71%  ← Claude-primary
 scripts/check-authorship.sh   0            44           0%   ← Cam-primary
 ```
 
-Files where Claude contributed more than 50% of lines since the last commit are **Claude-primary** and carry a `Co-authored-by: Claude <claude@anthropic.com>` trailer in the commit message. Files at 50% or below are **Cam-primary** and have no trailer.
+Files where Claude contributed more than 50% of lines since the last commit are **Claude-primary** and carry the co-author trailer. Files at 50% or below are **Cam-primary** and have no trailer. When a single commit contains both groups, it is split so attribution is accurate at the file level.
 
-When a single commit contains both groups, it is split into two separate commits so the attribution is accurate at the file level, not just the commit level.
-
-This tracks **per-session contribution** — lines Claude added since the last `git commit` — not lifetime authorship.
-
-**Per-file ownership** — every source file carries an `// author: <name>` comment at the top. The pre-commit hook scans all tracked files for these comments, tallies them by package, and refreshes the table above before each commit. If Claude's session contribution to a file crosses 50%, the hook flips the comment from `// author: Cam` to `// author: Claude` automatically.
+**Per-file ownership (secondary)** — every source file carries an `// author: <name>` comment. The pre-commit hook tallies these by package to produce the bar chart above. If Claude's session contribution to a file crosses 50%, the hook flips the comment from `// author: Cam` to `// author: Claude` automatically. This is a useful distribution view but a coarser metric than the git history line counts.
 
 ### Why
 
