@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="250">
+<style>
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace; }
+  .lbl { fill: #8b949e; font-size: 11px; }
+  .pct { fill: #fff; font-size: 10px; font-weight: 600; }
+  .leg { fill: #8b949e; font-size: 12px; }
+</style>
+<rect x="130" y="12" width="12" height="12" fill="#3b82f6"/>
+<text class="leg" x="146" y="23">Cam</text>
+<rect x="195" y="12" width="12" height="12" fill="#f97316"/>
+<text class="leg" x="211" y="23">Claude</text>
+<text class="lbl" x="124" y="64" text-anchor="end">mcp/bench</text>
+<rect x="130" y="49" width="410" height="22" fill="#f97316"/>
+<text class="pct" x="335" y="64" text-anchor="middle">100%</text>
+<text class="lbl" x="124" y="104" text-anchor="end">mcp/ingest</text>
+<rect x="130" y="89" width="410" height="22" fill="#f97316"/>
+<text class="pct" x="335" y="104" text-anchor="middle">100%</text>
+<text class="lbl" x="124" y="144" text-anchor="end">mcp/server</text>
+<rect x="130" y="129" width="410" height="22" fill="#3b82f6"/>
+<text class="pct" x="335" y="144" text-anchor="middle">100%</text>
+<text class="lbl" x="124" y="184" text-anchor="end">next</text>
+<rect x="130" y="169" width="193" height="22" fill="#3b82f6"/>
+<text class="pct" x="226" y="184" text-anchor="middle">47%</text>
+<rect x="323" y="169" width="217" height="22" fill="#f97316"/>
+<text class="pct" x="431" y="184" text-anchor="middle">53%</text>
+<text class="lbl" x="124" y="224" text-anchor="end">shared</text>
+<rect x="130" y="209" width="328" height="22" fill="#3b82f6"/>
+<text class="pct" x="294" y="224" text-anchor="middle">80%</text>
+<rect x="458" y="209" width="82" height="22" fill="#f97316"/>
+<text class="pct" x="499" y="224" text-anchor="middle">20%</text>
+</svg>

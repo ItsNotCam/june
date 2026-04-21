@@ -11,20 +11,14 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 ## AI usage disclosure
 
 <!-- authorship-stats-start -->
-_source: 46 commits · 49,307 lines written_
+_source: 47 commits · 38,102 lines written (excludes READMEs and .claude docs)_
 
 | | Cam | Claude |
 |--|--:|--:|
-| Commits | 41 (89%) | 5 (11%) |
-| Lines written | 33,922 (69%) | 15,385 (31%) |
+| Commits | 42 (89%) | 5 (11%) |
+| Lines written | 25,382 (67%) | 12,720 (33%) |
 
-```mermaid
-xychart-beta horizontal
-    title "Claude-authored files by package (%)"
-    x-axis ["mcp/bench", "mcp/ingest", "mcp/server", "next", "shared"]
-    y-axis "%" 0 --> 100
-    bar [100, 100, 0, 53, 20]
-```
+![File ownership by package](assets/authorship-chart.svg)
 <!-- authorship-stats-end -->
 
 This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository. [→ How it works](#how-it-works)
