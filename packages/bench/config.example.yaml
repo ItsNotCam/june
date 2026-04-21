@@ -1,0 +1,141 @@
+# june-eval configuration reference (§29.2).
+#
+# Every field below is what ships; `config.yaml` only needs to contain
+# the overrides. Discovery order: --config > CONFIG_PATH env > ./config.yaml
+# > shipped defaults.
+
+schema_version: 1
+
+roles:
+  # Role 1 — corpus author. Renders planted facts into natural technical prose.
+  # Defaults to anthropic for quality; operators may swap providers at the
+  # cost of the L1 defense if role 1 and role 2 share a provider.
+  corpus_author:
+    provider: anthropic
+    model: claude-sonnet-4-6
+    max_tokens: 4000
+    # Max in-flight calls. Size for the active provider — Ollama saturates
+    # ~1–2 on consumer GPUs; hosted providers tolerate more.
+    concurrency: 4
+
+  # Role 2 — query author. Defaults to OpenAI (different provider than role 1)
+  # to reduce the lexical-collusion threat (L1).
+  query_author:
+    provider: openai
+    model: gpt-4.1
+    max_tokens: 2000
+    concurrency: 4
+
+  # Role 3 — reader (the system under test). Temperature locked to 0 in practice;
+  # any nonzero value warns at config load (L8).
+  reader:
+    provider: ollama
+    model: qwen2.5:14b
+    max_tokens: 1024
+    temperature: 0
+    # Local Ollama 14B saturates at ~1–2 concurrent (R3); hosted providers tolerate more.
+    concurrency: 2
+
+  # Role 4 — judge. Locked to anthropic-batch; schema rejects any other value (DD-3).
+  judge:
+    provider: anthropic-batch
+    model: claude-sonnet-4-6
+    max_tokens: 512
+    temperature: 0             # locked to 0; schema rejects any other value
+
+corpus:
+  max_facts_per_doc: 15
+  max_retries: 3
+
+queries:
+  counts:
+    T1: 50
+    T2: 50
+    T3: 40
+    T4: 40
+    T5: 70
+  max_total: 500              # hard ceiling per Q2
+
+anti_leakage:
+  threshold: 0.40
+  max_retries: 3
+
+resolution:
+  embedding_threshold: 0.85
+  max_unresolved_pct: 0.02
+  max_embedding_pct: 0.20
+
+retrieval:
+  adapter: stopgap            # stopgap | june-api (when june exposes one)
+  k_values: [1, 3, 5, 10]
+  retriever_config:
+    fusion: rrf
+    dense_weight: 0.6
+    bm25_weight: 0.4
+    rank_constant: 60         # RRF k; literature convention. Changing this flags
+                              # runs incomparable to prior runs (I-EVAL-3).
+
+reader_eval:
+  k: 5
+
+judge:
+  batch_timeout_ms: 86400000   # 24h
+  poll_initial_ms: 30000
+  poll_max_ms: 300000
+  max_unjudged_pct: 0.05
+
+scoring:
+  bootstrap_iterations: 1000
+  ci_percentiles: [2.5, 97.5]
+
+baseline:
+  no_rag_opus: false           # when true, runs a sibling reader pass against
+                               # an Opus model with empty retrieved context.
+  provider: anthropic          # only "anthropic" in v1.
+  model: claude-opus-4-7
+  max_tokens: 1024
+
+ingest:
+  scratch_root: ./bench-scratch
+  keep_store_on_success: false
+  confirm_qdrant_host: true    # interactive confirm on first run against a new QDRANT_URL.
+
+cost:
+  max_budget_usd: 5.00
+  estimates:
+    corpus_author:
+      input_per_doc: 3000
+      output_per_doc: 10000
+    query_author:
+      input_per_query: 500
+      output_per_query: 200
+    reader:
+      input_per_query: 2000
+      output_per_query: 300
+      # Optional — average wall-clock latency per reader call. Used only by
+      # the cost preview to estimate Ollama electricity ahead of time. Omit
+      # to skip the preview-side electricity estimate (post-hoc tracking
+      # via cost.ollama still works either way).
+      # latency_ms_per_query: 8000
+    judge:
+      input_per_query: 800
+      output_per_query: 200
+
+  # Optional — opt-in electricity-cost tracking for local Ollama runs.
+  # If `gpu_wattage` AND `dollar_per_kwh` are both set, every Ollama call's
+  # cost includes wall-clock energy: `wattage_W × latency_s / 3600 × $/kWh`.
+  # If either is missing (or the whole `ollama` block is omitted), Ollama
+  # cost stays at $0 silently. `gpu` is metadata only.
+  # ollama:
+  #   gpu: NVIDIA RTX 4090
+  #   gpu_wattage: 450        # steady-state load wattage (nvidia-smi under load)
+  #   dollar_per_kwh: 0.15    # your local electricity rate
+
+caching:
+  enabled: false               # L13: off by default; flagged in manifest if on
+
+log:
+  level: info
+  output: stdout
+  pretty: false                # true = colored human-readable console output;
+                               # --log-json overrides to JSON regardless.
