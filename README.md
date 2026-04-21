@@ -11,39 +11,19 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 ## AI usage disclosure
 
 <!-- authorship-stats-start -->
-_202 tracked source files · 22,379 lines with authorship attribution_
+_202 tracked source files · 22,379 total lines · measured by `// author:` ownership_
 
-| Author | Files | File % | Lines | Line % |
-|--------|------:|-------:|------:|-------:|
-| Claude | 183 | 91% | 21,825 | 98% |
-| Cam | 19 | 9% | 554 | 2% |
+| Package | Files | Claude file % | Lines | Claude line % |
+|---------|------:|--------------:|------:|--------------:|
+| `mcp/bench` | 76 | 100% | 7,873 | 100% |
+| `mcp/ingest` | 97 | 100% | 12,020 | 100% |
+| `mcp/server` | 7 | 0% | 168 | 0% |
+| `next` | 17 | 53% | 2,094 | 86% |
+| `shared` | 5 | 20% | 224 | 56% |
+| **total** | **202** | **91%** | **22,379** | **98%** |
 <!-- authorship-stats-end -->
 
-This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository.
-
-### How it works
-
-There are two complementary tracking mechanisms.
-
-**Per-session line attribution** — a post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
-
-```
-file                          claude_adds  total_lines  pct
-packages/mcp/ingest/src/...   142          198          71%  ← Claude-primary
-scripts/check-authorship.sh   0            44           0%   ← Cam-primary
-```
-
-Files where Claude contributed more than 50% of lines since the last commit are **Claude-primary** and carry a `Co-authored-by: Claude <claude@anthropic.com>` trailer in the commit message. Files at 50% or below are **Cam-primary** and have no trailer.
-
-When a single commit contains both groups, it is split into two separate commits so the attribution is accurate at the file level, not just the commit level.
-
-This tracks **per-session contribution** — lines Claude added since the last `git commit` — not lifetime authorship.
-
-**Per-file ownership** — every source file carries an `// author: <name>` comment at the top that records who originally created it. The pre-commit hook scans all tracked files for these comments, tallies the counts, and refreshes the table above before each commit. This is a cumulative measure of who owns which files across the lifetime of the project.
-
-### Why
-
-AI-assisted development is increasingly normal. This system exists to make the extent of that assistance legible — in the git log, not just in a disclaimer. If you read the history, you can see exactly which parts Claude wrote.
+This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository. [→ How it works](#how-it-works)
 
 ---
 
@@ -90,3 +70,29 @@ june/
 ```
 
 Bun workspace root. All packages are TypeScript strict, `"type": "module"`, Bun runtime.
+
+---
+
+## How it works
+
+There are two complementary tracking mechanisms.
+
+**Per-session line attribution** — a post-tool-use hook records every file edit Claude makes to `.claude/scratch/authorship.jsonl`. Before any commit, the script `scripts/check-authorship.sh` produces a per-file breakdown:
+
+```
+file                          claude_adds  total_lines  pct
+packages/mcp/ingest/src/...   142          198          71%  ← Claude-primary
+scripts/check-authorship.sh   0            44           0%   ← Cam-primary
+```
+
+Files where Claude contributed more than 50% of lines since the last commit are **Claude-primary** and carry a `Co-authored-by: Claude <claude@anthropic.com>` trailer in the commit message. Files at 50% or below are **Cam-primary** and have no trailer.
+
+When a single commit contains both groups, it is split into two separate commits so the attribution is accurate at the file level, not just the commit level.
+
+This tracks **per-session contribution** — lines Claude added since the last `git commit` — not lifetime authorship.
+
+**Per-file ownership** — every source file carries an `// author: <name>` comment at the top. The pre-commit hook scans all tracked files for these comments, tallies them by package, and refreshes the table above before each commit. If Claude's session contribution to a file crosses 50%, the hook flips the comment from `// author: Cam` to `// author: Claude` automatically.
+
+### Why
+
+AI-assisted development is increasingly normal. This system exists to make the extent of that assistance legible — in the git log, not just in a disclaimer. If you read the history, you can see exactly which parts Claude wrote.
