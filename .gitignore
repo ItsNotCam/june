@@ -38,3 +38,29 @@ qdrant_storage/*
 .DS_Store
 
 node_modules/
+
+# Claude
+.claude/settings.local.json
+.claude/settings.json
+.claude/scratch/
+
+# MCP client config (contains local paths/secrets)
+.mcp.json
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+qdrant_storage/
+fixtures/
+bench-scratch/
+runs/
+
+# Claude
+.intermediary/
+
+# Config
+.env
+config.yaml
+config.yml
