@@ -21,6 +21,7 @@ _202 tracked source files · 22,379 total lines · measured by `// author:` owne
 | `next` | 8 | 9 | 288 | 1,806 |
 | `shared` | 4 | 1 | 98 | 126 |
 | **total** | **19** | **183** | **554** | **21,825** |
+| **%** | **9%** | **91%** | **2%** | **98%** |
 <!-- authorship-stats-end -->
 
 This project is built with significant AI assistance via [Claude Code](https://claude.ai/code) (Anthropic). To be transparent about that, an authorship-tracking system is active throughout the repository. [→ How it works](#how-it-works)
