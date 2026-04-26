@@ -4,7 +4,6 @@ import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "@/lib/config";
-import { createStubClassifier } from "@/lib/classifier/stub";
 import { createStubEmbedder } from "@/lib/embedder/stub";
 import { createStubSummarizer } from "@/lib/summarizer/stub";
 import { createSqliteSidecar } from "@/lib/storage/sqlite";
@@ -67,7 +66,6 @@ beforeEach(async () => {
   const sidecar = await createSqliteSidecar(join(tempRoot, "june.db"));
   vector = makeInMemoryVector();
   deps = {
-    classifier: createStubClassifier(),
     summarizer: createStubSummarizer(),
     embedder: createStubEmbedder(32),
     storage: { sidecar, vector },

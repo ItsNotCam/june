@@ -23,7 +23,14 @@ const ALIAS_TO_BASE: Readonly<Record<"internal" | "external", string>> = {
   external: "external_v1",
 };
 
-/** Payload fields indexed at init ([§9](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#9-qdrant-collection-design)). Shape: [field, kind]. */
+/**
+ * Minimal payload index set. v1 retrieval doesn't filter on classification or
+ * structural metadata — those pillars were dropped from the schema. The fields
+ * indexed below are the ones operations actually need: dedup by doc_id +
+ * version, retrieval freshness via is_latest, source-system/type filtering
+ * for multi-tenant deployments, and the embedding-model field used by re-embed
+ * to enforce model parity across collections.
+ */
 const PAYLOAD_INDEXES: ReadonlyArray<{
   name: string;
   schema: "keyword" | "integer" | "float" | "bool" | "datetime";
@@ -33,30 +40,10 @@ const PAYLOAD_INDEXES: ReadonlyArray<{
   { name: "is_latest", schema: "bool" },
   { name: "source_type", schema: "keyword" },
   { name: "content_type", schema: "keyword" },
-  { name: "namespace", schema: "keyword" },
-  { name: "project", schema: "keyword" },
-  { name: "category", schema: "keyword" },
-  { name: "tags", schema: "keyword" },
-  { name: "audience", schema: "keyword" },
-  { name: "audience_technicality", schema: "integer" },
-  { name: "sensitivity", schema: "keyword" },
-  { name: "lifecycle_status", schema: "keyword" },
-  { name: "stability", schema: "keyword" },
-  { name: "temporal_scope", schema: "keyword" },
-  { name: "source_trust_tier", schema: "keyword" },
-  { name: "deprecated", schema: "bool" },
-  { name: "section_role", schema: "keyword" },
-  { name: "answer_shape", schema: "keyword" },
-  { name: "self_contained", schema: "bool" },
-  { name: "contains_code", schema: "bool" },
-  { name: "code_languages", schema: "keyword" },
   { name: "source_system", schema: "keyword" },
   { name: "source_modified_at", schema: "datetime" },
   { name: "ingested_at", schema: "datetime" },
-  { name: "quality_score", schema: "float" },
-  { name: "authority_source_score", schema: "float" },
   { name: "embedding_model_name", schema: "keyword" },
-  { name: "superseded_by", schema: "keyword" },
 ];
 
 const buildClient = (): QdrantClient => {

@@ -1,28 +1,18 @@
 // author: Claude
 import { describe, expect, test, beforeAll } from "bun:test";
 import { loadConfig } from "@/lib/config";
-import { filterTags } from "@/lib/classifier/fallback";
 import { composeEmbedText } from "@/pipeline/stages/08-embed-text";
 import { bm25Vectorize } from "@/lib/embedder/bm25";
 import { createStubEmbedder } from "@/lib/embedder/stub";
 
 /**
- * [§37](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#37-testing-philosophy) coverage for the middle stages: classifier tag filtering, embed-text
- * composition + truncation hierarchy ([§21.3](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#213-length-management)), BM25 sparse vector shape, and
- * stub embedder determinism.
+ * [§37](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#37-testing-philosophy) coverage for the middle stages: embed-text composition + truncation
+ * hierarchy ([§21.3](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#213-length-management)), BM25 sparse vector shape, and stub embedder
+ * determinism.
  */
 
 beforeAll(async () => {
   await loadConfig(undefined);
-});
-
-describe("Stage 5 tag filter (§18.5)", () => {
-  test("keeps allowed tags, drops unknowns", () => {
-    const { kept, dropped } = filterTags(["oauth", "not-in-vocab", "security"]);
-    expect(kept).toContain("oauth");
-    expect(kept).toContain("security");
-    expect(dropped).toContain("not-in-vocab");
-  });
 });
 
 describe("Stage 8 embed-text composition (§21)", () => {

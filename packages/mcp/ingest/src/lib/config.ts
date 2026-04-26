@@ -6,18 +6,9 @@ import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import {
-  ANSWER_SHAPE_VALUES,
-  AUDIENCE_VALUES,
-  CATEGORY_VALUES,
-  LIFECYCLE_VALUES,
   LOG_LEVEL_VALUES,
-  SECTION_ROLE_VALUES,
-  SENSITIVITY_VALUES,
   SOURCE_SYSTEM_VALUES,
   SOURCE_TYPE_VALUES,
-  STABILITY_VALUES,
-  TEMPORAL_VALUES,
-  TRUST_TIER_VALUES,
 } from "./config-enums";
 
 /**
@@ -32,23 +23,6 @@ import {
 const RetrySchema = z.object({
   base_ms: z.number().int().positive(),
   max_attempts: z.number().int().positive(),
-});
-
-const ClassifierFallbacksSchema = z.object({
-  category: z.enum(CATEGORY_VALUES).default("reference"),
-  section_role: z.enum(SECTION_ROLE_VALUES).default("reference"),
-  answer_shape: z.enum(ANSWER_SHAPE_VALUES).default("concept"),
-  audience: z.array(z.enum(AUDIENCE_VALUES)).min(1).max(3).default(["engineering"]),
-  audience_technicality: z.number().int().min(1).max(5).default(3),
-  sensitivity: z.enum(SENSITIVITY_VALUES).default("internal"),
-  lifecycle_status: z.enum(LIFECYCLE_VALUES).default("published"),
-  stability: z.enum(STABILITY_VALUES).default("stable"),
-  temporal_scope: z.enum(TEMPORAL_VALUES).default("current"),
-  source_trust_tier: z.enum(TRUST_TIER_VALUES).default("derived"),
-  prerequisites: z.array(z.string()).default([]),
-  self_contained: z.boolean().default(true),
-  negation_heavy: z.boolean().default(false),
-  tags: z.array(z.string()).default([]),
 });
 
 const SourceOverrideSchema = z.object({
@@ -97,13 +71,6 @@ export const ConfigSchema = z
         stopwords: z.array(z.string()).default([]),
       })
       .prefault({}),
-    classifier: z
-      .object({
-        implementation: z.enum(["ollama", "stub", "mock"]).default("ollama"),
-        tag_extensions: z.array(z.string()).default([]),
-        fallbacks: ClassifierFallbacksSchema.prefault({}),
-      })
-      .prefault({}),
     summarizer: z
       .object({
         implementation: z.enum(["ollama", "stub", "mock"]).default("ollama"),
@@ -113,12 +80,10 @@ export const ConfigSchema = z
     ollama: z
       .object({
         embed_timeout_ms: z.number().int().positive().default(60_000),
-        classifier_timeout_ms: z.number().int().positive().default(60_000),
         summarizer_timeout_ms: z.number().int().positive().default(60_000),
         first_call_timeout_ms: z.number().int().positive().default(300_000),
         retry: RetrySchema.default({ base_ms: 1000, max_attempts: 3 }),
         embed_retry_max_attempts: z.number().int().positive().default(5),
-        classifier_retry_max_attempts: z.number().int().positive().default(3),
         summarizer_retry_max_attempts: z.number().int().positive().default(3),
       })
       .prefault({}),

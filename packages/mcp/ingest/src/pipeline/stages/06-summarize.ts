@@ -8,7 +8,7 @@ import type { DocumentOutline } from "@/schemas/classifier";
 import type { Document } from "@/types/document";
 import type { RunId } from "@/types/ids";
 import type { Section } from "@/types/section";
-import type { ClassifiedChunk } from "./05-classify";
+import type { UnclassifiedChunk } from "@/types/pipeline";
 
 /**
  * Deterministic fallback summary per [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds) — used when the summarizer impl
@@ -40,14 +40,14 @@ export type Stage6Input = {
   readonly document: Document;
   readonly body: string;
   readonly sections: ReadonlyArray<Section>;
-  readonly chunks: ReadonlyArray<ClassifiedChunk>;
+  readonly chunks: ReadonlyArray<UnclassifiedChunk>;
   readonly summarizer: Summarizer;
   readonly sidecar: SidecarStorage;
   readonly tx: Tx;
   readonly runId: RunId;
 };
 
-export type SummarizedChunk = ClassifiedChunk & { contextual_summary: string };
+export type SummarizedChunk = UnclassifiedChunk & { contextual_summary: string };
 
 export type Stage6Result = {
   readonly chunks: ReadonlyArray<SummarizedChunk>;

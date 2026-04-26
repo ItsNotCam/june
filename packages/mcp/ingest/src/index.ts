@@ -11,13 +11,8 @@
 // Types — records
 export type {
   Chunk,
-  ChunkClassification,
-  ChunkRelationships,
-  ChunkRuntimeSignals,
   ChunkSpan,
-  ChunkStructuralFeatures,
   ChunkedDocument,
-  ClassifierOutput,
   Document,
   EmbeddingResult,
   IngestionError,
@@ -86,13 +81,11 @@ export type {
 // Schemas
 export {
   ChunkSchema,
-  ClassifierOutputSchema,
   DocumentOutlineSchema,
   DocumentSchema,
   FrontmatterSchema,
   SectionSchema,
   type ChunkJson,
-  type ClassifierOutputJson,
   type DocumentJson,
   type DocumentOutline,
   type Frontmatter,
@@ -102,7 +95,6 @@ export {
 // Errors (callers `instanceof`-check)
 export {
   ChunkOverflowError,
-  ClassifierJsonError,
   EmbeddingDimensionMismatchError,
   EncodingDetectionError,
   FileTooLargeError,
@@ -111,6 +103,7 @@ export {
   OllamaTimeoutError,
   OllamaUnavailableError,
   ParseError,
+  PromptTemplateError,
   QdrantWriteError,
   SidecarLockHeldError,
 } from "@/lib/errors";
@@ -185,13 +178,10 @@ export { buildDeps, type PipelineDeps, type PipelineOptions } from "@/pipeline/f
 // SQLite sidecar factory (Qdrant factory already exported above)
 export { createSqliteSidecar } from "@/lib/storage/sqlite";
 
-// Classifier + summarizer + embedder factories (Ollama prod, stub for tests)
-export { createOllamaClassifier } from "@/lib/classifier/ollama";
-export { createStubClassifier } from "@/lib/classifier/stub";
+// Summarizer + embedder factories (Ollama prod, stub for tests)
 export { createOllamaSummarizer } from "@/lib/summarizer/ollama";
 export { createStubSummarizer } from "@/lib/summarizer/stub";
 export { createStubEmbedder } from "@/lib/embedder/stub";
 
 // Interfaces
-export type { Classifier, ClassifierInput } from "@/lib/classifier/types";
 export type { Summarizer, SummarizerInput } from "@/lib/summarizer/types";

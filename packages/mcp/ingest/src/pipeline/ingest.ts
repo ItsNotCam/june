@@ -8,13 +8,10 @@ import { startHeartbeat } from "@/lib/lock";
 import { createSilentReporter, type ProgressReporter } from "@/lib/progress";
 import { isShutdownRequested } from "@/lib/shutdown";
 import { asRunId, asVersion } from "@/types/ids";
-import { bindingFor, runStage1 } from "./stages/01-discover";
+import { runStage1 } from "./stages/01-discover";
 import { runStage2 } from "./stages/02-parse";
 import { runStage3 } from "./stages/03-chunk";
-import { runStage4 } from "./stages/04-derive";
-import { runStage5 } from "./stages/05-classify";
 import { runStage6 } from "./stages/06-summarize";
-import { runStage7 } from "./stages/07-link";
 import { runStage8 } from "./stages/08-embed-text";
 import { runStage9 } from "./stages/09-embed";
 import { runStage10 } from "./stages/10-store";
@@ -91,10 +88,9 @@ const processFile = async (
 ): Promise<"processed" | "skipped" | "errored"> => {
   const { deps, progress } = opts;
   const source_uri = pathToFileURL(absolutePath).toString();
-  const { sidecar, vector, classifier, summarizer, embedder } = {
+  const { sidecar, vector, summarizer, embedder } = {
     sidecar: deps.storage.sidecar,
     vector: deps.storage.vector,
-    classifier: deps.classifier,
     summarizer: deps.summarizer,
     embedder: deps.embedder,
   };
@@ -179,27 +175,6 @@ const processFile = async (
     `${chunked.chunks.length} chunks, ${chunked.sections.length} sections`,
   );
 
-  // ---- Stage 4 (pure CPU, no tx) ----
-  const derived = runStage4({ chunked });
-
-  // ---- Stage 5 (no document-level tx; errors row in own tx) ----
-  const binding = bindingFor(document.source_uri);
-  const tx5 = await sidecar.begin();
-  let classified;
-  try {
-    classified = await runStage5({
-      chunks: derived.chunks,
-      classifier,
-      sidecar,
-      runId: opts.runId,
-      binding,
-    });
-    await tx5.commit();
-  } catch (err) {
-    await tx5.rollback();
-    throw err;
-  }
-
   // ---- Stage 6 (own tx; advances chunks.status to contextualized) ----
   const tx6 = await sidecar.begin();
   let summarized;
@@ -208,7 +183,7 @@ const processFile = async (
       document: parsed.document,
       body: parsed.raw_normalized,
       sections: chunked.sections,
-      chunks: classified.chunks,
+      chunks: chunked.chunks,
       summarizer,
       sidecar,
       tx: tx6,
@@ -222,14 +197,11 @@ const processFile = async (
 
   progress.tick(source_uri, "contextualized");
 
-  // ---- Stage 7 (pure; internal sidecar reads) ----
-  const linked = await runStage7({ chunks: summarized.chunks, sidecar });
-
   // ---- Stage 8 (pure; records audit rows on truncation in own tx) ----
   const tx8 = await sidecar.begin();
   let composed;
   try {
-    composed = await runStage8({ chunks: linked.chunks, sidecar, runId: opts.runId });
+    composed = await runStage8({ chunks: summarized.chunks, sidecar, runId: opts.runId });
     await tx8.commit();
   } catch (err) {
     await tx8.rollback();

@@ -4,7 +4,6 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "@/lib/config";
-import { createStubClassifier } from "@/lib/classifier/stub";
 import { createStubEmbedder } from "@/lib/embedder/stub";
 import { createStubSummarizer } from "@/lib/summarizer/stub";
 import { createSqliteSidecar } from "@/lib/storage/sqlite";
@@ -58,7 +57,6 @@ beforeEach(async () => {
   tempRoot = await mkdtemp(join(tmpdir(), "june-resume-mismatch-"));
   const sidecar = await createSqliteSidecar(join(tempRoot, "june.db"));
   deps = {
-    classifier: createStubClassifier(),
     summarizer: createStubSummarizer(),
     embedder: createStubEmbedder(32),
     storage: { sidecar, vector: makeInMemoryVector() },

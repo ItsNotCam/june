@@ -24,16 +24,6 @@ export const ERROR_TYPE_VALUES = [
   // Stage 3 — chunk
   "oversize_protected_region",
 
-  // Stage 5 — classify
-  "classifier_timeout",
-  "classifier_unreachable",
-  "classifier_model_not_found",
-  "classifier_empty_response",
-  "classifier_invalid_json",
-  "classifier_partial_invalid",
-  "classifier_fallback",
-  "vocab_unknown_tag",
-
   // Stage 6 — summarize
   "summarizer_timeout",
   "summarizer_unreachable",

@@ -1,6 +1,6 @@
 // author: Claude
 import type { Root as MdastRoot } from "mdast";
-import type { Chunk, ChunkClassification } from "./chunk";
+import type { Chunk } from "./chunk";
 import type { Document } from "./document";
 import type { ChunkId } from "./ids";
 import type { Section } from "./section";
@@ -22,7 +22,7 @@ export type ParsedDocument = {
   raw_normalized: string;
 };
 
-/** Stage 3 output. Sections + unclassified chunks carry forward into Stages 4–7. */
+/** Stage 3 output. Sections + chunks carry forward into Stages 6, 8, 9. */
 export type ChunkedDocument = {
   document: Document;
   sections: ReadonlyArray<Section>;
@@ -30,33 +30,19 @@ export type ChunkedDocument = {
 };
 
 /**
- * A chunk after Stage 3 but before Stages 4–9 populate the remaining Pillar
- * fields. Computed structural features are present; classification, summary,
- * relationships, runtime signals, and embedding metadata arrive later.
+ * A chunk after Stage 3 but before Stages 6/8/9 populate the embedding fields.
+ * Identity, provenance, and span are present; contextual_summary, embed_text,
+ * and embedding metadata arrive later.
  */
 export type UnclassifiedChunk = Omit<
   Chunk,
-  | "classification"
-  | "runtime_signals"
   | "contextual_summary"
   | "embed_text"
-  | "relationships"
   | "embedding_model_name"
   | "embedding_model_version"
   | "embedding_dim"
   | "embedded_at"
 >;
-
-/**
- * Stage 5 output per chunk. `raw_response` is the JSON string the classifier
- * returned — retained for audit (first 200 chars max, I7-safe by construction
- * because the classifier output is schema-shaped JSON, not arbitrary content).
- */
-export type ClassifierOutput = {
-  chunk_id: ChunkId;
-  classification: ChunkClassification;
-  raw_response: string;
-};
 
 /** Stage 6 output per chunk. `used_long_doc_path` records which prompt variant ran. */
 export type SummarizerOutput = {

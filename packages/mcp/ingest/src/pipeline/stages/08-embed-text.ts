@@ -3,7 +3,7 @@ import { getConfig } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import type { SidecarStorage } from "@/lib/storage/types";
 import type { RunId } from "@/types/ids";
-import type { LinkedChunk } from "./07-link";
+import type { SummarizedChunk } from "./06-summarize";
 
 /**
  * Stage 8 — Embed-Text Construction ([§21](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#21-stage-8--embed-text-construction)).
@@ -15,12 +15,12 @@ import type { LinkedChunk } from "./07-link";
  */
 
 export type Stage8Input = {
-  readonly chunks: ReadonlyArray<LinkedChunk>;
+  readonly chunks: ReadonlyArray<SummarizedChunk>;
   readonly sidecar: SidecarStorage;
   readonly runId: RunId;
 };
 
-export type EmbedReadyChunk = LinkedChunk & { embed_text: string };
+export type EmbedReadyChunk = SummarizedChunk & { embed_text: string };
 
 export type Stage8Result = {
   readonly chunks: ReadonlyArray<EmbedReadyChunk>;

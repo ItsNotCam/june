@@ -1,10 +1,10 @@
 // author: Claude
-export type { Chunk, ChunkClassification, ChunkRelationships, ChunkRuntimeSignals, ChunkSpan, ChunkStructuralFeatures, TypeSpecific } from "./chunk";
+export type { Chunk, ChunkSpan, TypeSpecific } from "./chunk";
 export type { Document } from "./document";
 export { InvalidIdError } from "./ids";
 export type { ChunkId, DocId, RunId, SectionId, Version } from "./ids";
 export { asChunkId, asDocId, asRunId, asSectionId, asVersion } from "./ids";
-export type { ChunkedDocument, ClassifierOutput, EmbeddingResult, ParsedDocument, SummarizerOutput, UnclassifiedChunk } from "./pipeline";
+export type { ChunkedDocument, EmbeddingResult, ParsedDocument, SummarizerOutput, UnclassifiedChunk } from "./pipeline";
 export type { IngestionError, IngestionRun, ReconcileEvent } from "./run";
 export type { Section } from "./section";
 export {

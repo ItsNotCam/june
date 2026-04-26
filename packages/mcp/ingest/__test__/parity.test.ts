@@ -32,52 +32,9 @@ const fixtureChunkJson = (): ChunkJson => ({
   content_hash: "3".repeat(64),
   ingested_at: "2026-04-20T00:00:00Z",
   ingested_by: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  classification: {
-    namespace: "personal",
-    category: "reference",
-    section_role: "reference",
-    answer_shape: "concept",
-    audience: ["engineering"],
-    audience_technicality: 3,
-    sensitivity: "internal",
-    lifecycle_status: "published",
-    stability: "stable",
-    temporal_scope: "current",
-    source_trust_tier: "derived",
-    prerequisites: [],
-    self_contained: true,
-    negation_heavy: false,
-    tags: [],
-  },
-  structural_features: {
-    token_count: 10,
-    char_count: 40,
-    contains_code: false,
-    code_languages: [],
-    has_table: false,
-    has_list: false,
-    link_density: 0,
-  },
-  runtime_signals: {
-    quality_score: 0.5,
-    freshness_decay_profile: "medium",
-    authority_source_score: 0.6,
-    authority_author_score: 0.5,
-    retrieval_count: 0,
-    citation_count: 0,
-    user_marked_wrong_count: 0,
-    deprecated: false,
-  },
   contextual_summary: "brief",
   embed_text: "title\n\nA > B\n\nbrief\n\nbody",
   is_continuation: false,
-  relationships: {
-    references: [],
-    external_links: [],
-    unresolved_links: [],
-    canonical_for: [],
-    siblings: [],
-  },
   type_specific: { content_type: "doc", version: "v1" },
   content: "body",
   embedding_model_name: "nomic-embed-text",
@@ -96,48 +53,30 @@ describe("Chunk type ↔ ChunkSchema parity", () => {
     expect(res.success).toBe(true);
   });
 
-  test("Schema rejects missing Pillar 3 fields", () => {
+  test("Schema rejects missing required identity fields", () => {
     const bad = { ...fixtureChunkJson() } as unknown as Record<string, unknown>;
-    const cls = { ...fixtureChunkJson().classification } as Record<string, unknown>;
-    delete cls["category"];
-    bad["classification"] = cls;
+    delete bad["doc_id"];
     expect(ChunkSchema.safeParse(bad).success).toBe(false);
   });
 
   test("Schema rejects invalid enum values", () => {
-    const bad = fixtureChunkJson();
-    const evil = { ...bad, classification: { ...bad.classification, category: "not-a-category" as never } };
-    expect(ChunkSchema.safeParse(evil).success).toBe(false);
+    const bad = { ...fixtureChunkJson(), source_type: "not-a-source-type" as never };
+    expect(ChunkSchema.safeParse(bad).success).toBe(false);
   });
 
-  test("Every SPEC §9 payload index field exists on ChunkJson output", () => {
-    // Spot-check: every Qdrant payload index field (from PAYLOAD_INDEXES in
-    // storage/qdrant.ts) must be populated in the chunk payload, otherwise
-    // filtering won't work at retrieval time. This test doesn't enforce the
-    // payload construction (Stage 10's job) — just that the schema permits
-    // every one of those fields.
+  test("Every required Qdrant payload field exists on ChunkJson output", () => {
+    // Every field the retriever actually reads (mirrors PAYLOAD_INDEXES in
+    // storage/qdrant.ts) must be populated. Classification / structural /
+    // runtime / relationships pillars were dropped in v1; if they come back
+    // they need their own parity fixture.
     const res = ChunkSchema.safeParse(fixtureChunkJson());
     if (!res.success) throw new Error("fixture failed");
     const c = res.data;
-    // Flatten once for presence checks. Schema/payload parity — payload fields
-    // are nested under classification/structural_features/runtime_signals.
     expect(c.doc_id).toBeDefined();
     expect(c.version).toBeDefined();
     expect(c.is_latest).toBeDefined();
     expect(c.source_type).toBeDefined();
     expect(c.content_type).toBeDefined();
-    expect(c.classification.namespace).toBeDefined();
-    expect(c.classification.category).toBeDefined();
-    expect(c.classification.audience).toBeDefined();
-    expect(c.classification.audience_technicality).toBeDefined();
-    expect(c.classification.sensitivity).toBeDefined();
-    expect(c.classification.section_role).toBeDefined();
-    expect(c.classification.answer_shape).toBeDefined();
-    expect(c.classification.self_contained).toBeDefined();
-    expect(c.structural_features.contains_code).toBeDefined();
-    expect(c.structural_features.code_languages).toBeDefined();
-    expect(c.runtime_signals.quality_score).toBeDefined();
-    expect(c.runtime_signals.deprecated).toBeDefined();
     expect(c.source_system).toBeDefined();
     expect(c.ingested_at).toBeDefined();
     expect(c.embedding_model_name).toBeDefined();
@@ -153,7 +92,7 @@ describe("Config discovery fallback (§29.2)", () => {
     try {
       const cfg = await loadConfig(undefined);
       expect(cfg.sidecar.path).toBe("./june.db");
-      expect(cfg.classifier.fallbacks.category).toBe("reference");
+      expect(cfg.summarizer.implementation).toBe("ollama");
     } finally {
       process.chdir(prior);
       await rm(dir, { recursive: true, force: true });

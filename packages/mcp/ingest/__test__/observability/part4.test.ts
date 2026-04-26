@@ -26,8 +26,6 @@ describe("Error-type vocabulary (§25.6)", () => {
     expect(ERROR_TYPE_VALUES).toContain("file_too_large");
     expect(ERROR_TYPE_VALUES).toContain("encoding_undetectable");
     expect(ERROR_TYPE_VALUES).toContain("mdast_parse_failed");
-    expect(ERROR_TYPE_VALUES).toContain("classifier_invalid_json");
-    expect(ERROR_TYPE_VALUES).toContain("classifier_fallback");
     expect(ERROR_TYPE_VALUES).toContain("summarizer_unreachable");
     expect(ERROR_TYPE_VALUES).toContain("embed_text_truncated");
     expect(ERROR_TYPE_VALUES).toContain("embedder_dimension_mismatch");

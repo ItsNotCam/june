@@ -38,8 +38,8 @@ describe("Part II smoke — config", () => {
     expect(cfg.chunk.overlap_pct).toBeCloseTo(0.15);
     expect(cfg.embedding.batch_size).toBe(32);
     expect(cfg.embedding.matryoshka_dim).toBeNull();
-    expect(cfg.classifier.fallbacks.category).toBe("reference");
-    expect(cfg.classifier.fallbacks.audience).toEqual(["engineering"]);
+    expect(cfg.summarizer.implementation).toBe("ollama");
+    expect(cfg.summarizer.long_doc_threshold_tokens).toBe(6000);
     expect(cfg.ollama.first_call_timeout_ms).toBe(300_000);
     expect(cfg.qdrant.upsert_batch_size).toBe(128);
     expect(cfg.reconcile.mode).toBe("manual");

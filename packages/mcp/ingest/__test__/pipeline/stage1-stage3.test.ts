@@ -11,7 +11,6 @@ import { chunkSection } from "@/lib/chunker/split";
 import { sectionize } from "@/lib/chunker/sectionize";
 import { deriveChunkId, deriveDocId } from "@/lib/ids";
 import { asVersion } from "@/types/ids";
-import { structuralFeaturesFor } from "@/pipeline/stages/04-derive";
 
 /**
  * Structural invariants for [§37.1](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#371-structural-invariants-of-chunking):
@@ -196,28 +195,6 @@ describe("Stage 3 sectionize", () => {
       expect(sections[i]!.char_offset_start).toBe(sections[i - 1]!.char_offset_end);
     }
     expect(sections.at(-1)!.char_offset_end).toBe(body.length);
-  });
-});
-
-describe("Stage 4 structural features", () => {
-  test("detects code language from fenced block", () => {
-    const raw = "intro\n\n```python\ndef f(): pass\n```\n";
-    const f = structuralFeaturesFor(raw, "file:///x.md");
-    expect(f.contains_code).toBe(true);
-    expect(f.code_languages).toContain("python");
-  });
-
-  test("detects tables and lists", () => {
-    const raw = "| a | b |\n|---|---|\n| 1 | 2 |\n\n- one\n- two\n";
-    const f = structuralFeaturesFor(raw, "file:///x.md");
-    expect(f.has_table).toBe(true);
-    expect(f.has_list).toBe(true);
-  });
-
-  test("link density scales with link count", () => {
-    const raw = "plain text with [a](x) and [b](y) two links";
-    const f = structuralFeaturesFor(raw, "file:///x.md");
-    expect(f.link_density).toBeGreaterThan(0);
   });
 });
 
