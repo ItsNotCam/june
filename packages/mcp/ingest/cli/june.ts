@@ -1,5 +1,5 @@
-// author: Claude
 #!/usr/bin/env bun
+// author: Claude
 import { logger } from "@/lib/logger";
 import { installSignalHandlers } from "@/lib/shutdown";
 import { runBench } from "./bench";

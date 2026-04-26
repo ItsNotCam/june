@@ -1,5 +1,5 @@
-// author: Claude
 #!/usr/bin/env bun
+// author: Claude
 import { runGenerate } from "./generate";
 import { runRun } from "./run";
 import { runReport } from "./report";

@@ -27,6 +27,16 @@ const GenerateResponseSchema = z.object({
   done: z.boolean().optional(),
 });
 
+/**
+ * The summarizer is instructed to emit `{"summary": "..."}` under Ollama's
+ * `format: "json"` mode. The structural constraint is what stops the
+ * historical failure mode where the model echoed prompt instructions instead
+ * of summarizing — echoes can't satisfy this shape.
+ */
+const ChunkSummaryJsonSchema = z.object({
+  summary: z.string(),
+});
+
 const MIN_SUMMARY_CHARS = 50;
 const MAX_SUMMARY_CHARS = 1200;
 
@@ -138,38 +148,58 @@ export const createOllamaSummarizer = (): Summarizer => {
       : new Error(`summarizer exhausted retries`);
   };
 
+  /**
+   * Extracts the summary string from Ollama's JSON-mode output.
+   * Returns null when the response is not valid JSON or doesn't match
+   * the {"summary": string} shape — caller treats null as a validation
+   * failure and either retries or falls back.
+   */
+  const extractSummary = (raw: string): string | null => {
+    let json: unknown;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    const parsed = ChunkSummaryJsonSchema.safeParse(json);
+    if (!parsed.success) return null;
+    return parsed.data.summary.trim();
+  };
+
   const summarizeChunk: Summarizer["summarizeChunk"] = async (input) => {
     const prompt =
       input.outline !== undefined
-        ? buildLongDocChunkPrompt({
+        ? await buildLongDocChunkPrompt({
             outline: input.outline,
             local_section: input.containing_text,
             chunk_content: input.chunk_content,
           })
-        : buildFitsPrompt({
+        : await buildFitsPrompt({
             document_body: input.containing_text,
             chunk_content: input.chunk_content,
           });
     try {
       const raw = await retryLoop("chunk", () =>
-        generate(env.OLLAMA_URL, model, prompt, timeoutFor()),
+        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), true),
       );
-      if (validSummary(raw)) {
+      const summary = extractSummary(raw);
+      if (summary !== null && validSummary(summary)) {
         return {
           chunk_id: input.chunk_id,
-          contextual_summary: raw.trim(),
+          contextual_summary: summary,
           used_long_doc_path: input.outline !== undefined,
         };
       }
-      // Try one stricter prompt before falling back ([§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds)).
-      const stricter = prompt + "\n\nYour previous output was invalid; respond with at most 2 sentences.";
-      const retry = await retryLoop("chunk-strict", () =>
-        generate(env.OLLAMA_URL, model, stricter, timeoutFor()),
+      // One retry with the same prompt — JSON-mode output varies between
+      // attempts, so a re-roll often succeeds even with no prompt changes.
+      const retryRaw = await retryLoop("chunk-strict", () =>
+        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), true),
       );
-      if (validSummary(retry)) {
+      const retrySummary = extractSummary(retryRaw);
+      if (retrySummary !== null && validSummary(retrySummary)) {
         return {
           chunk_id: input.chunk_id,
-          contextual_summary: retry.trim(),
+          contextual_summary: retrySummary,
           used_long_doc_path: input.outline !== undefined,
         };
       }
@@ -189,7 +219,7 @@ export const createOllamaSummarizer = (): Summarizer => {
 
   const summarizeDocument: Summarizer["summarizeDocument"] = async (input) => {
     const truncated = input.document_body.slice(0, MAX_DOC_INPUT_CHARS);
-    const prompt = buildLongDocOutlinePrompt({ document_body_truncated: truncated });
+    const prompt = await buildLongDocOutlinePrompt({ document_body_truncated: truncated });
     const raw = await retryLoop("outline", () =>
       generate(env.OLLAMA_URL, model, prompt, timeoutFor(), true),
     );

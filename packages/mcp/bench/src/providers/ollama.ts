@@ -76,16 +76,25 @@ export const createOllamaProvider = (ollamaUrl: string): LlmProvider => {
  * Stage 5's Tier-2 resolver calls this directly (not through the `LlmProvider`
  * interface) — embedding has a different request/response shape than chat,
  * and widening the interface for one use case is over-engineering.
+ *
+ * `kind` selects the asymmetric-embedding side:
+ *   - `"document"` (default): pass text raw — matches how ingest stores chunks.
+ *   - `"query"`: prepend `"query: "` — `snowflake-arctic-embed2` was trained
+ *     to expect this prefix on the query side. Without it, the query and
+ *     document vectors live in slightly different sub-spaces and dense
+ *     retrieval recall drops noticeably.
  */
 export const embedViaOllama = async (args: {
   ollamaUrl: string;
   model: string;
   input: string;
+  kind?: "query" | "document";
 }): Promise<number[]> => {
+  const text = args.kind === "query" ? `query: ${args.input}` : args.input;
   const res = await fetch(`${args.ollamaUrl}/api/embed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: args.model, input: [args.input] }),
+    body: JSON.stringify({ model: args.model, input: [text] }),
   });
   if (!res.ok) {
     throw new OllamaHttpError(res.status, await safeText(res));

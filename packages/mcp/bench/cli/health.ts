@@ -97,8 +97,15 @@ const pickRole = (
 };
 
 const checkJune = async (juneBin: string): Promise<{ check: string; ok: boolean; detail: string }> => {
+  // Mirror runJuneCommand's cwd logic: when JUNE_BIN is an absolute .ts path,
+  // run from the package root so bun's tsconfig-paths resolves `@/*` aliases.
+  const trimmed = juneBin.trim();
+  const cwd =
+    trimmed.endsWith(".ts") && trimmed.startsWith("/")
+      ? trimmed.replace(/\/cli\/[^/]+\.ts$/, "")
+      : undefined;
   return new Promise((res) => {
-    const proc = spawn(juneBin, ["--help"], { stdio: "ignore" });
+    const proc = spawn(juneBin, ["--help"], { stdio: "ignore", cwd });
     proc.on("error", () =>
       res({ check: `june on PATH`, ok: false, detail: `spawn failed for "${juneBin}"` }),
     );

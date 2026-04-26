@@ -130,6 +130,73 @@ describe("Stage 3 sectionize", () => {
     expect(sections[0]?.heading_path).toEqual(["Doc Title"]);
     expect(sections.length).toBeGreaterThanOrEqual(2);
   });
+
+  test("nested headings emit only leaves, not parents", () => {
+    // ## P holds two ### children — P itself must be suppressed; only the two
+    // leaf children should appear, plus P's intro (text between ## P and the
+    // first ### A).
+    const body =
+      "# Top\n\n## P\n\nintro to P\n\n### A\n\ntext-A\n\n### B\n\ntext-B\n";
+    const ast = parseMarkdown(body, "file:///x.md");
+    const sections = sectionize(
+      ast,
+      body,
+      deriveDocId("file:///x.md"),
+      asVersion("v1"),
+      "Doc",
+    );
+    const paths = sections.map((s) => s.heading_path);
+    // Top is a non-leaf parent (has child P). P is a non-leaf parent (has A,B).
+    // Expect: Top's intro (covers nothing if Top has no body, so skipped only
+    // if Top's intro spans 0 chars — here Top's intro is "# Top\n\n", which is
+    // non-empty content), P's intro, A, B.
+    expect(paths).toEqual([
+      ["Top"],
+      ["Top", "P"],
+      ["Top", "P", "A"],
+      ["Top", "P", "B"],
+    ]);
+    // No section's content should contain another section's leaf content
+    // — i.e. no parent-child duplication.
+    const aContent = sections.find((s) => s.heading_path.at(-1) === "A")!.content;
+    const bContent = sections.find((s) => s.heading_path.at(-1) === "B")!.content;
+    expect(aContent).toContain("text-A");
+    expect(aContent).not.toContain("text-B");
+    expect(bContent).toContain("text-B");
+    expect(bContent).not.toContain("text-A");
+    // The "Top" intro must NOT contain the H2/H3 children's content.
+    const topIntro = sections.find(
+      (s) => s.heading_path.length === 1 && s.heading_path[0] === "Top",
+    )!.content;
+    expect(topIntro).not.toContain("text-A");
+    expect(topIntro).not.toContain("text-B");
+  });
+
+  test("sibling leaves cover the whole document with no overlap", () => {
+    const body =
+      "# Doc\n\n## A\n\ncontent of A\n\n## B\n\ncontent of B\n\n## C\n\ncontent of C\n";
+    const ast = parseMarkdown(body, "file:///x.md");
+    const sections = sectionize(
+      ast,
+      body,
+      deriveDocId("file:///x.md"),
+      asVersion("v1"),
+      "Doc",
+    );
+    // Doc has H2 children → suppressed. Doc's intro plus three H2 leaves.
+    const leafPaths = sections.map((s) => s.heading_path);
+    expect(leafPaths).toEqual([
+      ["Doc"],
+      ["Doc", "A"],
+      ["Doc", "B"],
+      ["Doc", "C"],
+    ]);
+    // Char ranges should be contiguous and non-overlapping.
+    for (let i = 1; i < sections.length; i++) {
+      expect(sections[i]!.char_offset_start).toBe(sections[i - 1]!.char_offset_end);
+    }
+    expect(sections.at(-1)!.char_offset_end).toBe(body.length);
+  });
 });
 
 describe("Stage 4 structural features", () => {

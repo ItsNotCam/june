@@ -154,3 +154,20 @@ export class EmbeddingDimensionMismatchError extends Error {
     this.name = "EmbeddingDimensionMismatchError";
   }
 }
+
+/**
+ * `renderPrompt(name, vars)` was called with a template that has `{{key}}`
+ * placeholders for which no value was supplied. Throwing fails loud rather
+ * than letting `{{unfilled}}` leak into the LLM context.
+ */
+export class PromptTemplateError extends Error {
+  constructor(
+    readonly template_name: string,
+    readonly unfilled_keys: ReadonlyArray<string>,
+  ) {
+    super(
+      `Prompt template '${template_name}' has unfilled placeholders: ${unfilled_keys.join(", ")}`,
+    );
+    this.name = "PromptTemplateError";
+  }
+}

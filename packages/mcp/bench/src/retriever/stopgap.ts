@@ -36,6 +36,7 @@ export const createStopgapRetriever = (args: {
       ollamaUrl: env.OLLAMA_URL,
       model: args.embedModel,
       input: queryText,
+      kind: "query",
     });
     const sparseVector = bm25Vectorize(queryText);
     const fetchLimit = k * 2;
