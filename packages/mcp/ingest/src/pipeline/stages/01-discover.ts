@@ -32,6 +32,24 @@ export type Stage1Input = {
   readonly force?: boolean;
 };
 
+/**
+ * Stage 1 input when bytes + URI are supplied directly by the caller (no
+ * filesystem read). Used by `ingestContent` so MCP / HTTP callers can hand the
+ * pipeline raw markdown without exposing a file-path attack surface.
+ */
+export type Stage1ContentInput = {
+  readonly rawBytes: Uint8Array;
+  /** Caller-supplied virtual URI; participates in `doc_id` derivation. */
+  readonly sourceUri: string;
+  readonly source_modified_at?: string | undefined;
+  readonly runId: RunId;
+  readonly runVersion: Version;
+  readonly cliVersion: Version | undefined;
+  readonly sidecar: SidecarStorage;
+  readonly tx: Tx;
+  readonly force?: boolean;
+};
+
 export type Stage1Result =
   | { kind: "ingest"; document: Document; rawBytes: Uint8Array }
   | { kind: "unchanged"; document: Document }
@@ -117,9 +135,150 @@ export const bindingFor = (source_uri: string): SourceBinding => {
 };
 
 /**
+ * Stage 1 core for callers supplying bytes + URI directly (no filesystem read).
+ *
+ * Same state machine as `runStage1` (size check → hash → existing-state lookup
+ * → ingest / resume / unchanged / resurrection) but operates on caller-provided
+ * input. The trust boundary is the caller's: this function never touches the
+ * filesystem, never resolves symlinks, never calls `realpath`. The `sourceUri`
+ * is used as-is to derive `doc_id` and to match the config `sources` binding.
+ */
+export const runStage1FromContent = async (
+  input: Stage1ContentInput,
+): Promise<Stage1Result> => {
+  const cfg = getConfig();
+  const byteLength = input.rawBytes.length;
+  if (byteLength > cfg.ingest.max_file_bytes) {
+    logger.warn("file_too_large", {
+      event: "file_too_large",
+      source_uri: input.sourceUri,
+      size_chars: byteLength,
+    });
+    await input.sidecar.recordError({
+      run_id: input.runId,
+      doc_id: undefined,
+      version: undefined,
+      chunk_id: undefined,
+      stage: "1",
+      error_type: "file_too_large",
+      error_message: new FileTooLargeError(
+        input.sourceUri,
+        byteLength,
+        cfg.ingest.max_file_bytes,
+      ).message,
+      occurred_at: new Date().toISOString(),
+    });
+    return {
+      kind: "skipped_too_large",
+      source_uri: input.sourceUri,
+      bytes: byteLength,
+    };
+  }
+
+  const sourceUri = input.sourceUri;
+  const doc_id: DocId = deriveDocId(sourceUri);
+  const content_hash = deriveContentHashBytes(input.rawBytes);
+
+  // Peek at frontmatter for version + title. A strict-UTF8 decode may fail
+  // for exotic encodings; that's fine — Stage 2 does the authoritative
+  // normalization and will surface any failure.
+  let utf8Peek = "";
+  try {
+    utf8Peek = new TextDecoder("utf-8", { fatal: false }).decode(input.rawBytes);
+  } catch {
+    utf8Peek = "";
+  }
+
+  const version = resolveVersion(input.cliVersion, utf8Peek, input.runVersion);
+  const binding = bindingFor(sourceUri);
+
+  const existing = await input.sidecar.getLatestDocumentByUri(sourceUri);
+
+  const baseDoc: Document = {
+    doc_id,
+    version,
+    schema_version: 1,
+    source_uri: sourceUri,
+    source_system: binding.source_system,
+    source_type: binding.source_type,
+    namespace: binding.namespace,
+    project: binding.project,
+    document_title: "",
+    content_hash,
+    byte_length: byteLength,
+    source_modified_at: input.source_modified_at,
+    ingested_at: new Date().toISOString(),
+    ingested_by: input.runId,
+    status: "pending",
+    is_latest: true,
+    deleted_at: undefined,
+    doc_category: undefined,
+    doc_sensitivity: undefined,
+    doc_lifecycle_status: undefined,
+    frontmatter: {},
+  };
+
+  if (!existing) {
+    await input.sidecar.upsertDocument(input.tx, baseDoc);
+    logger.info("doc_ingest_new", {
+      event: "doc_ingest_new",
+      doc_id: doc_id as string,
+      source_uri: sourceUri,
+    });
+    return { kind: "ingest", document: baseDoc, rawBytes: input.rawBytes };
+  }
+
+  // Row exists — four subcases ([§14.8](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#148-existing-state-lookup-and-re-ingest-decision)).
+  if (
+    !input.force &&
+    existing.content_hash === content_hash &&
+    existing.status === "stored" &&
+    !existing.deleted_at
+  ) {
+    logger.info("doc_unchanged", {
+      event: "doc_unchanged",
+      doc_id: doc_id as string,
+      source_uri: sourceUri,
+    });
+    return { kind: "unchanged", document: existing };
+  }
+
+  if (existing.deleted_at) {
+    await input.sidecar.upsertDocument(input.tx, baseDoc);
+    logger.info("doc_resurrected", {
+      event: "doc_resurrected",
+      doc_id: doc_id as string,
+      source_uri: sourceUri,
+    });
+    return { kind: "resurrection", document: baseDoc, rawBytes: input.rawBytes };
+  }
+
+  if (existing.content_hash !== content_hash) {
+    await input.sidecar.upsertDocument(input.tx, baseDoc);
+    logger.info("doc_new_version", {
+      event: "doc_new_version",
+      doc_id: doc_id as string,
+      source_uri: sourceUri,
+    });
+    return { kind: "ingest", document: baseDoc, rawBytes: input.rawBytes };
+  }
+
+  logger.info("doc_resume", {
+    event: "doc_resume",
+    doc_id: doc_id as string,
+    source_uri: sourceUri,
+    status: existing.status,
+  });
+  return { kind: "resume", document: existing, rawBytes: input.rawBytes };
+};
+
+/**
  * Execute Stage 1 for a single file. Returns a discriminated union that tells
  * the orchestrator what to do next (proceed to Stage 2, skip, or resume from
  * the document's current status).
+ *
+ * Short-circuits on `Bun.file(...).size` before reading the file, then
+ * delegates the state machine to `runStage1FromContent`.
  */
 export const runStage1 = async (input: Stage1Input): Promise<Stage1Result> => {
   const cfg = getConfig();
@@ -154,21 +313,6 @@ export const runStage1 = async (input: Stage1Input): Promise<Stage1Result> => {
 
   const rawBytes = new Uint8Array(await file.arrayBuffer());
   const sourceUri = await toCanonicalFileUri(input.absolutePath);
-  const doc_id: DocId = deriveDocId(sourceUri);
-  const content_hash = deriveContentHashBytes(rawBytes);
-
-  // Peek at frontmatter for version + title. A strict-UTF8 decode may fail
-  // for exotic encodings; that's fine — Stage 2 does the authoritative
-  // normalization and will surface any failure.
-  let utf8Peek = "";
-  try {
-    utf8Peek = new TextDecoder("utf-8", { fatal: false }).decode(rawBytes);
-  } catch {
-    utf8Peek = "";
-  }
-
-  const version = resolveVersion(input.cliVersion, utf8Peek, input.runVersion);
-  const binding = bindingFor(sourceUri);
 
   let source_modified_at: string | undefined;
   try {
@@ -178,88 +322,17 @@ export const runStage1 = async (input: Stage1Input): Promise<Stage1Result> => {
     source_modified_at = undefined;
   }
 
-  const existing = await input.sidecar.getLatestDocumentByUri(sourceUri);
-
-  const baseDoc: Document = {
-    doc_id,
-    version,
-    schema_version: 1,
-    source_uri: sourceUri,
-    source_system: binding.source_system,
-    source_type: binding.source_type,
-    namespace: binding.namespace,
-    project: binding.project,
-    document_title: "",
-    content_hash,
-    byte_length: byteLength,
+  return runStage1FromContent({
+    rawBytes,
+    sourceUri,
     source_modified_at,
-    ingested_at: new Date().toISOString(),
-    ingested_by: input.runId,
-    status: "pending",
-    is_latest: true,
-    deleted_at: undefined,
-    doc_category: undefined,
-    doc_sensitivity: undefined,
-    doc_lifecycle_status: undefined,
-    frontmatter: {},
-  };
-
-  if (!existing) {
-    // First-time ingest.
-    await input.sidecar.upsertDocument(input.tx, baseDoc);
-    logger.info("doc_ingest_new", {
-      event: "doc_ingest_new",
-      doc_id: doc_id as string,
-      source_uri: sourceUri,
-    });
-    return { kind: "ingest", document: baseDoc, rawBytes };
-  }
-
-  // Row exists — four subcases ([§14.8](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#148-existing-state-lookup-and-re-ingest-decision)).
-  if (
-    !input.force &&
-    existing.content_hash === content_hash &&
-    existing.status === "stored" &&
-    !existing.deleted_at
-  ) {
-    logger.info("doc_unchanged", {
-      event: "doc_unchanged",
-      doc_id: doc_id as string,
-      source_uri: sourceUri,
-    });
-    return { kind: "unchanged", document: existing };
-  }
-
-  if (existing.deleted_at) {
-    // Soft-deleted — resurrection path. Insert fresh version.
-    await input.sidecar.upsertDocument(input.tx, baseDoc);
-    logger.info("doc_resurrected", {
-      event: "doc_resurrected",
-      doc_id: doc_id as string,
-      source_uri: sourceUri,
-    });
-    return { kind: "resurrection", document: baseDoc, rawBytes };
-  }
-
-  if (existing.content_hash !== content_hash) {
-    // New version.
-    await input.sidecar.upsertDocument(input.tx, baseDoc);
-    logger.info("doc_new_version", {
-      event: "doc_new_version",
-      doc_id: doc_id as string,
-      source_uri: sourceUri,
-    });
-    return { kind: "ingest", document: baseDoc, rawBytes };
-  }
-
-  // Content_hash matches but status != 'stored' — prior ingest crashed.
-  logger.info("doc_resume", {
-    event: "doc_resume",
-    doc_id: doc_id as string,
-    source_uri: sourceUri,
-    status: existing.status,
+    runId: input.runId,
+    runVersion: input.runVersion,
+    cliVersion: input.cliVersion,
+    sidecar: input.sidecar,
+    tx: input.tx,
+    force: input.force,
   });
-  return { kind: "resume", document: existing, rawBytes };
 };
 
 export const _internal = { asDocId, pickFrontmatterVersion } as const;

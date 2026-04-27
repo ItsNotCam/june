@@ -168,7 +168,13 @@ export { createOllamaEmbedder } from "@/lib/embedder/ollama";
 export { health, type HealthReport } from "@/pipeline/health";
 
 // Pipeline entry points
-export { ingestPath, type IngestOptions, type IngestResult } from "@/pipeline/ingest";
+export {
+  ingestPath,
+  ingestContent,
+  type IngestOptions,
+  type IngestContentOptions,
+  type IngestResult,
+} from "@/pipeline/ingest";
 export { resumeRun, type ResumeOptions, type ResumeResult } from "@/pipeline/resume";
 export { reconcile, type ReconcileOptions, type ReconcileResult } from "@/pipeline/reconcile";
 export { reembed, type ReembedOptions, type ReembedResult } from "@/pipeline/reembed";
