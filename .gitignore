@@ -53,6 +53,18 @@ node_modules/
 
 qdrant_storage/
 fixtures/
+
+# bench local state — runs, june scratch SQLite + Qdrant config, and the
+# LLM response cache all live under packages/mcp/bench/state/. The dir
+# itself (and the cache/ subdir) are tracked via .gitkeep so the layout
+# survives a fresh clone; the contents are operator-local and gitignored.
+packages/mcp/bench/state/runs/
+packages/mcp/bench/state/scratch/
+packages/mcp/bench/state/cache/llm/
+!packages/mcp/bench/state/.gitkeep
+!packages/mcp/bench/state/cache/.gitkeep
+
+# legacy paths — kept ignored until the prior runs are migrated/cleaned
 bench-scratch/
 runs/
 

@@ -100,6 +100,25 @@ export const BenchConfigSchema = z.object({
       bm25_weight: z.number().nonnegative(),
       rank_constant: z.number().int().positive(),
     }),
+    /**
+     * Multi-hop wrapper around the inner retriever. When enabled, the bench
+     * decomposes each query into one or more hops (LLM-driven), retrieves
+     * per hop, and fuses the per-hop rankings via RRF. Single-hop queries
+     * pass through unchanged. Designed to fix T4 multi-hop recall —
+     * single-pass dense+BM25 fusion can't resolve "the X that Y verbs"
+     * because the entity bridge isn't in the query text. Disabling matches
+     * the legacy single-pass behaviour.
+     */
+    multi_hop: z
+      .object({
+        enabled: z.boolean(),
+        planner: z.object({
+          provider: ProviderName,
+          model: z.string().min(1),
+          max_tokens: z.number().int().positive(),
+        }),
+      })
+      .optional(),
   }),
   reader_eval: z.object({
     k: z.number().int().positive(),
@@ -149,6 +168,13 @@ export const BenchConfigSchema = z.object({
   }),
   caching: z.object({
     enabled: z.boolean(),
+    /**
+     * Root directory for the LLM response cache. One subdir per provider
+     * (`anthropic/`, `anthropic-batch/`, `openai/`); one file per request
+     * keyed by SHA-256 of the canonical request shape. Operator can `rm -rf`
+     * this dir at any time — entries are non-load-bearing.
+     */
+    cache_root: z.string().min(1).default("./state/cache/llm"),
   }),
   log: z.object({
     level: z.string().min(1),

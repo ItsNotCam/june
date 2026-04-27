@@ -54,6 +54,20 @@ export type BenchLogFields = {
   name?: string;
   exit_code?: number;
   fixture_dir?: string;
+  tier?: string;
+  accepted_so_far?: number;
+  target?: number;
+  text_preview?: string;
+  text_length?: number;
+  zod_error?: unknown;
+  candidates?: number;
+  leaked?: number;
+  prior_run_id?: string;
+  scratch_path?: string;
+  qdrant_collections?: string[];
+  sampled_ratio?: number;
+  key?: string;
+  cache_root?: string;
 };
 
 /**

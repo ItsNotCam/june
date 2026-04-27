@@ -4,6 +4,7 @@ import { createOllamaProvider } from "./ollama";
 import { createAnthropicProvider } from "./anthropic";
 import { createAnthropicBatchProvider } from "./anthropic-batch";
 import { createOpenAIProvider } from "./openai";
+import { withProviderCache, withBatchProviderCache } from "./cache";
 import { getEnv } from "@/lib/env";
 
 export type ProviderRegistry = {
@@ -33,6 +34,34 @@ export const buildProviders = (): ProviderRegistry => {
       ? createOpenAIProvider(env.OPENAI_API_KEY)
       : null,
     "anthropic-batch": createAnthropicBatchProvider(env.ANTHROPIC_API_KEY),
+  };
+};
+
+/**
+ * Wraps every provider in `registry` with an on-disk LLM-response cache rooted
+ * at `cache_root`. Sync providers go through `withProviderCache`; the Anthropic
+ * Batch provider goes through `withBatchProviderCache` so its per-request
+ * cache survives Stage 8's checkpoint/resume flow.
+ *
+ * The wrappers preserve each provider's `name` field, so `resolveSyncProvider`
+ * and downstream type-narrowing keep working — stage code never sees the cache.
+ * Hits return `cost_usd: 0` to the caller; the historical cost stays in the
+ * cache file for audit.
+ */
+export const wrapRegistryWithCache = (
+  registry: ProviderRegistry,
+  cache_root: string,
+): ProviderRegistry => {
+  return {
+    ollama: withProviderCache(registry.ollama, cache_root),
+    anthropic: withProviderCache(registry.anthropic, cache_root),
+    openai: registry.openai
+      ? withProviderCache(registry.openai, cache_root)
+      : null,
+    "anthropic-batch": withBatchProviderCache(
+      registry["anthropic-batch"],
+      cache_root,
+    ),
   };
 };
 
