@@ -63,10 +63,7 @@ packages/mcp/bench/state/scratch/
 packages/mcp/bench/state/cache/llm/
 !packages/mcp/bench/state/.gitkeep
 !packages/mcp/bench/state/cache/.gitkeep
-
-# legacy paths — kept ignored until the prior runs are migrated/cleaned
-bench-scratch/
-runs/
+packages/mcp/bench/state/fixtures/
 
 # Claude
 .intermediary/
