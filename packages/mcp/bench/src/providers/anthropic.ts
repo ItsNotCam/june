@@ -36,13 +36,27 @@ export const createAnthropicProvider = (apiKey: string): LlmProvider => {
             content: m.content,
           }));
 
+        // Anthropic Messages has no native JSON mode and Claude 4.x rejects
+        // assistant-prefill, so when callers ask for JSON we steer via the
+        // system prompt instead. The bench's `extractJson` already handles
+        // prose-wrapped JSON via a balanced-brace walker.
         const systemFromMessages = req.messages.find((m) => m.role === "system")?.content;
+        const baseSystem = req.system ?? systemFromMessages;
+        const jsonSystem =
+          req.response_format === "json"
+            ? "Respond with a single JSON object and nothing else. No prose, no Markdown fences, no explanatory text before or after."
+            : null;
+        const system = jsonSystem
+          ? baseSystem
+            ? `${baseSystem}\n\n${jsonSystem}`
+            : jsonSystem
+          : baseSystem;
 
         const res = await client.messages.create({
           model: req.model,
           max_tokens: req.max_tokens,
           temperature: req.temperature,
-          system: req.system ?? systemFromMessages,
+          system,
           messages,
         });
 

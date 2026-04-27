@@ -168,6 +168,10 @@ const callReader = async (args: {
     messages: [{ role: "user", content: args.prompt }],
     max_tokens: args.max_tokens,
     temperature: args.temperature,
+    // Reader is verbatim-extraction; chain-of-thought eats num_predict on
+    // thinking-enabled Ollama models (gemma4, qwen3) and produces empty
+    // `message.content`. Honored only by providers that expose the toggle.
+    disable_thinking: true,
   });
   args.budget.record(args.role, res.cost_usd);
   return {

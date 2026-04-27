@@ -21,6 +21,13 @@ export type LlmCallRequest = {
   system?: string;
   /** When `json`, the provider is asked (and the response is expected) to return JSON. */
   response_format?: "text" | "json";
+  /**
+   * When true, providers should disable chain-of-thought / hidden reasoning.
+   * Currently consumed by the Ollama provider for thinking-enabled models
+   * (gemma4, qwen3, deepseek-r1) where reasoning eats the `num_predict`
+   * budget and leaves `message.content` empty for verbatim-extraction prompts.
+   */
+  disable_thinking?: boolean;
 };
 
 export type LlmCallResponse = {

@@ -38,6 +38,7 @@ export const createOllamaProvider = (ollamaUrl: string): LlmProvider => {
           },
         };
         if (req.response_format === "json") body["format"] = "json";
+        if (req.disable_thinking) body["think"] = false;
 
         const res = await fetch(`${ollamaUrl}/api/chat`, {
           method: "POST",
@@ -51,8 +52,13 @@ export const createOllamaProvider = (ollamaUrl: string): LlmProvider => {
         const latency = Date.now() - started;
         const prompt_tokens = json.prompt_eval_count ?? null;
         const completion_tokens = json.eval_count ?? null;
+        // Defensive fallback: thinking-enabled models (gemma4, qwen3, deepseek-r1)
+        // can return an empty `content` when `num_predict` is consumed by the
+        // hidden `thinking` block. Surface the thinking text so callers see
+        // something rather than an unexplained empty string.
+        const content = json.message?.content ?? "";
         return {
-          text: json.message?.content ?? "",
+          text: content === "" ? (json.message?.thinking ?? "") : content,
           prompt_tokens,
           completion_tokens,
           // Token cost is always $0 for Ollama; the only spend is electricity.
@@ -129,7 +135,7 @@ const safeText = async (res: Response): Promise<string> => {
 };
 
 type OllamaChatResponse = {
-  message?: { role: string; content: string };
+  message?: { role: string; content: string; thinking?: string };
   prompt_eval_count?: number;
   eval_count?: number;
 };

@@ -200,7 +200,16 @@ const buildTierSingleFact = async (args: {
     args.budget.record("role_2", res.cost_usd);
 
     const parsed = parseSingleFactQueries(args.tier, res.text);
-    if (!parsed) break;
+    if (!parsed) {
+      logger.warn("query.tier.parse_failed", {
+        tier: args.tier,
+        attempt,
+        accepted_so_far: accepted.size,
+        target: facts.length,
+        text_preview: res.text.slice(0, 200),
+      });
+      break;
+    }
 
     for (const q of parsed) {
       const fact = facts.find((f) => f.id === q.fact_id);
@@ -326,9 +335,21 @@ const buildT4 = async (args: {
     args.budget.record("role_2", res.cost_usd);
 
     const payload = extractJson(res.text);
-    if (!payload) break;
+    if (!payload) {
+      logger.warn("query.t4.extract_failed", {
+        attempt,
+        text_preview: res.text.slice(0, 200),
+      });
+      break;
+    }
     const parsed = QueryAuthorT4OutputSchema.safeParse(payload);
-    if (!parsed.success) break;
+    if (!parsed.success) {
+      logger.warn("query.t4.schema_failed", {
+        attempt,
+        zod_error: parsed.error.issues.slice(0, 3),
+      });
+      break;
+    }
 
     for (const q of parsed.data.queries) {
       const [relId, atomicId] = q.fact_ids;
@@ -399,14 +420,39 @@ const buildT5 = async (args: {
     args.budget.record("role_2", res.cost_usd);
 
     const payload = extractJson(res.text);
-    if (!payload) break;
+    if (!payload) {
+      logger.warn("query.t5.extract_failed", {
+        attempt,
+        text_preview: res.text.slice(0, 200),
+      });
+      break;
+    }
     const parsed = QueryAuthorT5OutputSchema.safeParse(payload);
-    if (!parsed.success) break;
+    if (!parsed.success) {
+      logger.warn("query.t5.schema_failed", {
+        attempt,
+        zod_error: parsed.error.issues.slice(0, 3),
+      });
+      break;
+    }
 
+    let accepted_this_attempt = 0;
+    let leaked_this_attempt = 0;
     for (const q of parsed.data.queries) {
-      if (t5LeaksIntoFacts(q.text, args.factEntities, args.factAttributes)) continue;
+      if (t5LeaksIntoFacts(q.text, args.factEntities, args.factAttributes)) {
+        leaked_this_attempt++;
+        continue;
+      }
       accepted.push({ text: q.text, attempts: attempt + 1 });
+      accepted_this_attempt++;
       if (accepted.length >= args.count) break;
+    }
+    if (accepted_this_attempt === 0) {
+      logger.warn("query.t5.all_filtered", {
+        attempt,
+        candidates: parsed.data.queries.length,
+        leaked: leaked_this_attempt,
+      });
     }
     attempt++;
   }
@@ -460,11 +506,47 @@ const extractJson = (text: string): unknown => {
   const candidates = [trimmed];
   const fence = /```(?:json)?\s*([\s\S]*?)```/i.exec(trimmed);
   if (fence && fence[1]) candidates.push(fence[1].trim());
+  const balanced = extractBalancedJsonObject(trimmed);
+  if (balanced) candidates.push(balanced);
   for (const candidate of candidates) {
     try {
       return JSON.parse(candidate);
     } catch {
       // fall through
+    }
+  }
+  logger.warn("query.parse.failure", {
+    text_preview: trimmed.slice(0, 200),
+    text_length: trimmed.length,
+  });
+  return null;
+};
+
+/**
+ * Extracts the substring spanning the first balanced `{...}` object in `text`,
+ * skipping braces inside string literals. Returns null if the first `{` has no
+ * matching close. Used as a fallback when the model wraps its JSON in trailing
+ * prose (common when assistant-prefill is used to coerce JSON output).
+ */
+const extractBalancedJsonObject = (text: string): string | null => {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]!;
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
     }
   }
   return null;

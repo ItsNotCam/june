@@ -109,15 +109,21 @@ export const ollamaEnergyCost = (latency_ms: number): number => {
  * cap before every metered call. The bench aborts mid-run with
  * `BudgetExceededError` when the cap is breached.
  */
+export type Role = "role_1" | "role_2" | "role_3" | "role_4" | "role_5";
+
 export class BudgetMeter {
-  private readonly by_role: Record<"role_1" | "role_2" | "role_3" | "role_4", number> = {
+  private readonly by_role: Record<Role, number> = {
     role_1: 0,
     role_2: 0,
     role_3: 0,
     role_4: 0,
+    // role_5 — retrieval-time LLM calls (query decomposition, bridge-entity
+    // extraction). Always Ollama in v1 so dollar cost is zero, but kept
+    // separate so the audit trail shows where calls happened.
+    role_5: 0,
   };
 
-  record(role: "role_1" | "role_2" | "role_3" | "role_4", amount: number): void {
+  record(role: Role, amount: number): void {
     this.by_role[role] += amount;
     const total = this.total();
     const cap = getConfig().cost.max_budget_usd;
@@ -131,10 +137,16 @@ export class BudgetMeter {
   }
 
   total(): number {
-    return this.by_role.role_1 + this.by_role.role_2 + this.by_role.role_3 + this.by_role.role_4;
+    return (
+      this.by_role.role_1 +
+      this.by_role.role_2 +
+      this.by_role.role_3 +
+      this.by_role.role_4 +
+      this.by_role.role_5
+    );
   }
 
-  snapshot(): { role_1: number; role_2: number; role_3: number; role_4: number; total: number } {
+  snapshot(): Record<Role, number> & { total: number } {
     return { ...this.by_role, total: this.total() };
   }
 }
@@ -147,7 +159,7 @@ export class BudgetMeter {
  * corpus_author, queries for the others).
  */
 export type CostPreviewRow = {
-  role: "role_1" | "role_2" | "role_3" | "role_4";
+  role: Role;
   label: string;
   provider: string;
   model: string;
