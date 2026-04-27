@@ -63,7 +63,10 @@ Notable tunables:
 
 ```bash
 june-eval generate [--seed <n>] [--domain <name>] [--out <dir>]
-june-eval run <fixture_dir> [--out <dir>] [--resume] [--yes]
+june-eval run <fixture_dir> [--out <dir>]
+                            [--resume | --skip-ingest <run_id> |
+                             --from <run_id> --rerun-from <stage>]
+                            [--quick | --sample <ratio>] [--cache] [--yes]
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
 june-eval health
@@ -118,6 +121,47 @@ bun run cli/bench.ts compare ./runs/<run_a>/ ./runs/<run_b>/
 ```
 
 `bun link` from this directory makes `june-eval` available globally.
+
+## Iteration tooling
+
+A full bench run is ~50 min and ~$0.20. The flags below trade safety for speed when iterating on retriever/reader/scorer tweaks. They're orthogonal — combine them.
+
+| Flag | What it skips | Reuse safety |
+|---|---|---|
+| `--resume` | Stages already completed in this run-dir | Same run-dir only; no fixture/config drift possible |
+| `--skip-ingest <run_id>` | Stage 4 (ingest) | Validates prior scratch SQLite + Qdrant collections still exist; aborts on fixture mismatch |
+| `--from <run_id> --rerun-from <stage>` | Stages strictly below `<stage>` | Copies prior artifacts; same ingest validation as `--skip-ingest` when reused |
+| `--quick` / `--sample <ratio>` | Most queries — runs a deterministic per-tier subset | Same fixture + same ratio = same subset; CIs widen, do NOT compare to full-fixture numbers |
+| `--cache` | API calls whose inputs match a prior cache entry | Cache key covers `(provider, model, system, messages, max_tokens, temperature, response_format, disable_thinking)`; hits report `cost_usd: 0` |
+
+`--rerun-from` accepts either named (`ingest|resolve|retrieve|reader|judge|score`) or numeric (`4|5|6|7|8|9`) values. `--from` and `--rerun-from` are paired — both required together. `--from` is mutually exclusive with `--resume` and `--skip-ingest`.
+
+### Common iteration loops
+
+```bash
+# Smoke pass: 10% of queries, reuse prior ingest, response cache on.
+june-eval run <fixture> --quick --skip-ingest <prior-run-id> --cache --yes
+
+# Reader iteration: keep stages 4-6 from a known-good run, re-run reader+judge+score.
+june-eval run <fixture> --from <prior-run-id> --rerun-from reader --yes
+
+# Scoring tweak only: reuse all of 4-8, just re-run Stage 9. Completes in <1s.
+june-eval run <fixture> --from <prior-run-id> --rerun-from score --yes
+```
+
+### State directory
+
+All bench-local artifacts live under `packages/mcp/bench/state/`:
+
+- `state/runs/<run_id>/` — per-run output (`results.json`, `summary.md`, etc.)
+- `state/scratch/<fixture_id>-<run_id>/` — Stage 4 scratch SQLite
+- `state/cache/llm/<provider>/<sha256>.json` — LLM response cache (when `--cache` is on)
+
+`rm -rf state/` resets everything. To migrate prior runs from the legacy paths once you're sure nothing in flight points at them:
+
+```bash
+mv runs/* state/runs/ && mv bench-scratch/* state/scratch/
+```
 
 ## Honesty audit
 
