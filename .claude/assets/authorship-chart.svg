@@ -19,10 +19,10 @@
 <rect x="130" y="129" width="410" height="22" fill="#3b82f6"/>
 <text class="pct" x="335" y="144" text-anchor="middle">100%</text>
 <text class="lbl" x="124" y="184" text-anchor="end">next</text>
-<rect x="130" y="169" width="193" height="22" fill="#3b82f6"/>
-<text class="pct" x="226" y="184" text-anchor="middle">47%</text>
-<rect x="323" y="169" width="217" height="22" fill="#f97316"/>
-<text class="pct" x="431" y="184" text-anchor="middle">53%</text>
+<rect x="130" y="169" width="123" height="22" fill="#3b82f6"/>
+<text class="pct" x="191" y="184" text-anchor="middle">30%</text>
+<rect x="253" y="169" width="287" height="22" fill="#f97316"/>
+<text class="pct" x="396" y="184" text-anchor="middle">70%</text>
 <text class="lbl" x="124" y="224" text-anchor="end">shared</text>
 <rect x="130" y="209" width="328" height="22" fill="#3b82f6"/>
 <text class="pct" x="294" y="224" text-anchor="middle">80%</text>
