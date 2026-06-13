@@ -50,6 +50,8 @@ export const runStage7 = async (args: {
   budget: BudgetMeter;
   out_path: string;
   baseline_out_path: string | null;
+  /** Called once per answer (reader and baseline) — drives live progress reporting. */
+  onItem?: () => void;
 }): Promise<{
   reader: ReaderAnswersFile;
   baseline: BaselineAnswersFile | null;
@@ -74,7 +76,7 @@ export const runStage7 = async (args: {
           chunks_rendered_as_chunk_tags: rendered,
           query_text: q.text,
         });
-        return callReader({
+        const answer = await callReader({
           provider: args.reader_provider,
           model: args.reader_model,
           max_tokens: args.reader_max_tokens,
@@ -85,6 +87,8 @@ export const runStage7 = async (args: {
           budget: args.budget,
           role: "role_3",
         });
+        args.onItem?.();
+        return answer;
       },
     );
 
@@ -115,7 +119,7 @@ export const runStage7 = async (args: {
             chunks_rendered_as_chunk_tags: emptyContext,
             query_text: q.text,
           });
-          return callReader({
+          const answer = await callReader({
             provider: args.baseline_provider!,
             model: args.baseline_model!,
             max_tokens: args.baseline_max_tokens!,
@@ -126,6 +130,8 @@ export const runStage7 = async (args: {
             budget: args.budget,
             role: "role_3",
           });
+          args.onItem?.();
+          return answer;
         },
       );
       baseline = {

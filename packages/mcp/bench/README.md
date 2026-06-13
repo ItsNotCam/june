@@ -67,9 +67,26 @@ june-eval run <fixture_dir> [--out <dir>]
                             [--resume | --skip-ingest <run_id> |
                              --from <run_id> --rerun-from <stage>]
                             [--quick | --sample <ratio>] [--cache] [--yes]
+                            [--quiet] [--log-json] [--progress-ndjson]
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
 june-eval health
+```
+
+### Progress output
+
+`run` emits a one-line-per-stage `[n/9] … ok (Xs)` summary to **stderr** by default.
+`--quiet` suppresses it; `--log-json` routes it through the structured logger.
+
+`--progress-ndjson` additionally streams machine-readable progress as
+newline-delimited JSON on **stdout** — one event per line: `run_start`,
+`stage_start`, `tick` (per-item for stages 6/7), `poll` (judge batch status),
+`stage_end`, `run_complete`. Human logs stay on stderr, so a parent process can
+read events off stdout cleanly. This is what the Next `/test` web UI consumes
+(see `packages/next`). The schema lives in `src/lib/progress-events.ts`.
+
+```bash
+june-eval run <fixture> --quick --cache --yes --progress-ndjson 1>events.ndjson 2>logs.txt
 ```
 
 ### Exit codes

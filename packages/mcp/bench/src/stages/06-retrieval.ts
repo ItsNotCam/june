@@ -33,6 +33,8 @@ export const runStage6 = async (args: {
   retriever: Retriever;
   ingest_run_id: string;
   out_path: string;
+  /** Called once per query after it is scored — drives live progress reporting. */
+  onItem?: () => void;
 }): Promise<RetrievalResultsFile> => {
   const cfg = getConfig();
   const maxK = Math.max(...cfg.retrieval.k_values);
@@ -61,6 +63,7 @@ export const runStage6 = async (args: {
       mrr: computeMrr(q.tier, expected, top),
       t5_top1_score: q.tier === "T5" ? (top[0]?.score ?? null) : null,
     });
+    args.onItem?.();
   }
 
   const file: RetrievalResultsFile = {
