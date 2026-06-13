@@ -49,6 +49,10 @@ june bench <corpus-path>                  # throughput / latency harness (stubbe
 
 Exit codes follow §27.3: `0` success, `1` fatal, `2` lock held, `3` health failed, `4` user aborted, `64` usage error.
 
+### `cli/web-bridge.ts` — JSON bridge for the web UI
+
+A machine-facing sibling to the `june` CLI, used by the `@june/next` ingestion page. It reads one JSON command from stdin (`{cmd:"ingest", files}` / `{cmd:"list"}` / `{cmd:"purge", docId}`) and emits sentinel-prefixed NDJSON events on stdout (the sentinel is passed as `argv[2]`). It exists because a Node/Next caller cannot import this package in-process — Bun resolves the internal `@/` alias against the caller's tsconfig. Spawning this script with **cwd = this package** sidesteps that (and keeps `bun:sqlite` out of the caller's bundle). It uses the same programmatic API (`ingestPath`, `purge`, `listLatestDocuments`) documented below.
+
 ## Programmatic API
 
 The `june` CLI is one consumer; anything else in the workspace (the MCP server, tests, custom tooling) talks to the pipeline through the named exports of `@june/mcp-ingest` (re-exported from [`src/index.ts`](./src/index.ts)).
