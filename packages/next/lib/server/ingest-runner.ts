@@ -33,6 +33,19 @@ const STAGING_DIR =
   process.env["INGEST_STAGING_DIR"] ?? join(process.cwd(), ".ingest-uploads");
 const MANIFEST_PATH = join(STAGING_DIR, "manifest.json");
 
+/**
+ * Max ingest/purge operations admitted concurrently. The pipeline holds a
+ * single-writer SQLite lock per run, so concurrent writers serialize at the
+ * lock (the bridge retries on `SidecarLockHeldError` rather than failing) — this
+ * caps in-flight requests + resource use, not actual write throughput.
+ */
+const DEFAULT_MAX_PARALLEL = 2;
+const parseMaxParallel = (raw: string | undefined): number => {
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n >= 1 ? n : DEFAULT_MAX_PARALLEL;
+};
+const MAX_PARALLEL = parseMaxParallel(process.env["INGEST_MAX_PARALLEL"]);
+
 /** An uploaded file's bytes + original name, before staging. */
 export type Upload = { name: string; bytes: Uint8Array };
 
@@ -44,14 +57,37 @@ const ManifestSchema = z.record(
 );
 type Manifest = z.infer<typeof ManifestSchema>;
 
-// ---- Single-writer serialization -------------------------------------------
-// Each bridge process acquires the pipeline's single-writer SQLite lock, so
-// write commands (ingest, purge) must not overlap. Reads (list) are exempt.
-let tail: Promise<unknown> = Promise.resolve();
-const withWriteLock = <T>(fn: () => Promise<T>): Promise<T> => {
-  const result = tail.then(fn, fn);
-  tail = result.catch(() => undefined);
-  return result;
+// ---- Bounded-concurrency admission -----------------------------------------
+// Counting semaphore capping concurrent write operations (ingest/purge) at
+// MAX_PARALLEL. Reads (list) are exempt. Held slots serialize further at the
+// pipeline's single-writer SQLite lock, where the bridge waits + retries.
+const makeSemaphore = (max: number) => {
+  let active = 0;
+  const waiters: Array<() => void> = [];
+  const acquire = async (): Promise<void> => {
+    if (active < max) {
+      active++;
+      return;
+    }
+    // Slot stays counted; release() hands it directly to this waiter.
+    await new Promise<void>((res) => waiters.push(res));
+  };
+  const release = (): void => {
+    const next = waiters.shift();
+    if (next) next();
+    else active--;
+  };
+  return { acquire, release };
+};
+
+const writeSlots = makeSemaphore(MAX_PARALLEL);
+const withWriteSlot = async <T>(fn: () => Promise<T>): Promise<T> => {
+  await writeSlots.acquire();
+  try {
+    return await fn();
+  } finally {
+    writeSlots.release();
+  }
 };
 
 // ---- Manifest (docId -> staged file) ---------------------------------------
@@ -174,7 +210,7 @@ export const runIngest = async (
   uploads: ReadonlyArray<Upload>,
   onEvent: (event: BridgeEvent) => void,
 ): Promise<void> =>
-  withWriteLock(async () => {
+  withWriteSlot(async () => {
     const staged = await stageUploads(uploads);
     const byId = new Map(staged.map((s) => [s.id, s] as const));
     const manifest = await readManifest();
@@ -206,7 +242,7 @@ export const listDocuments = async (): Promise<DocumentRow[]> => {
 export const purgeDocument = async (
   docId: string,
 ): Promise<{ purgedVersions: number; purgedChunks: number }> =>
-  withWriteLock(async () => {
+  withWriteSlot(async () => {
     let result: { purgedVersions: number; purgedChunks: number } | undefined;
     await spawnBridge({ cmd: "purge", docId }, (event) => {
       if (event.type === "purged") {

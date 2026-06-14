@@ -25,6 +25,7 @@ import { createStubEmbedder } from "@/lib/embedder/stub";
 import { createStubSummarizer } from "@/lib/summarizer/stub";
 import { deriveDocId } from "@/lib/ids";
 import { getConfig } from "@/lib/config";
+import { SidecarLockHeldError } from "@/lib/errors";
 import { asDocId } from "@/types/ids";
 import { bootstrap } from "./shared";
 import type { ProgressReporter } from "@/lib/progress";
@@ -52,6 +53,31 @@ const FLAGS: CommonFlags = {
 
 const emit = (event: Record<string, unknown>): void => {
   process.stdout.write(`${SENTINEL}${JSON.stringify(event)}\n`);
+};
+
+const LOCK_RETRY_DELAY_MS = 750;
+const LOCK_RETRY_MAX_MS = 300_000;
+const sleep = (ms: number): Promise<void> => new Promise((res) => setTimeout(res, ms));
+
+/**
+ * Run a lock-acquiring operation, waiting + retrying while another run holds
+ * the single-writer SQLite lock instead of failing. Lets the runner admit
+ * `INGEST_MAX_PARALLEL` operations that then serialize gracefully at the lock.
+ * The lock is acquired before any work, so retrying is side-effect-free.
+ */
+const withLockRetry = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const deadline = Date.now() + LOCK_RETRY_MAX_MS;
+  for (;;) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof SidecarLockHeldError && Date.now() < deadline) {
+        await sleep(LOCK_RETRY_DELAY_MS);
+        continue;
+      }
+      throw err;
+    }
+  }
 };
 
 /** Best-effort human name from a source URI (prefers the file basename). */
@@ -102,7 +128,9 @@ const runIngest = async (
     };
 
     try {
-      const result = await ingestPath({ path: f.path, deps, trigger: "api", progress });
+      const result = await withLockRetry(() =>
+        ingestPath({ path: f.path, deps, trigger: "api", progress }),
+      );
       processed += result.processed;
       skipped += result.skipped;
       errored += result.errored;
@@ -157,7 +185,9 @@ const runPurge = async (docId: string): Promise<void> => {
     summarizer: createStubSummarizer(),
   };
   try {
-    const result = await purge({ deps, doc_id: asDocId(docId), allVersions: true });
+    const result = await withLockRetry(() =>
+      purge({ deps, doc_id: asDocId(docId), allVersions: true }),
+    );
     emit({ type: "purged", docId, purgedVersions: result.purgedVersions, purgedChunks: result.purgedChunks });
   } finally {
     await sidecar.close();
