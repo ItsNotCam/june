@@ -20,7 +20,7 @@ const HEARTBEAT_MS = 15_000;
 
 export async function POST(): Promise<Response> {
   try {
-    const snapshot = runManager.startRun();
+    const snapshot = await runManager.startRun();
     return Response.json({ status: snapshot.status, runId: snapshot.runId }, { status: 202 });
   } catch (err) {
     if (err instanceof RunInProgressError) {

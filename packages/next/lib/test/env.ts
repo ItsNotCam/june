@@ -26,6 +26,8 @@ const RawTestEnvSchema = z.object({
   TEST_RUN_FLAGS: z.string().optional(),
   /** Parent directory of run-dirs — must match bench's --out (default ./state/runs). */
   TEST_RUNS_DIR: z.string().min(1).optional(),
+  /** Path to the editable run-config YAML the /test UI reads + writes. */
+  TEST_CONFIG_PATH: z.string().min(1).optional(),
 });
 
 /** Resolved, ready-to-spawn configuration. */
@@ -38,11 +40,15 @@ export type TestConfig = {
   readonly flags: readonly string[];
   /** Where run-dirs live — read for history, written to for saved logs. */
   readonly runsDir: string;
+  /** Path to the editable run-config YAML. */
+  readonly configPath: string;
 };
 
 const DEFAULT_RUNNER = "bun";
 const DEFAULT_CLI = "cli/bench.ts";
-const DEFAULT_FLAGS = "--quick --cache --yes";
+// Run options now come from the saved config (lib/test/config.ts); TEST_RUN_FLAGS
+// is only for optional power-user extras appended on top, so it defaults empty.
+const DEFAULT_FLAGS = "";
 /** Bench package location relative to the Next package root (dev cwd). */
 const DEFAULT_BENCH_CWD = resolve(process.cwd(), "../mcp/bench");
 
@@ -65,6 +71,9 @@ export const getTestConfig = (): TestConfig => {
     fixtureDir: resolve(raw.TEST_FIXTURE_DIR),
     flags: (raw.TEST_RUN_FLAGS ?? DEFAULT_FLAGS).split(/\s+/).filter(Boolean),
     runsDir: raw.TEST_RUNS_DIR ? resolve(raw.TEST_RUNS_DIR) : resolve(cwd, "state/runs"),
+    configPath: raw.TEST_CONFIG_PATH
+      ? resolve(raw.TEST_CONFIG_PATH)
+      : resolve(cwd, "test-run.config.yaml"),
   };
   return cached;
 };

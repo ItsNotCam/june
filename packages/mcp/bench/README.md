@@ -68,6 +68,8 @@ june-eval run <fixture_dir> [--out <dir>]
                              --from <run_id> --rerun-from <stage>]
                             [--quick | --sample <ratio>] [--cache] [--yes]
                             [--quiet] [--log-json] [--progress-ndjson]
+                            [--ingest-config <path>] [--reader-concurrency <n>]
+                            [--baseline | --no-baseline]
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
 june-eval health
@@ -88,6 +90,16 @@ read events off stdout cleanly. This is what the Next `/test` web UI consumes
 ```bash
 june-eval run <fixture> --quick --cache --yes --progress-ndjson 1>events.ndjson 2>logs.txt
 ```
+
+### Per-run config overrides
+
+A caller can override config without editing `config.yaml`:
+`--reader-concurrency <n>` and `--baseline`/`--no-baseline` override the
+corresponding config values, and `--ingest-config <path>` supplies a YAML whose
+ingest tunables (chunk / embedding / summarizer / …) are merged into the temp mcp
+config Stage 4 generates for `june ingest` (`sidecar.path` stays bench-owned and
+cannot be overridden). The `/test` web UI in `packages/next` uses these to apply
+an operator-edited config to a run.
 
 ### Exit codes
 

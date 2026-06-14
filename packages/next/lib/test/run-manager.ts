@@ -16,6 +16,7 @@ import { createInterface } from "readline";
 import { createWriteStream, mkdirSync, writeFileSync, type WriteStream } from "fs";
 import { join } from "path";
 import { getTestConfig } from "./env";
+import { deriveRunArgs, loadTestConfig } from "./config";
 import {
   TestEventSchema,
   type RunMessage,
@@ -32,13 +33,13 @@ export class RunInProgressError extends Error {
   }
 }
 
-/** Flags the runner always appends, regardless of TEST_RUN_FLAGS. */
+/** Flags the runner always appends — non-interactive, clean stdout, events on. */
 const FORCED_FLAGS = ["--yes", "--quiet", "--progress-ndjson"] as const;
 /** Cap on retained child stderr (chars) used to explain a non-zero exit. */
 const STDERR_TAIL_LIMIT = 4000;
 
 type RunManager = {
-  startRun: () => RunSnapshot;
+  startRun: () => Promise<RunSnapshot>;
   subscribe: (cb: (msg: RunMessage) => void) => () => void;
   getSnapshot: () => RunSnapshot;
 };
@@ -154,21 +155,47 @@ const createRunManager = (): RunManager => {
     broadcast();
   };
 
-  const startRun = (): RunSnapshot => {
+  const startRun = async (): Promise<RunSnapshot> => {
     if (snapshot.status === "running") throw new RunInProgressError();
-
+    // Validate env before claiming the slot — a config error shouldn't lock the runner.
     const cfg = getTestConfig();
+    // Claim the slot synchronously (before any await) so concurrent starts can't race.
     snapshot = { status: "running", stages: [] };
     stderrTail = "";
     stderrAll = "";
     logStream = undefined;
 
-    const args = [cfg.cli, "run", cfg.fixtureDir, ...cfg.flags, ...FORCED_FLAGS];
-    const proc = spawn(cfg.runner, args, {
-      cwd: cfg.cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
-    });
+    let proc: ReturnType<typeof spawn>;
+    try {
+      const testConfig = await loadTestConfig();
+      const { flags, ingestYaml } = deriveRunArgs(testConfig);
+
+      // Persist the ingest overrides where bench can read them via --ingest-config.
+      mkdirSync(cfg.runsDir, { recursive: true });
+      const ingestConfigPath = join(cfg.runsDir, ".ingest-config.yaml");
+      writeFileSync(ingestConfigPath, ingestYaml);
+
+      const args = [
+        cfg.cli,
+        "run",
+        cfg.fixtureDir,
+        ...flags,
+        ...cfg.flags, // optional TEST_RUN_FLAGS extras (override derived; usually empty)
+        "--ingest-config",
+        ingestConfigPath,
+        ...FORCED_FLAGS,
+      ];
+      proc = spawn(cfg.runner, args, {
+        cwd: cfg.cwd,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: process.env,
+      });
+    } catch (err) {
+      // Failed before spawn — release the slot so the user can retry.
+      snapshot = { status: "error", stages: [], error: err instanceof Error ? err.message : String(err) };
+      broadcast();
+      throw err;
+    }
 
     const stdout = createInterface({ input: proc.stdout! });
     stdout.on("line", (line) => {

@@ -94,6 +94,19 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   // NDJSON progress events on stdout — consumed by the `/test` web UI server.
   const progress_ndjson = flagBool(flags, "progress-ndjson");
   const events = progress_ndjson ? createNdjsonReporter() : createNullReporter();
+  // Per-run config overrides surfaced by the `/test` UI (otherwise config.yaml wins).
+  const ingest_config = flagString(flags, "ingest-config");
+  const reader_concurrency_override = parseReaderConcurrency(
+    flagString(flags, "reader-concurrency"),
+  );
+  if (flagBool(flags, "baseline") && flagBool(flags, "no-baseline")) {
+    throw new UsageError("--baseline and --no-baseline are mutually exclusive.");
+  }
+  const baseline_override = flagBool(flags, "baseline")
+    ? true
+    : flagBool(flags, "no-baseline")
+      ? false
+      : undefined;
 
   if (resume && skip_ingest !== undefined) {
     throw new UsageError(
@@ -160,6 +173,9 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
 
   const cfg = getConfig();
   void getEnv();
+  // Resolve per-run overrides against config.yaml (flag wins when present).
+  const baseline_enabled = baseline_override ?? cfg.baseline.no_rag_opus;
+  const reader_concurrency = reader_concurrency_override ?? cfg.roles.reader.concurrency;
   const cache_enabled = cache_flag || cfg.caching.enabled;
   const providers = cache_enabled
     ? wrapRegistryWithCache(buildProviders(), cfg.caching.cache_root)
@@ -222,7 +238,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const groundTruthPath = join(run_dir, "ground_truth.json");
   const retrievalPath = join(run_dir, "retrieval_results.json");
   const readerPath = join(run_dir, "reader_answers.json");
-  const baselinePath = cfg.baseline.no_rag_opus
+  const baselinePath = baseline_enabled
     ? join(run_dir, "baseline_answers.json")
     : null;
   const judgePath = join(run_dir, "judge_results.json");
@@ -235,7 +251,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     const preview = buildCostPreview({
       doc_count: corpus.documents.length,
       query_count: queries.queries.length,
-      include_baseline: cfg.baseline.no_rag_opus,
+      include_baseline: baseline_enabled,
     });
     const total = preview.reduce((n, r) => n + r.estimated_usd, 0);
     process.stderr.write(renderCostPreview(preview, total, cfg.cost.max_budget_usd));
@@ -272,6 +288,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       corpus_dir: join(fixture_dir, "corpus"),
       manifest: corpus,
       ingest_manifest_path: ingestPath,
+      ingest_config_path: ingest_config,
     });
     stageProgress({ quiet, json_log, stage_num: 4, stage_name: "ingest", duration_ms: Date.now() - t4 });
   }
@@ -378,12 +395,11 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
 
   // Stage 7 — reader + optional baseline.
   const t7 = Date.now();
-  const total7 = queries.queries.length * (cfg.baseline.no_rag_opus ? 2 : 1);
+  const total7 = queries.queries.length * (baseline_enabled ? 2 : 1);
   events.stageStart(7, "reader evaluation", total7);
   let done7 = 0;
   const readerProvider = resolveSyncProvider(providers, cfg.roles.reader.provider);
-  const readerConcurrency = cfg.roles.reader.concurrency;
-  const baselineProvider = cfg.baseline.no_rag_opus
+  const baselineProvider = baseline_enabled
     ? resolveSyncProvider(providers, cfg.baseline.provider)
     : null;
 
@@ -404,12 +420,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       reader_model: cfg.roles.reader.model,
       reader_max_tokens: cfg.roles.reader.max_tokens,
       reader_temperature: cfg.roles.reader.temperature,
-      reader_concurrency: readerConcurrency,
+      reader_concurrency,
       baseline_provider: baselineProvider,
-      baseline_model: cfg.baseline.no_rag_opus ? cfg.baseline.model : null,
-      baseline_max_tokens: cfg.baseline.no_rag_opus
-        ? cfg.baseline.max_tokens
-        : null,
+      baseline_model: baseline_enabled ? cfg.baseline.model : null,
+      baseline_max_tokens: baseline_enabled ? cfg.baseline.max_tokens : null,
       budget,
       out_path: readerPath,
       baseline_out_path: baselinePath,
@@ -479,6 +493,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     ingest,
     retriever_config_snapshot: retriever.config_snapshot,
     budget_cap_usd: cfg.cost.max_budget_usd,
+    baseline_enabled,
   });
   await runStage9({
     facts,
@@ -518,6 +533,22 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
  * Throws `UsageError` on out-of-range, non-numeric, or non-positive inputs.
  */
 const QUICK_SAMPLE_RATIO = 0.1;
+
+/**
+ * Parses `--reader-concurrency <n>` into a positive integer, or `undefined`
+ * when absent (config.yaml's `roles.reader.concurrency` then applies).
+ * Throws `UsageError` on non-integer or non-positive input.
+ */
+const parseReaderConcurrency = (input: string | undefined): number | undefined => {
+  if (input === undefined) return undefined;
+  const n = Number(input);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new UsageError(
+      `--reader-concurrency expects a positive integer; got ${JSON.stringify(input)}.`,
+    );
+  }
+  return n;
+};
 
 const parseSampleRatio = (args: {
   quick: boolean;
@@ -830,6 +861,7 @@ const buildManifest = (args: {
   ingest: IngestManifestFile;
   retriever_config_snapshot: Record<string, unknown>;
   budget_cap_usd: number;
+  baseline_enabled: boolean;
 }): RunManifest => {
   const cfg = getConfig();
   return {
@@ -859,7 +891,7 @@ const buildManifest = (args: {
         provider: "anthropic-batch",
         model: cfg.roles.judge.model,
       },
-      baseline: cfg.baseline.no_rag_opus
+      baseline: args.baseline_enabled
         ? {
             provider: cfg.baseline.provider,
             model: cfg.baseline.model,
@@ -1033,6 +1065,12 @@ FLAGS
                            (run_start / stage_start / tick / poll / stage_end /
                            run_complete). Consumed by the \`/test\` web UI server;
                            human logs stay on stderr. Combine with --quiet --yes.
+  --ingest-config <path>   YAML merged into the Stage 4 ingest config (chunk /
+                           embedding / summarizer overrides). sidecar.path is
+                           always set by the bench and cannot be overridden.
+  --reader-concurrency <n> override config.yaml roles.reader.concurrency.
+  --baseline               force the no-RAG baseline pass on (overrides config).
+  --no-baseline            force the no-RAG baseline pass off (overrides config).
 
 EXAMPLES
   # Smoke pass: 10% of queries, reuse prior ingest, response cache on
