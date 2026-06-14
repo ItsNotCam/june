@@ -37,8 +37,10 @@ export const createLlmJudge = (args: {
   resume_batch_id?: string;
   /** Prefix tag for custom_ids — `"reader"` or `"baseline"` per §23. */
   stream_prefix?: string;
+  /** Called on each poll iteration with elapsed time + batch status — drives live progress. */
+  onPoll?: (info: { elapsed_ms: number; status: string }) => void;
 }): Judge => {
-  const { provider, model, max_tokens, checkpoint_path, resume_batch_id } = args;
+  const { provider, model, max_tokens, checkpoint_path, resume_batch_id, onPoll } = args;
   const prefix = args.stream_prefix ?? "reader";
 
   const judge_all = async (
@@ -70,7 +72,7 @@ export const createLlmJudge = (args: {
       });
     }
 
-    const resultsUrl = await pollUntilEnded(provider, batch_id);
+    const resultsUrl = await pollUntilEnded(provider, batch_id, onPoll);
     logger.info("judge.ended", { batch_id });
 
     const results = await provider.retrieve(resultsUrl);
@@ -116,6 +118,7 @@ const buildBatchRequest = async (
 const pollUntilEnded = async (
   provider: BatchLlmProvider,
   batch_id: string,
+  onPoll?: (info: { elapsed_ms: number; status: string }) => void,
 ): Promise<string> => {
   const cfg = getConfig().judge;
   const started = Date.now();
@@ -123,6 +126,7 @@ const pollUntilEnded = async (
 
   while (Date.now() - started < cfg.batch_timeout_ms) {
     const status = await provider.poll(batch_id);
+    onPoll?.({ elapsed_ms: Date.now() - started, status: status.status });
     if (status.status === "ended") return status.results_url;
     await Bun.sleep(delay);
     delay = Math.min(delay * 2, cfg.poll_max_ms);

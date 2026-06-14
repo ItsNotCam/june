@@ -1,8 +1,8 @@
 // author: Claude
 import { spawn } from "child_process";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { dirname, isAbsolute, join, resolve } from "path";
-import { stringify as yamlStringify } from "yaml";
+import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import type { CorpusManifest } from "@/types/corpus";
 import type { IngestManifestFile } from "@/types/ingest";
 import {
@@ -39,6 +39,8 @@ export const runStage4 = async (args: {
   corpus_dir: string;
   manifest: CorpusManifest;
   ingest_manifest_path: string;
+  /** Optional YAML whose ingest tunables (chunk/embedding/summarizer/…) merge into the temp config. */
+  ingest_config_path?: string;
 }): Promise<IngestManifestFile> => {
   const cfg = getConfig();
   const env = getEnv();
@@ -51,7 +53,8 @@ export const runStage4 = async (args: {
 
   const sqlitePath = join(scratchPath, "june.db");
   const mcpConfigPath = join(scratchPath, "config.yaml");
-  await writeFile(mcpConfigPath, buildTempMcpConfig(sqlitePath), "utf-8");
+  const overrides = await readIngestConfigOverrides(args.ingest_config_path);
+  await writeFile(mcpConfigPath, buildTempMcpConfig(sqlitePath, overrides), "utf-8");
 
   // `june init` is idempotent — applies SQLite DDL + ensures Qdrant collections.
   // Bench-dedicated Qdrant + scratch SQLite mean we always need it before ingest;
@@ -138,9 +141,34 @@ const verifyCorpusHashes = async (manifest: CorpusManifest): Promise<void> => {
  * shipped defaults (including `bm25.stopwords: []` which the bench's BM25
  * mirrors).
  */
-const buildTempMcpConfig = (sqlitePath: string): string => {
-  const obj = { sidecar: { path: sqlitePath } };
+/**
+ * Builds the scratch mcp `config.yaml`. Starts from any operator-supplied ingest
+ * overrides (chunk/embedding/summarizer/…) and forces `sidecar.path` to the
+ * bench's scratch SQLite — the path is bench-owned and must never be overridden.
+ */
+const buildTempMcpConfig = (
+  sqlitePath: string,
+  overrides?: Record<string, unknown>,
+): string => {
+  const obj = { ...(overrides ?? {}), sidecar: { path: sqlitePath } };
   return yamlStringify(obj);
+};
+
+/**
+ * Reads + parses the optional `--ingest-config` YAML. Returns `undefined` when
+ * no path is given. `june ingest` revalidates the merged result via its own
+ * ConfigSchema, so a malformed override surfaces loudly at the subprocess.
+ */
+const readIngestConfigOverrides = async (
+  path: string | undefined,
+): Promise<Record<string, unknown> | undefined> => {
+  if (!path) return undefined;
+  const raw = await readFile(resolve(path), "utf-8");
+  const parsed = yamlParse(raw) as unknown;
+  if (parsed === null || typeof parsed !== "object") {
+    throw new Error(`--ingest-config at '${path}' did not parse to a YAML object.`);
+  }
+  return parsed as Record<string, unknown>;
 };
 
 /**

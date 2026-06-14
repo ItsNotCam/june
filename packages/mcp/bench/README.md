@@ -67,10 +67,39 @@ june-eval run <fixture_dir> [--out <dir>]
                             [--resume | --skip-ingest <run_id> |
                              --from <run_id> --rerun-from <stage>]
                             [--quick | --sample <ratio>] [--cache] [--yes]
+                            [--quiet] [--log-json] [--progress-ndjson]
+                            [--ingest-config <path>] [--reader-concurrency <n>]
+                            [--baseline | --no-baseline]
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
 june-eval health
 ```
+
+### Progress output
+
+`run` emits a one-line-per-stage `[n/9] … ok (Xs)` summary to **stderr** by default.
+`--quiet` suppresses it; `--log-json` routes it through the structured logger.
+
+`--progress-ndjson` additionally streams machine-readable progress as
+newline-delimited JSON on **stdout** — one event per line: `run_start`,
+`stage_start`, `tick` (per-item for stages 6/7), `poll` (judge batch status),
+`stage_end`, `run_complete`. Human logs stay on stderr, so a parent process can
+read events off stdout cleanly. This is what the Next `/test` web UI consumes
+(see `packages/next`). The schema lives in `src/lib/progress-events.ts`.
+
+```bash
+june-eval run <fixture> --quick --cache --yes --progress-ndjson 1>events.ndjson 2>logs.txt
+```
+
+### Per-run config overrides
+
+A caller can override config without editing `config.yaml`:
+`--reader-concurrency <n>` and `--baseline`/`--no-baseline` override the
+corresponding config values, and `--ingest-config <path>` supplies a YAML whose
+ingest tunables (chunk / embedding / summarizer / …) are merged into the temp mcp
+config Stage 4 generates for `june ingest` (`sidecar.path` stays bench-owned and
+cannot be overridden). The `/test` web UI in `packages/next` uses these to apply
+an operator-edited config to a run.
 
 ### Exit codes
 

@@ -28,6 +28,11 @@ import { getEnv } from "@/lib/env";
 import { readJson, writeJsonAtomic, fileExists, sha256Hex } from "@/lib/artifacts";
 import { newRunId } from "@/lib/ids";
 import {
+  createNdjsonReporter,
+  createNullReporter,
+  type StageDescriptor,
+} from "@/lib/progress-events";
+import {
   BudgetExceededError,
   IntegrityViolationError,
   JudgeIntegrityError,
@@ -43,6 +48,16 @@ import {
   parseArgv,
   stageProgress,
 } from "./shared";
+
+/** Stage roster emitted in `run_start` so a consumer can pre-render the list. */
+const RUN_STAGES: readonly StageDescriptor[] = [
+  { num: 4, name: "ingest" },
+  { num: 5, name: "ground-truth resolution" },
+  { num: 6, name: "retrieval evaluation" },
+  { num: 7, name: "reader evaluation" },
+  { num: 8, name: "judging (batch)" },
+  { num: 9, name: "scoring + report" },
+];
 
 /**
  * `june-eval run` — drives Stages 4–9 against an existing fixture (§28).
@@ -76,6 +91,22 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const yes = flagBool(flags, "yes");
   const quiet = flagBool(flags, "quiet");
   const json_log = flagBool(flags, "log-json");
+  // NDJSON progress events on stdout — consumed by the `/test` web UI server.
+  const progress_ndjson = flagBool(flags, "progress-ndjson");
+  const events = progress_ndjson ? createNdjsonReporter() : createNullReporter();
+  // Per-run config overrides surfaced by the `/test` UI (otherwise config.yaml wins).
+  const ingest_config = flagString(flags, "ingest-config");
+  const reader_concurrency_override = parseReaderConcurrency(
+    flagString(flags, "reader-concurrency"),
+  );
+  if (flagBool(flags, "baseline") && flagBool(flags, "no-baseline")) {
+    throw new UsageError("--baseline and --no-baseline are mutually exclusive.");
+  }
+  const baseline_override = flagBool(flags, "baseline")
+    ? true
+    : flagBool(flags, "no-baseline")
+      ? false
+      : undefined;
 
   if (resume && skip_ingest !== undefined) {
     throw new UsageError(
@@ -142,6 +173,9 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
 
   const cfg = getConfig();
   void getEnv();
+  // Resolve per-run overrides against config.yaml (flag wins when present).
+  const baseline_enabled = baseline_override ?? cfg.baseline.no_rag_opus;
+  const reader_concurrency = reader_concurrency_override ?? cfg.roles.reader.concurrency;
   const cache_enabled = cache_flag || cfg.caching.enabled;
   const providers = cache_enabled
     ? wrapRegistryWithCache(buildProviders(), cfg.caching.cache_root)
@@ -155,6 +189,8 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const run_id = newRunId(facts.fixture_id);
   const run_dir = join(outRoot, run_id);
   await mkdir(run_dir, { recursive: true });
+
+  events.runStart({ fixture_id: facts.fixture_id, run_id, stages: RUN_STAGES });
 
   const ingestPath = join(run_dir, "ingest_manifest.json");
   if (skip_ingest !== undefined) {
@@ -202,7 +238,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const groundTruthPath = join(run_dir, "ground_truth.json");
   const retrievalPath = join(run_dir, "retrieval_results.json");
   const readerPath = join(run_dir, "reader_answers.json");
-  const baselinePath = cfg.baseline.no_rag_opus
+  const baselinePath = baseline_enabled
     ? join(run_dir, "baseline_answers.json")
     : null;
   const judgePath = join(run_dir, "judge_results.json");
@@ -215,7 +251,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     const preview = buildCostPreview({
       doc_count: corpus.documents.length,
       query_count: queries.queries.length,
-      include_baseline: cfg.baseline.no_rag_opus,
+      include_baseline: baseline_enabled,
     });
     const total = preview.reduce((n, r) => n + r.estimated_usd, 0);
     process.stderr.write(renderCostPreview(preview, total, cfg.cost.max_budget_usd));
@@ -236,6 +272,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   // Stage 4 — ingest. Reused when any of --resume, --skip-ingest, or
   // --from has already populated `ingest_manifest.json` in the run-dir.
   const t4 = Date.now();
+  events.stageStart(4, "ingest");
   let ingest: IngestManifestFile;
   if (reuse_artifacts && (await fileExists(ingestPath))) {
     ingest = (await readJson(ingestPath)) as IngestManifestFile;
@@ -251,12 +288,15 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       corpus_dir: join(fixture_dir, "corpus"),
       manifest: corpus,
       ingest_manifest_path: ingestPath,
+      ingest_config_path: ingest_config,
     });
     stageProgress({ quiet, json_log, stage_num: 4, stage_name: "ingest", duration_ms: Date.now() - t4 });
   }
+  events.stageEnd(4, "ingest", Date.now() - t4);
 
   // Stage 5 — ground truth resolution.
   const t5 = Date.now();
+  events.stageStart(5, "ground-truth resolution");
   let ground_truth: GroundTruthFile;
   let run_status: RunStatus = "completed";
   try {
@@ -278,6 +318,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       });
     }
     stageProgress({ quiet, json_log, stage_num: 5, stage_name: "ground-truth resolution", duration_ms: Date.now() - t5 });
+    events.stageEnd(5, "ground-truth resolution", Date.now() - t5);
   } catch (err) {
     if (err instanceof IntegrityViolationError) {
       run_status = "aborted_integrity_resolution";
@@ -298,6 +339,9 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
 
   // Stage 6 — retrieval evaluation.
   const t6 = Date.now();
+  const total6 = queries.queries.length;
+  events.stageStart(6, "retrieval evaluation", total6);
+  let done6 = 0;
   const innerRetriever = createStopgapRetriever({
     collectionNames: ingest.qdrant_collections,
     embedModel: ingest.embedding_model,
@@ -340,18 +384,22 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
         retriever,
         ingest_run_id: ingest.ingest_run_id,
         out_path: retrievalPath,
+        onItem: () => events.tick(6, ++done6, total6),
       });
     }
   } finally {
     mhDb?.close();
   }
   stageProgress({ quiet, json_log, stage_num: 6, stage_name: "retrieval evaluation", duration_ms: Date.now() - t6 });
+  events.stageEnd(6, "retrieval evaluation", Date.now() - t6);
 
   // Stage 7 — reader + optional baseline.
   const t7 = Date.now();
+  const total7 = queries.queries.length * (baseline_enabled ? 2 : 1);
+  events.stageStart(7, "reader evaluation", total7);
+  let done7 = 0;
   const readerProvider = resolveSyncProvider(providers, cfg.roles.reader.provider);
-  const readerConcurrency = cfg.roles.reader.concurrency;
-  const baselineProvider = cfg.baseline.no_rag_opus
+  const baselineProvider = baseline_enabled
     ? resolveSyncProvider(providers, cfg.baseline.provider)
     : null;
 
@@ -372,23 +420,24 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       reader_model: cfg.roles.reader.model,
       reader_max_tokens: cfg.roles.reader.max_tokens,
       reader_temperature: cfg.roles.reader.temperature,
-      reader_concurrency: readerConcurrency,
+      reader_concurrency,
       baseline_provider: baselineProvider,
-      baseline_model: cfg.baseline.no_rag_opus ? cfg.baseline.model : null,
-      baseline_max_tokens: cfg.baseline.no_rag_opus
-        ? cfg.baseline.max_tokens
-        : null,
+      baseline_model: baseline_enabled ? cfg.baseline.model : null,
+      baseline_max_tokens: baseline_enabled ? cfg.baseline.max_tokens : null,
       budget,
       out_path: readerPath,
       baseline_out_path: baselinePath,
+      onItem: () => events.tick(7, ++done7, total7),
     });
     reader = out.reader;
     baseline = out.baseline;
   }
   stageProgress({ quiet, json_log, stage_num: 7, stage_name: "reader evaluation", duration_ms: Date.now() - t7 });
+  events.stageEnd(7, "reader evaluation", Date.now() - t7);
 
   // Stage 8 — judging.
   const t8 = Date.now();
+  events.stageStart(8, "judging (batch)");
   let judge: JudgeResultsFile;
   try {
     let resume_batch_id: string | undefined;
@@ -410,9 +459,11 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
         checkpoint_path: batchSubmissionPath,
         resume_batch_id,
         out_path: judgePath,
+        onPoll: ({ elapsed_ms, status }) => events.poll(8, elapsed_ms, status),
       });
     }
     stageProgress({ quiet, json_log, stage_num: 8, stage_name: "judging (batch)", duration_ms: Date.now() - t8 });
+    events.stageEnd(8, "judging (batch)", Date.now() - t8);
   } catch (err) {
     if (err instanceof JudgeIntegrityError) {
       run_status = "aborted_integrity_judge";
@@ -433,6 +484,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
 
   // Stage 9 — scoring + report.
   const t9 = Date.now();
+  events.stageStart(9, "scoring + report");
   const manifest = buildManifest({
     facts,
     fixture_hash,
@@ -441,6 +493,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     ingest,
     retriever_config_snapshot: retriever.config_snapshot,
     budget_cap_usd: cfg.cost.max_budget_usd,
+    baseline_enabled,
   });
   await runStage9({
     facts,
@@ -458,6 +511,8 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     summary_path: summaryPath,
   });
   stageProgress({ quiet, json_log, stage_num: 9, stage_name: "scoring + report", duration_ms: Date.now() - t9 });
+  events.stageEnd(9, "scoring + report", Date.now() - t9);
+  events.runComplete({ run_id, run_dir, cost_usd: budget.total() });
 
   logger.info("run.complete", {
     fixture_id: facts.fixture_id,
@@ -478,6 +533,22 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
  * Throws `UsageError` on out-of-range, non-numeric, or non-positive inputs.
  */
 const QUICK_SAMPLE_RATIO = 0.1;
+
+/**
+ * Parses `--reader-concurrency <n>` into a positive integer, or `undefined`
+ * when absent (config.yaml's `roles.reader.concurrency` then applies).
+ * Throws `UsageError` on non-integer or non-positive input.
+ */
+const parseReaderConcurrency = (input: string | undefined): number | undefined => {
+  if (input === undefined) return undefined;
+  const n = Number(input);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new UsageError(
+      `--reader-concurrency expects a positive integer; got ${JSON.stringify(input)}.`,
+    );
+  }
+  return n;
+};
 
 const parseSampleRatio = (args: {
   quick: boolean;
@@ -790,6 +861,7 @@ const buildManifest = (args: {
   ingest: IngestManifestFile;
   retriever_config_snapshot: Record<string, unknown>;
   budget_cap_usd: number;
+  baseline_enabled: boolean;
 }): RunManifest => {
   const cfg = getConfig();
   return {
@@ -819,7 +891,7 @@ const buildManifest = (args: {
         provider: "anthropic-batch",
         model: cfg.roles.judge.model,
       },
-      baseline: cfg.baseline.no_rag_opus
+      baseline: args.baseline_enabled
         ? {
             provider: cfg.baseline.provider,
             model: cfg.baseline.model,
@@ -989,6 +1061,16 @@ FLAGS
   --config <path>          config.yaml path. Default: CONFIG_PATH env or ./config.yaml.
   --quiet                  suppress stderr progress.
   --log-json               structured JSON log instead of human progress.
+  --progress-ndjson        emit newline-delimited JSON progress events on stdout
+                           (run_start / stage_start / tick / poll / stage_end /
+                           run_complete). Consumed by the \`/test\` web UI server;
+                           human logs stay on stderr. Combine with --quiet --yes.
+  --ingest-config <path>   YAML merged into the Stage 4 ingest config (chunk /
+                           embedding / summarizer overrides). sidecar.path is
+                           always set by the bench and cannot be overridden.
+  --reader-concurrency <n> override config.yaml roles.reader.concurrency.
+  --baseline               force the no-RAG baseline pass on (overrides config).
+  --no-baseline            force the no-RAG baseline pass off (overrides config).
 
 EXAMPLES
   # Smoke pass: 10% of queries, reuse prior ingest, response cache on

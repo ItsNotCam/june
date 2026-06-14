@@ -44,6 +44,8 @@ export const runStage8 = async (args: {
   checkpoint_path: string;
   resume_batch_id: string | undefined;
   out_path: string;
+  /** Called on each batch poll with elapsed time + status — drives live progress. */
+  onPoll?: (info: { elapsed_ms: number; status: string }) => void;
 }): Promise<JudgeResultsFile> => {
   const cfg = getConfig();
   const factById = new Map(args.facts.facts.map((f) => [f.id, f]));
@@ -58,6 +60,7 @@ export const runStage8 = async (args: {
     checkpoint_path: args.checkpoint_path,
     resume_batch_id: args.resume_batch_id,
     stream_prefix: "reader",
+    onPoll: args.onPoll,
   });
   const readerOutcomes = await readerJudge.judge_all(readerRequests);
 
@@ -73,6 +76,7 @@ export const runStage8 = async (args: {
       model: args.model,
       max_tokens: args.max_tokens,
       stream_prefix: "baseline",
+      onPoll: args.onPoll,
     });
     baselineOutcomes = await baselineJudge.judge_all(baselineRequests);
   }
