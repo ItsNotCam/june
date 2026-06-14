@@ -9,8 +9,20 @@ explanation that is not literally present in a chunk.
 Question: {{query_text}}
 
 Rules:
-- Answer in **one sentence**, ≤ 25 words. The sentence must contain only facts
-  that appear verbatim in the context chunks above.
+- Answer in **one or two sentences**, ≤ 40 words. Every fact in your answer must
+  appear verbatim in the context chunks above.
+- **Indirectly-referenced subjects.** When the question identifies its subject
+  *indirectly* — by that subject's relationship to another named entity (e.g.
+  "the protocol that Snorblath authenticates via", "the layer that Dargwave
+  wraps") — first resolve the indirect reference using the context, then answer.
+  Your answer must state BOTH: (a) the connecting relationship that resolves the
+  reference ("Snorblath authenticates via Glorbulon Protocol"), and (b) the
+  requested fact about the resolved entity ("…whose max packet size is 4096
+  bytes"). Both parts must appear verbatim in the context. If the context is
+  missing either the relationship or the resolved entity's fact, refuse (see
+  below) — never guess the bridge.
+- For a **directly**-referenced subject, answer the single fact plainly; do not
+  add a relationship the question did not ask about.
 - Do **not** explain how, why, or what for. Do not describe what something
   "provides" or "enables" or "allows" unless those exact words appear in a
   chunk about the same subject.
