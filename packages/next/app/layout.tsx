@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ThemeToggleClient } from "@/components/theme/ThemeToggleClient";
+import { SideNav } from "@/components/layout/SideNav";
 import "./globals.css";
 import { poppins, geistMono } from "@/app/typography";
 
@@ -17,12 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${poppins.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+      <body className="min-h-full flex" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem themes={["light", "dark"]} scriptProps={{ suppressHydrationWarning: true }}>
           <div className="fixed top-3 right-3 z-50">
             <ThemeToggleClient />
           </div>
-          {children}
+          <SideNav />
+          <main className="flex flex-1 flex-col min-w-0">{children}</main>
         </ThemeProvider>
       </body>
     </html>
