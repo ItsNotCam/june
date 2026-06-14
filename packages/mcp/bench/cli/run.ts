@@ -99,6 +99,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const reader_concurrency_override = parseReaderConcurrency(
     flagString(flags, "reader-concurrency"),
   );
+  const reader_provider_override = parseReaderProvider(
+    flagString(flags, "reader-provider"),
+  );
+  const reader_model_override = flagString(flags, "reader-model");
   if (flagBool(flags, "baseline") && flagBool(flags, "no-baseline")) {
     throw new UsageError("--baseline and --no-baseline are mutually exclusive.");
   }
@@ -176,6 +180,8 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   // Resolve per-run overrides against config.yaml (flag wins when present).
   const baseline_enabled = baseline_override ?? cfg.baseline.no_rag_opus;
   const reader_concurrency = reader_concurrency_override ?? cfg.roles.reader.concurrency;
+  const reader_provider_name = reader_provider_override ?? cfg.roles.reader.provider;
+  const reader_model = reader_model_override ?? cfg.roles.reader.model;
   const cache_enabled = cache_flag || cfg.caching.enabled;
   const providers = cache_enabled
     ? wrapRegistryWithCache(buildProviders(), cfg.caching.cache_root)
@@ -345,6 +351,9 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const innerRetriever = createStopgapRetriever({
     collectionNames: ingest.qdrant_collections,
     embedModel: ingest.embedding_model,
+    // Scope retrieval to the ingest under test — the shared bench collection
+    // accumulates every prior run's stale points. See stopgap.ts for the why.
+    ingestRunId: ingest.ingest_run_id,
   });
 
   // Optionally wrap with the multi-hop planner so T4 queries get decomposed.
@@ -398,7 +407,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const total7 = queries.queries.length * (baseline_enabled ? 2 : 1);
   events.stageStart(7, "reader evaluation", total7);
   let done7 = 0;
-  const readerProvider = resolveSyncProvider(providers, cfg.roles.reader.provider);
+  const readerProvider = resolveSyncProvider(providers, reader_provider_name);
   const baselineProvider = baseline_enabled
     ? resolveSyncProvider(providers, cfg.baseline.provider)
     : null;
@@ -417,7 +426,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       retrieval,
       ingest,
       reader_provider: readerProvider,
-      reader_model: cfg.roles.reader.model,
+      reader_model: reader_model,
       reader_max_tokens: cfg.roles.reader.max_tokens,
       reader_temperature: cfg.roles.reader.temperature,
       reader_concurrency,
@@ -460,6 +469,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
         resume_batch_id,
         out_path: judgePath,
         onPoll: ({ elapsed_ms, status }) => events.poll(8, elapsed_ms, status),
+        scratch_path: ingest.scratch_path,
       });
     }
     stageProgress({ quiet, json_log, stage_num: 8, stage_name: "judging (batch)", duration_ms: Date.now() - t8 });
@@ -494,6 +504,8 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     retriever_config_snapshot: retriever.config_snapshot,
     budget_cap_usd: cfg.cost.max_budget_usd,
     baseline_enabled,
+    reader_provider: reader_provider_name,
+    reader_model,
   });
   await runStage9({
     facts,
@@ -548,6 +560,25 @@ const parseReaderConcurrency = (input: string | undefined): number | undefined =
     );
   }
   return n;
+};
+
+const READER_PROVIDERS = ["ollama", "anthropic", "openai", "deepseek"] as const;
+type ReaderProvider = (typeof READER_PROVIDERS)[number];
+
+/**
+ * Parses `--reader-provider <p>`, validating against the supported sync
+ * providers, or `undefined` when absent (config.yaml's `roles.reader.provider`
+ * then applies). The `/test` UI surfaces this so the reader model can be
+ * swapped per run without editing config.yaml.
+ */
+const parseReaderProvider = (input: string | undefined): ReaderProvider | undefined => {
+  if (input === undefined) return undefined;
+  if (!(READER_PROVIDERS as readonly string[]).includes(input)) {
+    throw new UsageError(
+      `--reader-provider expects one of ${READER_PROVIDERS.join("|")}; got ${JSON.stringify(input)}.`,
+    );
+  }
+  return input as ReaderProvider;
 };
 
 const parseSampleRatio = (args: {
@@ -862,6 +893,8 @@ const buildManifest = (args: {
   retriever_config_snapshot: Record<string, unknown>;
   budget_cap_usd: number;
   baseline_enabled: boolean;
+  reader_provider: "ollama" | "anthropic" | "openai" | "deepseek";
+  reader_model: string;
 }): RunManifest => {
   const cfg = getConfig();
   return {
@@ -883,8 +916,8 @@ const buildManifest = (args: {
         model: cfg.roles.query_author.model,
       },
       reader: {
-        provider: cfg.roles.reader.provider,
-        model: cfg.roles.reader.model,
+        provider: args.reader_provider,
+        model: args.reader_model,
         temperature: cfg.roles.reader.temperature,
       },
       judge: {
@@ -1069,6 +1102,8 @@ FLAGS
                            embedding / summarizer overrides). sidecar.path is
                            always set by the bench and cannot be overridden.
   --reader-concurrency <n> override config.yaml roles.reader.concurrency.
+  --reader-provider <p>    override roles.reader.provider (ollama|anthropic|openai|deepseek).
+  --reader-model <m>       override roles.reader.model.
   --baseline               force the no-RAG baseline pass on (overrides config).
   --no-baseline            force the no-RAG baseline pass off (overrides config).
 
