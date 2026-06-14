@@ -51,7 +51,7 @@ Exit codes follow §27.3: `0` success, `1` fatal, `2` lock held, `3` health fail
 
 ### `cli/web-bridge.ts` — JSON bridge for the web UI
 
-A machine-facing sibling to the `june` CLI, used by the `@june/next` ingestion page. It reads one JSON command from stdin (`{cmd:"ingest", files}` / `{cmd:"list"}` / `{cmd:"purge", docId}`) and emits sentinel-prefixed NDJSON events on stdout (the sentinel is passed as `argv[2]`). It exists because a Node/Next caller cannot import this package in-process — Bun resolves the internal `@/` alias against the caller's tsconfig. Spawning this script with **cwd = this package** sidesteps that (and keeps `bun:sqlite` out of the caller's bundle). It uses the same programmatic API (`ingestPath`, `purge`, `listLatestDocuments`) documented below.
+A machine-facing sibling to the `june` CLI, used by the `@june/next` ingestion page. It reads one JSON command from stdin (`{cmd:"ingest", files}` / `{cmd:"list"}` / `{cmd:"purge", docId}`) and emits sentinel-prefixed NDJSON events on stdout (the sentinel is passed as `argv[2]`). It exists because a Node/Next caller cannot import this package in-process — Bun resolves the internal `@/` alias against the caller's tsconfig. Spawning this script with **cwd = this package** sidesteps that (and keeps `bun:sqlite` out of the caller's bundle). It uses the same programmatic API (`ingestPath`, `purge`, `listLatestDocuments`) documented below. To let the web runner admit several ingestions at once (`INGEST_MAX_PARALLEL`), the bridge waits + retries on `SidecarLockHeldError` so concurrent runs serialize at the single-writer lock instead of failing.
 
 ## Programmatic API
 
