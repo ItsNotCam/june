@@ -377,6 +377,8 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
             );
             return (chunkId: string) => stmt.get(chunkId)?.raw_content ?? null;
           })(),
+          // The reader window — bridged atomic chunks must land within it.
+          windowK: cfg.reader_eval.k,
           budget,
         })
       : innerRetriever;

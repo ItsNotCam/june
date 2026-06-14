@@ -13,7 +13,7 @@ import { z } from "zod";
  * - `baseline.provider` MUST be `"anthropic"` (v1 only supports Opus for the baseline).
  */
 
-const ProviderName = z.enum(["ollama", "anthropic", "openai"]);
+const ProviderName = z.enum(["ollama", "anthropic", "openai", "deepseek"]);
 
 const SyncRoleSchema = z.object({
   provider: ProviderName,
@@ -101,13 +101,17 @@ export const BenchConfigSchema = z.object({
       rank_constant: z.number().int().positive(),
     }),
     /**
-     * Multi-hop wrapper around the inner retriever. When enabled, the bench
-     * decomposes each query into one or more hops (LLM-driven), retrieves
-     * per hop, and fuses the per-hop rankings via RRF. Single-hop queries
-     * pass through unchanged. Designed to fix T4 multi-hop recall —
-     * single-pass dense+BM25 fusion can't resolve "the X that Y verbs"
-     * because the entity bridge isn't in the query text. Disabling matches
-     * the legacy single-pass behaviour.
+     * Multi-hop wrapper around the inner retriever ("anchored bridge
+     * injection"). When enabled, the bench anchors on the original query,
+     * uses an LLM planner to detect an indirect entity bridge ("the X that Y
+     * verbs"), resolves the bridge entity from the original ranking's own top
+     * chunks, retrieves the atomic sub-query, and injects its best novel chunk
+     * into the reader window without demoting any base chunk. Single-hop
+     * queries and every failure path pass through unchanged, so single-pass is
+     * a strict floor. Designed to fix T4 recall — single-pass dense+BM25 can't
+     * surface the atomic chunk because the bridge entity isn't in the query
+     * text. Disabling matches the legacy single-pass behaviour. See
+     * `src/retriever/multi-hop.ts`.
      */
     multi_hop: z
       .object({

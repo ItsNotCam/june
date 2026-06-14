@@ -59,6 +59,8 @@ export type BenchLogFields = {
   target?: number;
   text_preview?: string;
   text_length?: number;
+  chunk_ids?: readonly string[];
+  error?: string;
   zod_error?: unknown;
   candidates?: number;
   leaked?: number;

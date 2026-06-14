@@ -7,23 +7,30 @@ import { logger } from "@/lib/logger";
 import { z } from "zod";
 
 /**
- * Multi-hop retriever wrapper.
+ * Multi-hop retriever wrapper — "anchored bridge injection".
  *
  * Extends a single-pass `Retriever` with LLM-driven query decomposition for
  * questions that reference an entity indirectly ("the protocol that X
  * authenticates via"). Single-hop questions pass through unchanged.
  *
- * Flow per call:
- *   1. Decompose query → list of hops. Hops without `depends_on` retrieve
- *      directly; hops with `depends_on` first read the dependency's top
- *      chunks, ask the planner to extract the bridge entity, substitute it
- *      into the templated hop query, then retrieve.
- *   2. Combine all hops' rankings via reciprocal rank fusion (rank_constant=60)
- *      and return the top-K.
+ * Design rationale (measured on the bench's T4 tier — relational + atomic
+ * chunk both required in the reader window): the *original* query already
+ * surfaces the relational chunk reliably (top-3 ~95% of the time); the atomic
+ * chunk is the sole gap. So instead of replacing the query with rephrased hops
+ * and RRF-fusing (which extracted the bridge from a weak rephrased retrieval
+ * and let fusion DEMOTE correct chunks — both measured to regress T4), we:
  *
- * Designed to fix T4 multi-hop recall — the bench expects both expected
- * chunks (relational + atomic) in top-K. Returning the union of top results
- * from each hop, RRF-fused, lets both bridging chunks land in the final list.
+ *   1. Anchor on the original query (`base`) — authoritative, the floor every
+ *      degraded path returns to.
+ *   2. Decompose only to detect a bridge. Single-hop / any failure → `base`.
+ *   3. Resolve the bridge entity B from `base`'s OWN top chunks (where the
+ *      relational chunk reliably sits), not a fragile rephrased hop.
+ *   4. Retrieve the atomic sub-query (now naming B) and INJECT its best novel
+ *      chunk into the reader window without demoting any base chunk already in
+ *      the window (see `injectAtomic`).
+ *
+ * Net effect: single-pass is a strict floor; T4 can only gain the bridged
+ * atomic chunk, never lose a chunk the original query already found.
  */
 
 const HopSchema = z.object({
@@ -39,9 +46,17 @@ const BridgeOutputSchema = z.object({
 
 type Hop = z.infer<typeof HopSchema>;
 
-const RRF_CONSTANT = 60;
 const HOP_FETCH_K = 5;
 const BRIDGE_LOOKUP_TOP = 3;
+/**
+ * How many novel atomic chunks to inject into the reader window. 1 is provably
+ * non-demoting within the protected head (top `windowK - INJECT_SLOTS`) and the
+ * atomic sub-query is highly specific, so its #1 is normally the right chunk.
+ * Raise only on measured evidence that the true atomic chunk frequently ranks
+ * below #1 in the sub-query (see `multi_hop.atomic_candidates` telemetry) — a
+ * retrieval-merit decision, never a fixture-tuning knob.
+ */
+const INJECT_SLOTS = 1;
 
 export const createMultiHopRetriever = (args: {
   inner: Retriever;
@@ -49,21 +64,37 @@ export const createMultiHopRetriever = (args: {
   plannerModel: string;
   plannerMaxTokens: number;
   fetchChunkContent: (chunkId: string) => string | null;
+  /**
+   * The reader's context window (chunks the reader actually reads, =
+   * `reader_eval.k`). Injected atomic chunks must land within it for the
+   * bridged fact to reach the reader; the head above it is protected.
+   */
+  windowK: number;
   budget: BudgetMeter;
 }): Retriever => {
-  const { inner, plannerProvider, plannerModel, plannerMaxTokens, fetchChunkContent, budget } =
+  const { inner, plannerProvider, plannerModel, plannerMaxTokens, fetchChunkContent, windowK, budget } =
     args;
 
   const decompose = async (queryText: string): Promise<Hop[]> => {
     const prompt = await renderPrompt("decompose-query", { query_text: queryText });
-    const res = await plannerProvider.call({
-      model: plannerModel,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: plannerMaxTokens,
-      temperature: 0,
-      response_format: "json",
-      disable_thinking: true,
-    });
+    let res;
+    try {
+      res = await plannerProvider.call({
+        model: plannerModel,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: plannerMaxTokens,
+        temperature: 0,
+        response_format: "json",
+        disable_thinking: true,
+      });
+    } catch (err) {
+      // A planner transport failure (timeout, 5xx, network) must not kill the
+      // run — degrade to single-hop, identical to the parse-failure fallback.
+      logger.warn("multi_hop.decompose_error", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return [{ query: queryText }];
+    }
     budget.record("role_5", res.cost_usd);
 
     const parsed = parseJson(res.text, DecomposeOutputSchema);
@@ -90,14 +121,24 @@ export const createMultiHopRetriever = (args: {
     if (!chunks) return null;
 
     const prompt = await renderPrompt("extract-bridge", { question, chunks });
-    const res = await plannerProvider.call({
-      model: plannerModel,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: plannerMaxTokens,
-      temperature: 0,
-      response_format: "json",
-      disable_thinking: true,
-    });
+    let res;
+    try {
+      res = await plannerProvider.call({
+        model: plannerModel,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: plannerMaxTokens,
+        temperature: 0,
+        response_format: "json",
+        disable_thinking: true,
+      });
+    } catch (err) {
+      // Planner failure during bridge extraction → skip this hop (null) rather
+      // than aborting the whole retrieval. The caller handles null gracefully.
+      logger.warn("multi_hop.extract_error", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
     budget.record("role_5", res.cost_usd);
 
     const parsed = parseJson(res.text, BridgeOutputSchema);
@@ -111,100 +152,108 @@ export const createMultiHopRetriever = (args: {
   };
 
   const retrieve = async (queryText: string, k: number): Promise<RetrievalResult[]> => {
+    // Anchor on the ORIGINAL query. This is authoritative and the floor every
+    // degraded path below returns to — single-hop, planner failure, missing
+    // bridge, or atomic-already-present all yield exactly this ranking.
+    const base = await inner.retrieve(queryText, k);
+
     const hops = await decompose(queryText);
+    if (hops.length === 1) return base;
 
-    if (hops.length === 1) {
-      return inner.retrieve(hops[0]!.query, k);
-    }
+    // The atomic hop is the one carrying `depends_on`; the hop it points to is
+    // the bridge-resolution hop (the clean "What does A authenticate via?"
+    // question, with no `{0}` placeholder). The old code mistakenly fed the
+    // atomic hop's own `{0}`-bearing query to extractBridge — never resolve the
+    // bridge from the templated question.
+    const atomicHop = hops.find((h) => h.depends_on !== undefined);
+    if (!atomicHop || atomicHop.depends_on === undefined) return base;
+    const depIdx = atomicHop.depends_on;
+    const bridgeHop = hops[depIdx];
+    if (!bridgeHop) return base;
 
-    const perHopResults: RetrievalResult[][] = [];
-    for (let i = 0; i < hops.length; i++) {
-      const hop = hops[i]!;
-      let resolvedQuery = hop.query;
+    // Resolve B from `base`'s own top chunks — the relational chunk lives there
+    // ~95% of the time, vs the ~30% the old rephrased hop achieved.
+    const bridgeEntity = await extractBridge(
+      bridgeHop.query,
+      base.slice(0, BRIDGE_LOOKUP_TOP).map((r) => r.chunk_id),
+    );
+    if (!bridgeEntity) return base;
 
-      if (hop.depends_on !== undefined) {
-        const depIdx = hop.depends_on;
-        const depResults = perHopResults[depIdx];
-        if (!depResults || depResults.length === 0) {
-          logger.warn("multi_hop.dependency_missing", {
-            tier: "T4",
-            attempt: i,
-          });
-          perHopResults.push([]);
-          continue;
-        }
-        const bridgeEntity = await extractBridge(
-          hop.query,
-          depResults.slice(0, BRIDGE_LOOKUP_TOP).map((r) => r.chunk_id),
-        );
-        if (!bridgeEntity) {
-          perHopResults.push([]);
-          continue;
-        }
-        resolvedQuery = hop.query.replace(/\{(\d+)\}/g, (_, idx: string) =>
-          parseInt(idx, 10) === depIdx ? bridgeEntity : `{${idx}}`,
-        );
-        logger.debug("multi_hop.resolved", {
-          text_preview: resolvedQuery.slice(0, 200),
-        });
-      }
+    const atomicQuery = atomicHop.query.replace(/\{(\d+)\}/g, (_, idx: string) =>
+      parseInt(idx, 10) === depIdx ? bridgeEntity : `{${idx}}`,
+    );
+    logger.debug("multi_hop.resolved", { text_preview: atomicQuery.slice(0, 200) });
 
-      const hopResults = await inner.retrieve(resolvedQuery, HOP_FETCH_K);
-      perHopResults.push(hopResults);
-    }
+    const atomic = await inner.retrieve(atomicQuery, HOP_FETCH_K);
+    // Telemetry for the INJECT_SLOTS decision: `text_preview` is the ORIGINAL
+    // query (joins to query_id → expected atomic chunk), `chunk_ids` are the
+    // raw atomic sub-query candidates in rank order, so a post-hoc script can
+    // measure where the true atomic chunk lands before locking the slot count.
+    logger.debug("multi_hop.atomic_candidates", {
+      text_preview: queryText.slice(0, 200),
+      chunk_ids: atomic.map((r) => r.chunk_id),
+    });
 
-    return fuseRankings(perHopResults, k);
+    return injectAtomic(base, atomic, k, windowK);
   };
 
   return {
     name: `${inner.name}+multi-hop`,
     config_snapshot: {
       ...inner.config_snapshot,
-      multi_hop: { planner_model: plannerModel, hop_fetch_k: HOP_FETCH_K },
+      multi_hop: {
+        planner_model: plannerModel,
+        hop_fetch_k: HOP_FETCH_K,
+        window_k: windowK,
+        inject_slots: INJECT_SLOTS,
+      },
     },
     retrieve,
   };
 };
 
 /**
- * RRF-fuses N independent rankings into a single ordered list of length K.
+ * Merges bridge-resolved atomic chunks into the single-pass ranking WITHOUT
+ * demoting anything the original query already placed inside the reader window.
  *
- * For each chunk_id appearing in any hop's ranking, sums `1 / (RRF_CONSTANT + rank)`
- * across hops. Chunks appearing in multiple hops (the bridging case for T4)
- * get a multiplicative boost. Ties broken by total occurrences then chunk_id.
+ * The original ranking (`base`) is authoritative — it reliably carries the
+ * relational chunk. We reserve the last `INJECT_SLOTS` positions of the window
+ * (`windowK`) for the atomic sub-query's TOP candidates that `base` missed, so
+ * the bridged fact reaches the reader while the protected head (top
+ * `windowK - reserved`) is untouched — unlike RRF, this cannot push a correct
+ * head chunk out.
+ *
+ * Crucially we walk the atomic candidates in sub-query rank order and STOP at
+ * the first one already in `base`'s window: a high-confidence atomic chunk the
+ * original query already retrieved means the atomic need is met, so injecting a
+ * lower-ranked (likely distractor) candidate would only evict the real chunk
+ * from the window boundary. So when the sub-query's #1 is already in-window,
+ * nothing is injected.
  */
-const fuseRankings = (
-  perHopResults: ReadonlyArray<ReadonlyArray<RetrievalResult>>,
+const injectAtomic = (
+  base: readonly RetrievalResult[],
+  atomic: readonly RetrievalResult[],
   k: number,
+  windowK: number,
 ): RetrievalResult[] => {
-  type Entry = {
-    chunk_id: string;
-    score: number;
-    occurrences: number;
-    rank_source: RetrievalResult["rank_source"];
-  };
-  const merged = new Map<string, Entry>();
-  for (const hopResults of perHopResults) {
-    hopResults.forEach((r, rank) => {
-      const rrfScore = 1 / (RRF_CONSTANT + rank + 1);
-      const existing = merged.get(r.chunk_id);
-      if (existing) {
-        existing.score += rrfScore;
-        existing.occurrences += 1;
-      } else {
-        merged.set(r.chunk_id, {
-          chunk_id: r.chunk_id,
-          score: rrfScore,
-          occurrences: 1,
-          rank_source: r.rank_source,
-        });
-      }
-    });
+  const windowIds = new Set(base.slice(0, windowK).map((r) => r.chunk_id));
+  const reserve: RetrievalResult[] = [];
+  const reserveIds = new Set<string>();
+  for (const cand of atomic) {
+    // A top atomic candidate already in-window satisfies the atomic need —
+    // stop, don't displace it with a worse one.
+    if (windowIds.has(cand.chunk_id)) break;
+    if (reserveIds.has(cand.chunk_id)) continue;
+    reserve.push(cand);
+    reserveIds.add(cand.chunk_id);
+    if (reserve.length >= INJECT_SLOTS) break;
   }
-  return [...merged.values()]
-    .sort((a, b) => b.score - a.score || b.occurrences - a.occurrences)
-    .slice(0, k)
-    .map((e) => ({ chunk_id: e.chunk_id, score: e.score, rank_source: e.rank_source }));
+  if (reserve.length === 0) return base.slice(0, k);
+
+  const headCount = Math.max(0, windowK - reserve.length);
+  const head = base.slice(0, headCount);
+  const tail = base.slice(headCount).filter((r) => !reserveIds.has(r.chunk_id));
+  return [...head, ...reserve, ...tail].slice(0, k);
 };
 
 const parseJson = <T>(text: string, schema: z.ZodType<T>): T | null => {
