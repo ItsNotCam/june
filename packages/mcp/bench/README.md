@@ -178,6 +178,12 @@ june-eval run <fixture> --from <prior-run-id> --rerun-from reader --yes
 june-eval run <fixture> --from <prior-run-id> --rerun-from score --yes
 ```
 
+### Diagnostic scripts (`scripts/`)
+
+Standalone, read-only diagnostics that sit beside the pipeline — run with `bun scripts/<name>.ts`.
+
+- `judge-screen.ts` — **judge-agreement screen.** Re-judges a completed run's reader answers with a *second* model using the exact production judge prompt + parser, then compares verdict-for-verdict against the Sonnet verdicts already on disk (overall agreement, Cohen's κ, confusion matrix, the T4 CORRECT/PARTIAL boundary, disagreement dump). Makes zero Anthropic calls (reuses on-disk verdicts), opens SQLite read-only, writes only to `/tmp`. Run/fixture/model are consts at the top of the file. Use it to vet a cheaper judge before trusting it.
+
 ### State directory
 
 All bench-local artifacts live under `packages/mcp/bench/state/`:
