@@ -37,7 +37,14 @@ const IngestConfigSchema = z.object({
     .prefault({}),
   summarizer: z
     .object({
-      implementation: z.enum(["ollama", "stub", "mock"]).default("ollama"),
+      // Provider for Stage 6. `anthropic`/`deepseek` call hosted Messages APIs —
+      // the run subprocess inherits ANTHROPIC_API_KEY / DEEPSEEK_API_KEY from the
+      // server env. Mapped to ingest `summarizer.implementation` in deriveRunArgs.
+      provider: z.enum(["ollama", "anthropic", "deepseek"]).default("ollama"),
+      // Model for the chosen provider (ollama auto-detected; claude/deepseek
+      // curated). Optional — the ingest backend falls back to its default when
+      // unset (ollama→env, anthropic→claude-haiku-4-5, deepseek→deepseek-v4-flash).
+      model: z.string().optional(),
       long_doc_threshold_tokens: z.number().int().positive().default(6000),
     })
     .prefault({}),
@@ -50,6 +57,20 @@ const RunConfigSchema = z.object({
   cache: z.boolean().default(true),
   baseline: z.boolean().default(false),
   reader_concurrency: z.number().int().min(1).default(6),
+  // When set to a prior run-id, reuse that run's ingest (Stage 4 / Qdrant
+  // collection) instead of re-ingesting — maps to bench `--skip-ingest <id>`.
+  // This holds retrieval byte-identical across runs so reader/sample changes can
+  // be A/B'd cleanly. Empty/undefined = fresh ingest each run. When set, the
+  // `ingest` section (summarizer, chunking, embedding) has no effect.
+  skip_ingest: z.string().optional(),
+  // The reader (role 3, system under test). Mapped to bench --reader-provider /
+  // --reader-model overrides in deriveRunArgs.
+  reader: z
+    .object({
+      provider: z.enum(["ollama", "anthropic", "deepseek"]).default("ollama"),
+      model: z.string().min(1).default("llama3.1:latest"),
+    })
+    .prefault({}),
 });
 
 export const TestConfigSchema = z.object({
@@ -107,6 +128,37 @@ export const deriveRunArgs = (config: TestRunConfig): { flags: string[]; ingestY
   if (run.cache) flags.push("--cache");
   flags.push(run.baseline ? "--baseline" : "--no-baseline");
   flags.push("--reader-concurrency", String(run.reader_concurrency));
+  flags.push("--reader-provider", run.reader.provider);
+  flags.push("--reader-model", run.reader.model);
+  // Reuse a prior ingest when requested — retrieval stays identical so the
+  // reader/sample are the only moving parts. bench ignores --ingest-config when
+  // Stage 4 is skipped, so we still emit the YAML below harmlessly.
+  if (run.skip_ingest && run.skip_ingest.trim() !== "") {
+    flags.push("--skip-ingest", run.skip_ingest.trim());
+  }
 
-  return { flags, ingestYaml: yamlStringify(ingest) };
+  // Map the summarizer picker to the ingest ConfigSchema shape: provider →
+  // `implementation`, and the model into the provider-specific field. Chunk /
+  // embedding pass through unchanged.
+  const s = ingest.summarizer;
+  const summarizer: Record<string, unknown> = {
+    implementation: s.provider,
+    long_doc_threshold_tokens: s.long_doc_threshold_tokens,
+  };
+  if (s.model) {
+    const field =
+      s.provider === "ollama"
+        ? "ollama_model"
+        : s.provider === "anthropic"
+          ? "anthropic_model"
+          : "deepseek_model";
+    summarizer[field] = s.model;
+  }
+  const ingestForYaml = {
+    chunk: ingest.chunk,
+    embedding: ingest.embedding,
+    summarizer,
+  };
+
+  return { flags, ingestYaml: yamlStringify(ingestForYaml) };
 };
