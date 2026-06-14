@@ -26,7 +26,15 @@ import {
 const INGEST_PKG_DIR =
   process.env["INGEST_PKG_DIR"] ?? resolve(process.cwd(), "..", "mcp", "ingest");
 const BRIDGE_PATH = join(INGEST_PKG_DIR, "cli", "web-bridge.ts");
-const BUN_BIN = process.env["BUN_BIN"] ?? "bun";
+/**
+ * Bun executable for the bridge subprocess. The Next server runs under Bun, so
+ * `process.execPath` is the bun binary's absolute path — preferred over the bare
+ * name `"bun"`, which fails with ENOENT when the server's PATH lacks `~/.bun/bin`
+ * (common when launched from an editor/task runner). Falls back to PATH lookup
+ * only if somehow not running under Bun.
+ */
+const BUN_BIN =
+  process.env["BUN_BIN"] ?? (process.versions.bun ? process.execPath : "bun");
 
 /** Where uploaded markdown is staged so it has a real path + a file to wipe. */
 const STAGING_DIR =
