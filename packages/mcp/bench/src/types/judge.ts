@@ -13,8 +13,14 @@ export type VerdictRecord = {
 /** On-disk shape of `judge_results.json`. */
 export type JudgeResultsFile = {
   fixture_id: string;
-  judge: { provider: "anthropic-batch"; model: string; batch_api: true };
-  batch: { batch_id: string; submitted_at: string; retrieved_at: string };
+  judge: {
+    provider: "anthropic-batch" | "deepseek";
+    model: string;
+    /** True for the Anthropic Batch path; false for the sync deepseek path. */
+    batch_api: boolean;
+  };
+  /** Present only for the batch path — sync judging has no batch to track. */
+  batch?: { batch_id: string; submitted_at: string; retrieved_at: string };
   verdicts: VerdictRecord[];
 };
 

@@ -82,23 +82,34 @@ export const createLlmJudge = (args: {
   return { name: "anthropic-batch-llm-judge", judge_all };
 };
 
+/**
+ * Renders the judge prompt for one request — the SINGLE source of truth for
+ * what the judge sees. Both the batch path (`buildBatchRequest`) and the sync
+ * deepseek path (`createSyncLlmJudge`) call this so the two judges are graded on
+ * byte-identical prompts; the only difference between them is the model + transport.
+ */
+export const renderJudgePrompt = async (req: JudgeRequest): Promise<string> =>
+  renderPrompt("judge", {
+    query_tier: req.tier,
+    query_text: req.query_text,
+    expected_surface_hints_bulleted:
+      req.expected_facts.length > 0
+        ? req.expected_facts.map((f) => `- ${f.surface_hint}`).join("\n")
+        : "- (no expected facts — T5 negative query)",
+    reader_answer: req.reader_answer,
+    retrieved_context:
+      req.retrieved_context.length > 0
+        ? req.retrieved_context
+        : "(no retrieved context — this is a no-RAG baseline answer)",
+  });
+
 const buildBatchRequest = async (
   req: JudgeRequest,
   model: string,
   max_tokens: number,
   prefix: string,
 ): Promise<BatchSubmitRequest> => {
-  const content = await renderPrompt("judge", {
-    query_tier: req.tier,
-    query_text: req.query_text,
-    expected_surface_hints_bulleted:
-      req.expected_facts.length > 0
-        ? req.expected_facts
-            .map((f) => `- ${f.surface_hint}`)
-            .join("\n")
-        : "- (no expected facts — T5 negative query)",
-    reader_answer: req.reader_answer,
-  });
+  const content = await renderJudgePrompt(req);
   return {
     // Anthropic Batch API: custom_id must match ^[a-zA-Z0-9_-]{1,64}$.
     // Underscore separator keeps the prefix recoverable on retrieve.
@@ -135,21 +146,26 @@ const pollUntilEnded = async (
   throw new JudgeBatchExpiredError(batch_id);
 };
 
-const buildOutcome = (result: BatchResult, prefix: string): JudgeOutcome => {
-  const query_id = result.custom_id.startsWith(`${prefix}_`)
-    ? result.custom_id.slice(prefix.length + 1)
-    : result.custom_id;
-
-  if (result.status !== "succeeded" || result.text === null) {
+/**
+ * Maps a raw judge message (or a failure) to a `JudgeOutcome` — shared by the
+ * batch and sync judge paths so verdict parsing is identical across both.
+ * `text === null` yields UNJUDGED carrying `errorReason`; unparseable text
+ * yields UNJUDGED with the standard malformed reason (L14).
+ */
+export const outcomeFromText = (
+  query_id: string,
+  text: string | null,
+  errorReason?: string,
+): JudgeOutcome => {
+  if (text === null) {
     return {
       query_id,
       verdict: "UNJUDGED",
       rationale: "",
-      unjudged_reason: result.error ?? result.status,
+      unjudged_reason: errorReason ?? "no judge output",
     };
   }
-
-  const parsed = parseVerdictPayload(result.text);
+  const parsed = parseVerdictPayload(text);
   if (!parsed) {
     return {
       query_id,
@@ -158,7 +174,6 @@ const buildOutcome = (result: BatchResult, prefix: string): JudgeOutcome => {
       unjudged_reason: "malformed or unparseable judge output",
     };
   }
-
   return {
     query_id,
     verdict: parsed.verdict,
@@ -167,15 +182,30 @@ const buildOutcome = (result: BatchResult, prefix: string): JudgeOutcome => {
   };
 };
 
+const buildOutcome = (result: BatchResult, prefix: string): JudgeOutcome => {
+  const query_id = result.custom_id.startsWith(`${prefix}_`)
+    ? result.custom_id.slice(prefix.length + 1)
+    : result.custom_id;
+
+  if (result.status !== "succeeded" || result.text === null) {
+    return outcomeFromText(query_id, null, result.error ?? result.status);
+  }
+  return outcomeFromText(query_id, result.text);
+};
+
 /**
  * Extracts the judge's JSON from the model's message text.
  *
- * Accepts plain JSON or a fenced ```json block — judges occasionally wrap
- * their output in a code fence even when asked not to. Zod-validates the
- * extracted object; returns `null` on any failure so Stage 8 maps it to
- * `UNJUDGED` (L14).
+ * Accepts plain JSON, a fenced ```json block, or JSON embedded in surrounding
+ * prose — judges occasionally prepend a sentence of reasoning before the object
+ * even when asked not to. Tries, in order: the whole text, any fenced block,
+ * and the widest brace-balanced `{...}` span. Zod-validates each candidate;
+ * returns `null` on total failure so Stage 8 maps it to `UNJUDGED` (L14).
+ *
+ * Exported so the judge golden-set test validates the exact parser production
+ * uses, not a re-implementation that could drift.
  */
-const parseVerdictPayload = (text: string): {
+export const parseVerdictPayload = (text: string): {
   verdict: "CORRECT" | "PARTIAL" | "INCORRECT" | "REFUSED" | "HALLUCINATED";
   rationale: string;
 } | null => {
@@ -183,6 +213,10 @@ const parseVerdictPayload = (text: string): {
   const candidates = [trimmed];
   const fenceMatch = /```(?:json)?\s*([\s\S]*?)```/i.exec(trimmed);
   if (fenceMatch && fenceMatch[1]) candidates.push(fenceMatch[1].trim());
+  // Widest balanced object — handles "Here is my verdict: {…}" preambles.
+  const first = trimmed.indexOf("{");
+  const last = trimmed.lastIndexOf("}");
+  if (first !== -1 && last > first) candidates.push(trimmed.slice(first, last + 1));
 
   for (const candidate of candidates) {
     try {

@@ -29,6 +29,9 @@ const SYNC_RATES: Readonly<Record<string, ModelRate>> = {
   // OpenAI — Chat Completions
   "gpt-4.1": { input_per_m: 2.0, output_per_m: 8.0 },
   "gpt-4o": { input_per_m: 2.5, output_per_m: 10.0 },
+  // DeepSeek v4 — Anthropic-format API (cache-miss rates).
+  "deepseek-v4-flash": { input_per_m: 0.14, output_per_m: 0.28 },
+  "deepseek-v4-pro": { input_per_m: 0.435, output_per_m: 0.87 },
 };
 
 const OLLAMA_RATE: ModelRate = { input_per_m: 0, output_per_m: 0 };
@@ -42,7 +45,7 @@ const OLLAMA_RATE: ModelRate = { input_per_m: 0, output_per_m: 0 };
  * silently computing `cost = 0`.
  */
 export const rateFor = (
-  provider: "ollama" | "anthropic" | "anthropic-batch" | "openai",
+  provider: "ollama" | "anthropic" | "anthropic-batch" | "openai" | "deepseek",
   model: string,
 ): ModelRate => {
   if (provider === "ollama") return OLLAMA_RATE;
@@ -256,13 +259,13 @@ export const buildCostPreview = (args: {
   const jdOut = (jd.output_per_query ?? 0) * jdCount;
   rows.push({
     role: "role_4",
-    label: "judge (batch)",
+    label: cfg.roles.judge.provider === "anthropic-batch" ? "judge (batch)" : "judge (sync)",
     provider: cfg.roles.judge.provider,
     model: cfg.roles.judge.model,
     estimated_input_tokens: jdIn,
     estimated_output_tokens: jdOut,
     estimated_usd: costFor(
-      rateFor("anthropic-batch", cfg.roles.judge.model),
+      rateFor(cfg.roles.judge.provider, cfg.roles.judge.model),
       jdIn,
       jdOut,
     ),

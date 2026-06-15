@@ -15,7 +15,7 @@ Given a fictional-domain fixture (facts + corpus + queries), the bench:
 2. Resolves every planted fact to an ingested chunk (two-tier: substring, then doc-scoped embedding).
 3. Evaluates retrieval: Recall@{1,3,5,10} and MRR per query, dispatched on tier.
 4. Evaluates the reader: feeds top-K chunks + the question to the SUT model.
-5. Judges reader answers via the Anthropic Batch API (always Batch, never sync).
+5. Judges reader answers with the selected judge — sync `deepseek-v4-pro` (default) or Sonnet via the Anthropic Batch API.
 6. Aggregates into per-tier + overall metrics with bootstrap CIs, emits `results.json` + `summary.md`.
 
 Optional sibling pass: no-RAG Opus baseline for the headline "does RAG beat Opus" answer.
@@ -26,7 +26,7 @@ Optional sibling pass: no-RAG Opus baseline for the headline "does RAG beat Opus
 - [Ollama](https://ollama.com) reachable at `OLLAMA_URL`; embedder model matching june's ingest model; reader model if role 3 is ollama (default `qwen2.5:14b`).
 - [Qdrant](https://qdrant.tech) **bench-dedicated** instance at `QDRANT_URL` — never the operator's real Qdrant (mcp hardcodes the `internal`/`external` alias names, so store isolation happens at the instance boundary, not a collection-name boundary).
 - `june` CLI on `PATH` (or set `JUNE_BIN`). The bench shells out to `june ingest` during Stage 4.
-- Anthropic API key (judge is always Anthropic Batch). OpenAI key optional, required only when a role is configured for openai.
+- Anthropic API key (required — used for the no-RAG baseline and the `anthropic-batch` judge). DeepSeek API key required when the judge or another role uses deepseek (the default judge is sync `deepseek-v4-pro`). OpenAI key optional, required only when a role is configured for openai.
 
 ## Environment
 
@@ -95,11 +95,19 @@ june-eval run <fixture> --quick --cache --yes --progress-ndjson 1>events.ndjson 
 
 A caller can override config without editing `config.yaml`:
 `--reader-concurrency <n>` and `--baseline`/`--no-baseline` override the
-corresponding config values, and `--ingest-config <path>` supplies a YAML whose
-ingest tunables (chunk / embedding / summarizer / …) are merged into the temp mcp
-config Stage 4 generates for `june ingest` (`sidecar.path` stays bench-owned and
-cannot be overridden). The `/test` web UI in `packages/next` uses these to apply
-an operator-edited config to a run.
+corresponding config values; `--reader-provider`/`--reader-model` and
+`--judge-provider`/`--judge-model` swap the reader and judge per run; and
+`--ingest-config <path>` supplies a YAML whose ingest tunables (chunk / embedding
+/ summarizer / …) are merged into the temp mcp config Stage 4 generates for `june
+ingest` (`sidecar.path` stays bench-owned and cannot be overridden). The `/test`
+web UI in `packages/next` uses these to apply an operator-edited config to a run.
+
+**Judge selection.** The judge (the gauge) runs as one of two providers:
+`deepseek` (the default — sync `deepseek-v4-pro` over concurrent calls; ~7×
+cheaper, validated to mirror Sonnet at κ=0.894) or `anthropic-batch` (Sonnet via
+the Batch API — keep this as system-of-record for final/published runs). deepseek
+has no Batch API, so the sync path has no checkpoint/resume — `--cache` covers
+re-runs instead. Both run at `temperature: 0`.
 
 ### Exit codes
 
@@ -114,9 +122,9 @@ packages/mcp/bench/
 ├── cli/                       Subcommand routers (argv is handwritten; no commander/yargs).
 ├── src/
 │   ├── stages/01–09.ts        One file per stage; pure functions that write one artifact each.
-│   ├── providers/             Ollama, Anthropic, OpenAI, Anthropic Batch.
+│   ├── providers/             Ollama, Anthropic, OpenAI, DeepSeek, Anthropic Batch.
 │   ├── retriever/             Pluggable — stopgap (Qdrant+SQLite direct) for v1.
-│   ├── judge/                 Pluggable — Anthropic Batch LLM judge for v1.
+│   ├── judge/                 Pluggable — Anthropic Batch judge + sync deepseek judge.
 │   ├── domains/               Synthetic-fact templates (Glorbulon Protocol in v1).
 │   ├── lib/                   env, config, logger, rng, tokens, bootstrap, cost, artifacts, prompts.
 │   ├── types/                 facts, query, verdict, results.

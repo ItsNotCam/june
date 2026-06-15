@@ -9,21 +9,27 @@ import type {
   JudgeResultsFile,
   VerdictRecord,
 } from "@/types/judge";
-import type { BatchLlmProvider } from "@/providers/types";
+import type { BatchLlmProvider, LlmProvider } from "@/providers/types";
 import type { Judge, JudgeRequest } from "@/judge/types";
 import { createLlmJudge } from "@/judge/llm-judge";
+import { createSyncLlmJudge } from "@/judge/sync-llm-judge";
 import { writeJsonAtomic } from "@/lib/artifacts";
 import { JudgeIntegrityError } from "@/lib/errors";
 import { getConfig } from "@/lib/config";
 import { logger } from "@/lib/logger";
+import { join } from "path";
+import { openJuneDatabase, renderChunksById } from "@/lib/sqlite";
+import type { Database } from "bun:sqlite";
+import type { ReaderAnswer } from "@/types/reader";
 
 /**
- * Stage 8 — judging via Anthropic Batch API (§22).
+ * Stage 8 — judging (§22).
  *
  * Builds one `JudgeRequest` per reader answer (+ per baseline answer if the
- * sibling pass ran), submits as a single batch (v1's N=500 ceiling fits
- * under Anthropic's 10k/batch limit), polls, retrieves, and routes per
- * `custom_id` back to the originating query.
+ * sibling pass ran), then judges via the selected provider: `anthropic-batch`
+ * submits a single batch (v1's N=500 ceiling fits under Anthropic's 10k/batch
+ * limit), polls, retrieves; `deepseek` fans the same prompts out as bounded
+ * concurrent sync calls. Both route per query back to the originating answer.
  *
  * UNJUDGED cap (§22): if more than `config.judge.max_unjudged_pct` of the
  * reader verdicts are `UNJUDGED` (malformed JSON, batch error, expired),
@@ -38,46 +44,90 @@ export const runStage8 = async (args: {
   queries: QueriesFile;
   reader: ReaderAnswersFile;
   baseline: BaselineAnswersFile | null;
-  provider: BatchLlmProvider;
-  model: string;
-  max_tokens: number;
+  /**
+   * Resolved judge selection. `anthropic-batch` uses the Batch API (Sonnet,
+   * system-of-record); `deepseek` uses concurrent sync calls (deepseek-v4-pro).
+   * `checkpoint_path`/`resume_batch_id` apply to the batch path only.
+   */
+  judge: {
+    providerName: "anthropic-batch" | "deepseek";
+    batchProvider: BatchLlmProvider;
+    syncProvider: LlmProvider | null;
+    model: string;
+    max_tokens: number;
+    concurrency: number;
+  };
   checkpoint_path: string;
   resume_batch_id: string | undefined;
   out_path: string;
-  /** Called on each batch poll with elapsed time + status — drives live progress. */
+  /** Called on each batch poll with elapsed time + status — drives live progress (batch path only). */
   onPoll?: (info: { elapsed_ms: number; status: string }) => void;
+  /** Scratch dir holding june.db — the judge hydrates retrieved chunk text from it for grounding. */
+  scratch_path: string;
 }): Promise<JudgeResultsFile> => {
   const cfg = getConfig();
   const factById = new Map(args.facts.facts.map((f) => [f.id, f]));
   const queryById = new Map(args.queries.queries.map((q) => [q.id, q]));
 
-  const readerRequests = buildRequests(args.reader.answers, queryById, factById);
+  const db = openJuneDatabase(join(args.scratch_path, "june.db"));
+  let readerRequests: JudgeRequest[];
+  let baselineRequests: JudgeRequest[] | null = null;
+  try {
+    readerRequests = buildRequests(args.reader.answers, queryById, factById, db);
+    if (args.baseline) {
+      baselineRequests = buildRequests(
+        args.baseline.answers,
+        queryById,
+        factById,
+        db,
+      );
+    }
+  } finally {
+    db.close();
+  }
 
-  const readerJudge: Judge = createLlmJudge({
-    provider: args.provider,
-    model: args.model,
-    max_tokens: args.max_tokens,
+  const isBatch = args.judge.providerName === "anthropic-batch";
+
+  // Build a Judge for one stream. The batch path keeps checkpoint/resume; the
+  // sync path has no batch to resume, so it ignores those.
+  const makeJudge = (
+    stream_prefix: "reader" | "baseline",
+    resume: { checkpoint_path?: string; resume_batch_id?: string } = {},
+  ): Judge => {
+    if (isBatch) {
+      return createLlmJudge({
+        provider: args.judge.batchProvider,
+        model: args.judge.model,
+        max_tokens: args.judge.max_tokens,
+        checkpoint_path: resume.checkpoint_path,
+        resume_batch_id: resume.resume_batch_id,
+        stream_prefix,
+        onPoll: args.onPoll,
+      });
+    }
+    if (!args.judge.syncProvider) {
+      throw new Error(
+        `Judge provider '${args.judge.providerName}' selected but its sync provider is unavailable (is DEEPSEEK_API_KEY set?)`,
+      );
+    }
+    return createSyncLlmJudge({
+      provider: args.judge.syncProvider,
+      model: args.judge.model,
+      max_tokens: args.judge.max_tokens,
+      concurrency: args.judge.concurrency,
+      stream_prefix,
+    });
+  };
+
+  const readerJudge = makeJudge("reader", {
     checkpoint_path: args.checkpoint_path,
     resume_batch_id: args.resume_batch_id,
-    stream_prefix: "reader",
-    onPoll: args.onPoll,
   });
   const readerOutcomes = await readerJudge.judge_all(readerRequests);
 
   let baselineOutcomes: Awaited<ReturnType<Judge["judge_all"]>> = [];
-  if (args.baseline) {
-    const baselineRequests = buildRequests(
-      args.baseline.answers,
-      queryById,
-      factById,
-    );
-    const baselineJudge: Judge = createLlmJudge({
-      provider: args.provider,
-      model: args.model,
-      max_tokens: args.max_tokens,
-      stream_prefix: "baseline",
-      onPoll: args.onPoll,
-    });
+  if (args.baseline && baselineRequests) {
+    const baselineJudge = makeJudge("baseline");
     baselineOutcomes = await baselineJudge.judge_all(baselineRequests);
   }
 
@@ -96,15 +146,20 @@ export const runStage8 = async (args: {
   const file: JudgeResultsFile = {
     fixture_id: args.facts.fixture_id,
     judge: {
-      provider: "anthropic-batch",
-      model: args.model,
-      batch_api: true,
+      provider: args.judge.providerName,
+      model: args.judge.model,
+      batch_api: isBatch,
     },
-    batch: {
-      batch_id: args.resume_batch_id ?? "batch-submitted",
-      submitted_at: submittedAt,
-      retrieved_at: new Date().toISOString(),
-    },
+    // Sync judging has no batch to track — only record it for the batch path.
+    ...(isBatch
+      ? {
+          batch: {
+            batch_id: args.resume_batch_id ?? "batch-submitted",
+            submitted_at: submittedAt,
+            retrieved_at: new Date().toISOString(),
+          },
+        }
+      : {}),
     verdicts: [
       ...readerVerdicts,
       ...baselineOutcomes.map((o) => ({
@@ -141,9 +196,10 @@ export const runStage8 = async (args: {
 };
 
 const buildRequests = (
-  answers: readonly { query_id: string; answer_text: string }[],
+  answers: readonly ReaderAnswer[],
   queryById: Map<string, QueriesFile["queries"][number]>,
   factById: Map<string, FactsFile["facts"][number]>,
+  db: Database,
 ): JudgeRequest[] => {
   const out: JudgeRequest[] = [];
   for (const answer of answers) {
@@ -159,6 +215,9 @@ const buildRequests = (
       expected_facts: expected,
       reader_answer: answer.answer_text,
       tier: q.tier,
+      // Same chunk text the reader saw — empty for the no-RAG baseline pass,
+      // whose answers carry no retrieved_chunk_ids.
+      retrieved_context: renderChunksById(db, answer.retrieved_chunk_ids),
     });
   }
   return out;

@@ -71,6 +71,16 @@ const RunConfigSchema = z.object({
       model: z.string().min(1).default("llama3.1:latest"),
     })
     .prefault({}),
+  // The judge (role 4, the gauge). `anthropic-batch` = Sonnet via the Batch API
+  // (system-of-record); `deepseek` = sync deepseek-v4-pro (the cheap default,
+  // validated to mirror Sonnet at κ=0.894). Mapped to bench --judge-provider /
+  // --judge-model overrides in deriveRunArgs.
+  judge: z
+    .object({
+      provider: z.enum(["anthropic-batch", "deepseek"]).default("deepseek"),
+      model: z.string().min(1).default("deepseek-v4-pro"),
+    })
+    .prefault({}),
 });
 
 export const TestConfigSchema = z.object({
@@ -130,6 +140,8 @@ export const deriveRunArgs = (config: TestRunConfig): { flags: string[]; ingestY
   flags.push("--reader-concurrency", String(run.reader_concurrency));
   flags.push("--reader-provider", run.reader.provider);
   flags.push("--reader-model", run.reader.model);
+  flags.push("--judge-provider", run.judge.provider);
+  flags.push("--judge-model", run.judge.model);
   // Reuse a prior ingest when requested — retrieval stays identical so the
   // reader/sample are the only moving parts. bench ignores --ingest-config when
   // Stage 4 is skipped, so we still emit the YAML below harmlessly.

@@ -44,6 +44,9 @@ export type BenchLogFields = {
   batch_id?: string;
   request_count?: number;
   provider?: string;
+  model?: string;
+  concurrency?: number;
+  stream_prefix?: string;
   attempt?: number;
   delay_ms?: number;
   june_bin?: string;

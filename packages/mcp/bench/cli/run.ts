@@ -55,7 +55,7 @@ const RUN_STAGES: readonly StageDescriptor[] = [
   { num: 5, name: "ground-truth resolution" },
   { num: 6, name: "retrieval evaluation" },
   { num: 7, name: "reader evaluation" },
-  { num: 8, name: "judging (batch)" },
+  { num: 8, name: "judging" },
   { num: 9, name: "scoring + report" },
 ];
 
@@ -103,6 +103,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     flagString(flags, "reader-provider"),
   );
   const reader_model_override = flagString(flags, "reader-model");
+  const judge_provider_override = parseJudgeProvider(
+    flagString(flags, "judge-provider"),
+  );
+  const judge_model_override = flagString(flags, "judge-model");
   if (flagBool(flags, "baseline") && flagBool(flags, "no-baseline")) {
     throw new UsageError("--baseline and --no-baseline are mutually exclusive.");
   }
@@ -182,6 +186,11 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const reader_concurrency = reader_concurrency_override ?? cfg.roles.reader.concurrency;
   const reader_provider_name = reader_provider_override ?? cfg.roles.reader.provider;
   const reader_model = reader_model_override ?? cfg.roles.reader.model;
+  const judge_provider_name = judge_provider_override ?? cfg.roles.judge.provider;
+  const judge_model = judge_model_override ?? cfg.roles.judge.model;
+  // anthropic-batch submits one batch; deepseek fans out concurrent sync calls.
+  const judge_stage_label =
+    judge_provider_name === "anthropic-batch" ? "judging (batch)" : "judging (sync)";
   const cache_enabled = cache_flag || cfg.caching.enabled;
   const providers = cache_enabled
     ? wrapRegistryWithCache(buildProviders(), cfg.caching.cache_root)
@@ -448,7 +457,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
 
   // Stage 8 — judging.
   const t8 = Date.now();
-  events.stageStart(8, "judging (batch)");
+  events.stageStart(8, judge_stage_label);
   let judge: JudgeResultsFile;
   try {
     let resume_batch_id: string | undefined;
@@ -464,9 +473,18 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
         queries,
         reader,
         baseline,
-        provider: providers["anthropic-batch"],
-        model: cfg.roles.judge.model,
-        max_tokens: cfg.roles.judge.max_tokens,
+        judge: {
+          providerName: judge_provider_name,
+          batchProvider: providers["anthropic-batch"],
+          // resolveSyncProvider throws a clear error if DEEPSEEK_API_KEY is unset.
+          syncProvider:
+            judge_provider_name === "deepseek"
+              ? resolveSyncProvider(providers, "deepseek")
+              : null,
+          model: judge_model,
+          max_tokens: cfg.roles.judge.max_tokens,
+          concurrency: cfg.roles.judge.concurrency,
+        },
         checkpoint_path: batchSubmissionPath,
         resume_batch_id,
         out_path: judgePath,
@@ -474,8 +492,8 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
         scratch_path: ingest.scratch_path,
       });
     }
-    stageProgress({ quiet, json_log, stage_num: 8, stage_name: "judging (batch)", duration_ms: Date.now() - t8 });
-    events.stageEnd(8, "judging (batch)", Date.now() - t8);
+    stageProgress({ quiet, json_log, stage_num: 8, stage_name: judge_stage_label, duration_ms: Date.now() - t8 });
+    events.stageEnd(8, judge_stage_label, Date.now() - t8);
   } catch (err) {
     if (err instanceof JudgeIntegrityError) {
       run_status = "aborted_integrity_judge";
@@ -581,6 +599,26 @@ const parseReaderProvider = (input: string | undefined): ReaderProvider | undefi
     );
   }
   return input as ReaderProvider;
+};
+
+const JUDGE_PROVIDERS = ["anthropic-batch", "deepseek"] as const;
+type JudgeProvider = (typeof JUDGE_PROVIDERS)[number];
+
+/**
+ * Parses `--judge-provider <p>`, validating against the supported judge
+ * providers, or `undefined` when absent (config.yaml's `roles.judge.provider`
+ * then applies). `anthropic-batch` is the Sonnet batch judge (system-of-record);
+ * `deepseek` is the sync deepseek-v4-pro judge. The `/test` UI surfaces this so
+ * the judge can be swapped per run without editing config.yaml.
+ */
+const parseJudgeProvider = (input: string | undefined): JudgeProvider | undefined => {
+  if (input === undefined) return undefined;
+  if (!(JUDGE_PROVIDERS as readonly string[]).includes(input)) {
+    throw new UsageError(
+      `--judge-provider expects one of ${JUDGE_PROVIDERS.join("|")}; got ${JSON.stringify(input)}.`,
+    );
+  }
+  return input as JudgeProvider;
 };
 
 const parseSampleRatio = (args: {
@@ -1106,6 +1144,10 @@ FLAGS
   --reader-concurrency <n> override config.yaml roles.reader.concurrency.
   --reader-provider <p>    override roles.reader.provider (ollama|anthropic|openai|deepseek).
   --reader-model <m>       override roles.reader.model.
+  --judge-provider <p>     override roles.judge.provider (anthropic-batch|deepseek).
+                           anthropic-batch = Sonnet batch (system-of-record);
+                           deepseek = sync deepseek-v4-pro (cheap, no batch API).
+  --judge-model <m>        override roles.judge.model.
   --baseline               force the no-RAG baseline pass on (overrides config).
   --no-baseline            force the no-RAG baseline pass off (overrides config).
 

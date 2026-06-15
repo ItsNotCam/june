@@ -13,7 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { TestRunConfig } from "@/lib/test/config";
-import { PROVIDERS, curatedModelsFor, type ProviderValue } from "@/lib/test/model-catalog";
+import {
+  PROVIDERS,
+  curatedModelsFor,
+  type ProviderValue,
+  JUDGE_PROVIDERS,
+  judgeModelsFor,
+  type JudgeProviderValue,
+} from "@/lib/test/model-catalog";
 
 type Mutate = (c: TestRunConfig) => void;
 
@@ -83,6 +90,63 @@ function RoleModelPicker({
           {models.length === 0 ? (
             <option value="">{provider === "ollama" ? "loading…" : "—"}</option>
           ) : null}
+          {models.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Provider + model picker for the judge (role 4). Unlike `RoleModelPicker` the
+ * judge has no Ollama path: it runs as the Anthropic Batch API (Sonnet) or sync
+ * deepseek-v4-pro. The current `model` stays selectable even if not in the
+ * active provider's list; switching provider defaults to that provider's first.
+ */
+function JudgePicker({
+  provider,
+  model,
+  disabled,
+  onChange,
+}: {
+  provider: JudgeProviderValue;
+  model: string;
+  disabled?: boolean;
+  onChange: (provider: JudgeProviderValue, model: string) => void;
+}) {
+  const base = judgeModelsFor(provider);
+  const models = model && !base.includes(model) ? [model, ...base] : base;
+  const firstFor = (p: JudgeProviderValue): string => judgeModelsFor(p)[0] ?? "";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-muted-foreground text-xs">Judge (the gauge)</Label>
+      <div className="flex gap-2">
+        <select
+          className={SELECT_CLASS}
+          value={provider}
+          disabled={disabled}
+          onChange={(e) => {
+            const p = e.target.value as JudgeProviderValue;
+            onChange(p, firstFor(p));
+          }}
+        >
+          {JUDGE_PROVIDERS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <select
+          className={`${SELECT_CLASS} flex-1`}
+          value={model}
+          disabled={disabled}
+          onChange={(e) => onChange(provider, e.target.value)}
+        >
           {models.map((m) => (
             <option key={m} value={m}>
               {m}
@@ -311,6 +375,19 @@ export function ConfigPanel({ disabled = false }: { disabled?: boolean }) {
                       update((c) => {
                         c.run.reader.provider = provider;
                         c.run.reader.model = model;
+                      })
+                    }
+                  />
+                </div>
+                <div className="col-span-2">
+                  <JudgePicker
+                    provider={config.run.judge.provider}
+                    model={config.run.judge.model}
+                    disabled={locked}
+                    onChange={(provider, model) =>
+                      update((c) => {
+                        c.run.judge.provider = provider;
+                        c.run.judge.model = model;
                       })
                     }
                   />

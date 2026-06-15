@@ -36,12 +36,20 @@ roles:
     # Local Ollama 14B saturates at ~1–2 concurrent (R3); hosted providers tolerate more.
     concurrency: 2
 
-  # Role 4 — judge. Locked to anthropic-batch; schema rejects any other value (DD-3).
+  # Role 4 — judge (the gauge). Two providers are allowed:
+  #   deepseek        → sync deepseek-v4-pro, concurrent calls (cheap default;
+  #                     validated to mirror Sonnet at κ=0.894). Needs DEEPSEEK_API_KEY.
+  #   anthropic-batch → Sonnet via the Batch API (system-of-record for final runs).
+  # temperature is locked to 0 for both (schema rejects any other value).
   judge:
-    provider: anthropic-batch
-    model: claude-sonnet-4-6
+    provider: deepseek
+    model: deepseek-v4-pro
     max_tokens: 512
     temperature: 0             # locked to 0; schema rejects any other value
+    concurrency: 8             # sync (deepseek) path only; ignored by anthropic-batch
+    # System-of-record alternative — swap the two lines above for:
+    # provider: anthropic-batch
+    # model: claude-sonnet-4-6
 
 corpus:
   max_facts_per_doc: 15

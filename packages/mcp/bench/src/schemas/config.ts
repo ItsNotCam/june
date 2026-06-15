@@ -8,8 +8,11 @@ import { z } from "zod";
  * the zod error path so operators see which field tripped the validation.
  *
  * Load-bearing enum checks:
- * - `roles.judge.provider` MUST be `"anthropic-batch"` (DD-3).
- * - `roles.judge.temperature` MUST be `0` (§22 Batch API grading must be reproducible).
+ * - `roles.judge.provider` is `"anthropic-batch"` (Sonnet, system-of-record) or
+ *   `"deepseek"` (sync deepseek-v4-pro, the cheap default — validated to mirror
+ *   Sonnet at κ=0.894; relaxes the original DD-3 anthropic-batch-only lock).
+ * - `roles.judge.temperature` MUST be `0` for BOTH paths (§22 grading must be
+ *   reproducible — deepseek runs at temp 0 too).
  * - `baseline.provider` MUST be `"anthropic"` (v1 only supports Opus for the baseline).
  */
 
@@ -32,10 +35,18 @@ const ReaderRoleSchema = SyncRoleSchema.extend({
 });
 
 const JudgeRoleSchema = z.object({
-  provider: z.literal("anthropic-batch"),
+  // anthropic-batch → Sonnet via the Batch API (system-of-record).
+  // deepseek → sync deepseek-v4-pro via concurrent calls (no batch API).
+  provider: z.enum(["anthropic-batch", "deepseek"]),
   model: z.string().min(1),
   max_tokens: z.number().int().positive(),
   temperature: z.literal(0),
+  /**
+   * Max in-flight calls for the SYNC judge path (deepseek). Ignored by the
+   * anthropic-batch path, which submits a single batch. Mirrors
+   * `SyncRoleSchema.concurrency`.
+   */
+  concurrency: z.number().int().positive().default(8),
 });
 
 const BaselineSchema = z.object({
