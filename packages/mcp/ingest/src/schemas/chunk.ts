@@ -4,7 +4,7 @@ import {
   CHUNK_STATUS_VALUES,
   CONTENT_TYPE_VALUES,
   SOURCE_TYPE_VALUES,
-} from "@/types/vocab";
+} from "#internal/types/vocab";
 
 const Sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
 const UlidZ = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/);

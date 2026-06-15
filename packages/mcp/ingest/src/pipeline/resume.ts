@@ -1,13 +1,13 @@
 // author: Claude
 import { ulid } from "ulid";
-import { logger } from "@/lib/logger";
-import { startHeartbeat } from "@/lib/lock";
-import { asRunId, asVersion } from "@/types/ids";
+import { logger } from "#internal/lib/logger";
+import { startHeartbeat } from "#internal/lib/lock";
+import { asRunId, asVersion } from "#internal/types/ids";
 import { ingestPath } from "./ingest";
-import type { Embedder } from "@/lib/embedder/types";
-import type { ProgressReporter } from "@/lib/progress";
-import type { RunId } from "@/types/ids";
-import type { IngestionRun } from "@/types/run";
+import type { Embedder } from "#internal/lib/embedder/types";
+import type { ProgressReporter } from "#internal/lib/progress";
+import type { RunId } from "#internal/types/ids";
+import type { IngestionRun } from "#internal/types/run";
 import type { PipelineDeps } from "./factory";
 
 /**

@@ -6,7 +6,7 @@ import {
   LIFECYCLE_VALUES,
   SENSITIVITY_VALUES,
   SOURCE_TYPE_VALUES,
-} from "@/types/vocab";
+} from "#internal/types/vocab";
 
 /**
  * Validates a `documents` row read from SQLite. IDs stay as plain strings

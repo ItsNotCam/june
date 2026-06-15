@@ -1,9 +1,9 @@
 // author: Claude
-import { ingestPath } from "@/pipeline/ingest";
-import { buildDeps } from "@/pipeline/factory";
-import { asVersion } from "@/types/ids";
-import { SidecarLockHeldError } from "@/lib/errors";
-import { createProgressReporter, createSilentReporter } from "@/lib/progress";
+import { ingestPath } from "#internal/pipeline/ingest";
+import { buildDeps } from "#internal/pipeline/factory";
+import { asVersion } from "#internal/types/ids";
+import { SidecarLockHeldError } from "#internal/lib/errors";
+import { createProgressReporter, createSilentReporter } from "#internal/lib/progress";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

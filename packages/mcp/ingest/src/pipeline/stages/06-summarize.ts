@@ -1,14 +1,14 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
-import { logger } from "@/lib/logger";
-import { approximateTokens } from "@/lib/tokenize";
-import type { Summarizer } from "@/lib/summarizer/types";
-import type { SidecarStorage, Tx } from "@/lib/storage/types";
-import type { DocumentOutline } from "@/schemas/classifier";
-import type { Document } from "@/types/document";
-import type { RunId } from "@/types/ids";
-import type { Section } from "@/types/section";
-import type { UnclassifiedChunk } from "@/types/pipeline";
+import { getConfig } from "#internal/lib/config";
+import { logger } from "#internal/lib/logger";
+import { approximateTokens } from "#internal/lib/tokenize";
+import type { Summarizer } from "#internal/lib/summarizer/types";
+import type { SidecarStorage, Tx } from "#internal/lib/storage/types";
+import type { DocumentOutline } from "#internal/schemas/classifier";
+import type { Document } from "#internal/types/document";
+import type { RunId } from "#internal/types/ids";
+import type { Section } from "#internal/types/section";
+import type { UnclassifiedChunk } from "#internal/types/pipeline";
 
 /**
  * Deterministic fallback summary per [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds) — used when the summarizer impl

@@ -71,6 +71,25 @@ export const ConfigSchema = z
         stopwords: z.array(z.string()).default([]),
       })
       .prefault({}),
+    retrieval: z
+      .object({
+        default_k: z.number().int().positive().default(5),
+        // Per-modality fetch depth is `k * fetch_multiplier` before fusion —
+        // a wider candidate pool gives RRF more to agree on.
+        fetch_multiplier: z.number().int().positive().default(2),
+        dense_weight: z.number().min(0).default(1),
+        bm25_weight: z.number().min(0).default(1),
+        // RRF damping constant — 60 is the RRF-literature convention.
+        rank_constant: z.number().int().positive().default(60),
+        // Asymmetric-embedding query-side prefix. Empty string disables it.
+        // `snowflake-arctic-embed2` expects `"query: "`; other models may not.
+        query_prefix: z.string().default("query: "),
+        collections: z
+          .array(z.enum(["internal", "external"]))
+          .nonempty()
+          .default(["internal", "external"]),
+      })
+      .prefault({}),
     summarizer: z
       .object({
         implementation: z.enum(["ollama", "stub", "mock"]).default("ollama"),

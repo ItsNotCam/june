@@ -1,8 +1,8 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
-import { logger } from "@/lib/logger";
-import type { SidecarStorage } from "@/lib/storage/types";
-import type { RunId } from "@/types/ids";
+import { getConfig } from "#internal/lib/config";
+import { logger } from "#internal/lib/logger";
+import type { SidecarStorage } from "#internal/lib/storage/types";
+import type { RunId } from "#internal/types/ids";
 import type { SummarizedChunk } from "./06-summarize";
 
 /**

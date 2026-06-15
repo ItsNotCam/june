@@ -53,6 +53,8 @@ Exit codes follow §27.3: `0` success, `1` fatal, `2` lock held, `3` health fail
 
 The `june` CLI is one consumer; anything else in the workspace (the MCP server, tests, custom tooling) talks to the pipeline through the named exports of `@june/mcp-ingest` (re-exported from [`src/index.ts`](./src/index.ts)).
 
+> **Import convention.** `src/` and `cli/` use the package-scoped subpath alias `#internal/*` (declared in `package.json` `"imports"`), not a `@/` tsconfig alias. tsconfig `paths` aliases like `@/*` resolve only for type-checking — they do **not** resolve at runtime when another package imports this one (a known Bun/Node behavior). `#internal/*` resolves via `package.json` for both Bun and tsc, so the pipeline is importable in-process by sibling packages. Directory imports use an explicit `/index` (e.g. `#internal/types/index`) because Bun's `imports` wildcard maps to `./src/*.ts`. (`__test__/` runs in-package and still uses `@/`.)
+
 There are two pipeline entry points:
 
 | Function | When to use |
@@ -217,6 +219,24 @@ type HealthReport = {
 ```
 
 `health` requires the same bootstrap (`getEnv` + `loadConfig`) as `ingestPath`, but does **not** require `buildDeps`.
+
+### Retrieval — `query`
+
+`query(deps, opts)` (`src/retriever/query.ts`) is the system-of-record retrieval API: hybrid dense + BM25 search over the stored chunks, fused with RRF. It is what the MCP server's `search` tool calls.
+
+```ts
+query(
+  deps: { embedder: Embedder; vector: VectorStorage },
+  opts: { text: string; k?: number; collections?: ReadonlyArray<"internal" | "external"> },
+): Promise<RetrievedChunk[]>
+```
+
+- Pass `{ embedder: deps.embedder, vector: deps.storage.vector }` from `buildDeps()` so retrieval reuses the one embedder + Qdrant connection.
+- The query is dense-embedded with the asymmetric `query:` prefix (configurable via `retrieval.query_prefix`) and BM25-vectorized from the raw text. Each target collection is searched for both modalities at `k * fetch_multiplier`, then fused.
+- Only `is_latest = true` chunks are returned. Each `RetrievedChunk` carries `content` + citation metadata straight from the Qdrant payload — no sidecar read.
+- Tunables live under the `retrieval:` config block (`default_k`, `fetch_multiplier`, `dense_weight`, `bm25_weight`, `rank_constant`, `query_prefix`, `collections`).
+
+`query` requires `loadConfig` (it reads `retrieval` + `bm25.stopwords`) and `buildDeps` (for the embedder + vector store).
 
 ### Config
 

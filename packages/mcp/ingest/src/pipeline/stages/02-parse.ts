@@ -1,15 +1,15 @@
 // author: Claude
 import { parse as parseYaml } from "yaml";
-import { normalizeBytes } from "@/lib/encoding";
-import type { ErrorType } from "@/lib/error-types";
-import { parseMarkdown } from "@/lib/parser/markdown";
-import { FrontmatterSchema, type Frontmatter } from "@/schemas/frontmatter";
-import { logger } from "@/lib/logger";
-import type { Document } from "@/types/document";
-import type { ParsedDocument } from "@/types/pipeline";
+import { normalizeBytes } from "#internal/lib/encoding";
+import type { ErrorType } from "#internal/lib/error-types";
+import { parseMarkdown } from "#internal/lib/parser/markdown";
+import { FrontmatterSchema, type Frontmatter } from "#internal/schemas/frontmatter";
+import { logger } from "#internal/lib/logger";
+import type { Document } from "#internal/types/document";
+import type { ParsedDocument } from "#internal/types/pipeline";
 import type { Root as MdastRoot } from "mdast";
-import type { SidecarStorage, Tx } from "@/lib/storage/types";
-import type { RunId } from "@/types/ids";
+import type { SidecarStorage, Tx } from "#internal/lib/storage/types";
+import type { RunId } from "#internal/types/ids";
 
 /**
  * Stage 2 — Parsing & Normalization ([§15](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#15-stage-2--parsing--normalization)).

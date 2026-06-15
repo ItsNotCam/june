@@ -2,16 +2,16 @@
 import { realpath, stat } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
-import { getConfig } from "@/lib/config";
-import { FileTooLargeError } from "@/lib/errors";
-import { deriveContentHashBytes, deriveDocId } from "@/lib/ids";
-import { logger } from "@/lib/logger";
-import { SOURCE_SYSTEM_TO_SOURCE_TYPE } from "@/types/vocab";
-import type { Document } from "@/types/document";
-import type { DocId, RunId, Version } from "@/types/ids";
-import type { SourceSystem, SourceType } from "@/types/vocab";
-import type { SidecarStorage, Tx } from "@/lib/storage/types";
-import { asDocId, asVersion } from "@/types/ids";
+import { getConfig } from "#internal/lib/config";
+import { FileTooLargeError } from "#internal/lib/errors";
+import { deriveContentHashBytes, deriveDocId } from "#internal/lib/ids";
+import { logger } from "#internal/lib/logger";
+import { SOURCE_SYSTEM_TO_SOURCE_TYPE } from "#internal/types/vocab";
+import type { Document } from "#internal/types/document";
+import type { DocId, RunId, Version } from "#internal/types/ids";
+import type { SourceSystem, SourceType } from "#internal/types/vocab";
+import type { SidecarStorage, Tx } from "#internal/lib/storage/types";
+import { asDocId, asVersion } from "#internal/types/ids";
 
 /**
  * Stage 1 — File Ingest & Provenance Capture ([§14](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#14-stage-1--file-ingest--provenance-capture)).

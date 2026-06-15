@@ -3,7 +3,7 @@ import { Database } from "bun:sqlite";
 import { mkdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { logger } from "@/lib/logger";
+import { logger } from "#internal/lib/logger";
 
 /**
  * Applies the SQLite DDL idempotently ([§10](../../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#10-sqlite-sidecar-schema)). Every DDL statement uses

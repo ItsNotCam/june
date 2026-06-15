@@ -1,14 +1,14 @@
 // author: Claude
 import { ulid } from "ulid";
-import { bm25Vectorize } from "@/lib/embedder/bm25";
-import { chunkIdToQdrantPointId } from "@/lib/ids";
-import { startHeartbeat } from "@/lib/lock";
-import { logger } from "@/lib/logger";
-import { asRunId } from "@/types/ids";
-import type { Embedder } from "@/lib/embedder/types";
-import type { RunId } from "@/types/ids";
+import { bm25Vectorize } from "#internal/lib/embedder/bm25";
+import { chunkIdToQdrantPointId } from "#internal/lib/ids";
+import { startHeartbeat } from "#internal/lib/lock";
+import { logger } from "#internal/lib/logger";
+import { asRunId } from "#internal/types/ids";
+import type { Embedder } from "#internal/lib/embedder/types";
+import type { RunId } from "#internal/types/ids";
 import type { PipelineDeps } from "./factory";
-import type { VectorPoint } from "@/lib/storage/types";
+import type { VectorPoint } from "#internal/lib/storage/types";
 
 /**
  * `june re-embed` ([§27.6](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#276-re-embed-command-detailed) / I5). Creates a new Qdrant collection at the
@@ -132,5 +132,7 @@ export const reembed = async (opts: ReembedOptions): Promise<ReembedResult> => {
   } finally {
     heartbeat.stop();
     await sidecar.releaseWriteLock(runId);
+    // Free the (new) embed model's VRAM once re-embedding is done.
+    await embedder.unload();
   }
 };

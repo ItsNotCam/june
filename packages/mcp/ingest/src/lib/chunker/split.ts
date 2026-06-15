@@ -1,7 +1,7 @@
 // author: Claude
 import type { Root as MdastRoot, RootContent } from "mdast";
-import { logger } from "@/lib/logger";
-import { approximateTokens } from "@/lib/tokenize";
+import { logger } from "#internal/lib/logger";
+import { approximateTokens } from "#internal/lib/tokenize";
 import { computeProtectedRanges, isInsideProtected, type ProtectedRange } from "./protect";
 
 /**

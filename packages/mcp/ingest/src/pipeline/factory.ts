@@ -1,13 +1,13 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
-import { createOllamaEmbedder } from "@/lib/embedder/ollama";
-import { createQdrantStorage } from "@/lib/storage/qdrant";
-import { createSqliteSidecar } from "@/lib/storage/sqlite";
-import { createOllamaSummarizer } from "@/lib/summarizer/ollama";
-import { createStubSummarizer } from "@/lib/summarizer/stub";
-import type { Embedder } from "@/lib/embedder/types";
-import type { SidecarStorage, StorageInterface, VectorStorage } from "@/lib/storage/types";
-import type { Summarizer } from "@/lib/summarizer/types";
+import { getConfig } from "#internal/lib/config";
+import { createOllamaEmbedder } from "#internal/lib/embedder/ollama";
+import { createQdrantStorage } from "#internal/lib/storage/qdrant";
+import { createSqliteSidecar } from "#internal/lib/storage/sqlite/index";
+import { createOllamaSummarizer } from "#internal/lib/summarizer/ollama";
+import { createStubSummarizer } from "#internal/lib/summarizer/stub";
+import type { Embedder } from "#internal/lib/embedder/types";
+import type { SidecarStorage, StorageInterface, VectorStorage } from "#internal/lib/storage/types";
+import type { Summarizer } from "#internal/lib/summarizer/types";
 
 /**
  * Dependency assembly for the ingest pipeline ([§32.3](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#323-pipeline-factory)).

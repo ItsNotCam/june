@@ -1,7 +1,7 @@
 // author: Claude
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { PromptTemplateError } from "@/lib/errors";
+import { PromptTemplateError } from "#internal/lib/errors";
 
 /**
  * Reads a prompt template from `packages/mcp/ingest/prompts/<name>.md` and

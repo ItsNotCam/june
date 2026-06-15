@@ -1,7 +1,7 @@
 // author: Claude
-import type { ChunkId } from "@/types/ids";
-import type { DocumentOutline } from "@/schemas/classifier";
-import type { SummarizerOutput } from "@/types/pipeline";
+import type { ChunkId } from "#internal/types/ids";
+import type { DocumentOutline } from "#internal/schemas/classifier";
+import type { SummarizerOutput } from "#internal/types/pipeline";
 
 /**
  * Swappable summarizer backend ([§19](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#19-stage-6--contextual-summary-generation), [§31.1](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#311-what-must-be-swappable)). Implementations:

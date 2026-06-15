@@ -1,8 +1,8 @@
 // author: Claude
-import { buildDeps } from "@/pipeline/factory";
-import { createOllamaEmbedder } from "@/lib/embedder/ollama";
-import { reembed } from "@/pipeline/reembed";
-import { SidecarLockHeldError } from "@/lib/errors";
+import { buildDeps } from "#internal/pipeline/factory";
+import { createOllamaEmbedder } from "#internal/lib/embedder/ollama";
+import { reembed } from "#internal/pipeline/reembed";
+import { SidecarLockHeldError } from "#internal/lib/errors";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

@@ -1,9 +1,9 @@
 // author: Claude
 import { ulid } from "ulid";
-import { logger } from "@/lib/logger";
-import { startHeartbeat } from "@/lib/lock";
-import { asRunId } from "@/types/ids";
-import type { DocId, RunId } from "@/types/ids";
+import { logger } from "#internal/lib/logger";
+import { startHeartbeat } from "#internal/lib/lock";
+import { asRunId } from "#internal/types/ids";
+import type { DocId, RunId } from "#internal/types/ids";
 import type { PipelineDeps } from "./factory";
 
 /**

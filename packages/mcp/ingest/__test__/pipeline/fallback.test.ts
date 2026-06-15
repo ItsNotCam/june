@@ -21,6 +21,7 @@ const makeInMemoryVector = (): VectorStorage => {
   return {
     name: "memory",
     ensureCollections: async () => {},
+    search: async () => [],
     upsert: async (points) => {
       upserts.push(...points);
     },

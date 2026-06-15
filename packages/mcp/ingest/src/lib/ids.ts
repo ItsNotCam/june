@@ -7,7 +7,7 @@ import {
   type ChunkId,
   type DocId,
   type SectionId,
-} from "@/types/ids";
+} from "#internal/types/ids";
 
 /**
  * Deterministic ID derivation per [§11](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#11-deterministic-id-scheme). Every identity hash uses SHA-256 and

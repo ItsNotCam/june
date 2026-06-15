@@ -1,11 +1,11 @@
 // author: Claude
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { getEnv } from "@/lib/env";
-import { QdrantWriteError } from "@/lib/errors";
-import { chunkIdToQdrantPointId } from "@/lib/ids";
-import { logger } from "@/lib/logger";
-import type { ChunkId } from "@/types/ids";
-import type { VectorPoint, VectorStorage } from "./types";
+import { getEnv } from "#internal/lib/env";
+import { QdrantWriteError } from "#internal/lib/errors";
+import { chunkIdToQdrantPointId } from "#internal/lib/ids";
+import { logger } from "#internal/lib/logger";
+import type { ChunkId } from "#internal/types/ids";
+import type { VectorPoint, VectorSearchHit, VectorStorage } from "./types";
 
 /**
  * Qdrant-backed VectorStorage. Uses the official `@qdrant/js-client-rest`
@@ -175,6 +175,30 @@ export const createQdrantStorage = (): VectorStorage => {
     }
   };
 
+  const search: VectorStorage["search"] = async (query) => {
+    const filter =
+      query.onlyLatest === false
+        ? undefined
+        : { must: [{ key: "is_latest", match: { value: true } }] };
+    const res = await client.query(query.collection, {
+      query:
+        "indices" in query.vector
+          ? { indices: query.vector.indices, values: query.vector.values }
+          : [...query.vector],
+      using: query.using,
+      limit: query.limit,
+      with_payload: true,
+      filter,
+    });
+    return res.points.map(
+      (p): VectorSearchHit => ({
+        id: p.id,
+        score: p.score,
+        payload: (p.payload ?? {}) as Record<string, unknown>,
+      }),
+    );
+  };
+
   const flipIsLatest: VectorStorage["flipIsLatest"] = async (
     alias,
     doc_id,
@@ -267,6 +291,7 @@ export const createQdrantStorage = (): VectorStorage => {
     name: "qdrant",
     ensureCollections,
     upsert,
+    search,
     flipIsLatest,
     deletePointsByChunkIds,
     deletePointsByDocId,

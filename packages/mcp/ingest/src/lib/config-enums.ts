@@ -20,6 +20,6 @@ export {
   STABILITY_VALUES,
   TEMPORAL_VALUES,
   TRUST_TIER_VALUES,
-} from "@/types/vocab";
+} from "#internal/types/vocab";
 
 export { LOG_LEVEL_VALUES } from "@june/shared";

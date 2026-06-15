@@ -1,15 +1,15 @@
 // author: Claude
 import { z } from "zod";
-import { getConfig } from "@/lib/config";
-import { getEnv } from "@/lib/env";
+import { getConfig } from "#internal/lib/config";
+import { getEnv } from "#internal/lib/env";
 import {
   EmbeddingDimensionMismatchError,
   OllamaModelNotFoundError,
   OllamaTimeoutError,
   OllamaUnavailableError,
-} from "@/lib/errors";
-import { logger } from "@/lib/logger";
-import { sleepWithJitter } from "@/lib/retry";
+} from "#internal/lib/errors";
+import { logger } from "#internal/lib/logger";
+import { sleepWithJitter } from "#internal/lib/retry";
 import type { Embedder } from "./types";
 
 /**
@@ -153,7 +153,32 @@ export const createOllamaEmbedder = async (): Promise<Embedder> => {
       }
       return raw;
     },
+    unload: () => unloadOllamaModel(env.OLLAMA_URL, env.OLLAMA_EMBED_MODEL),
   };
+};
+
+/**
+ * Best-effort eviction of an Ollama model from VRAM via `keep_alive: 0`. Ollama
+ * has no dedicated unload endpoint; a request with `keep_alive: 0` drops the
+ * model immediately after responding. We piggyback on `/api/embed` with a
+ * single tiny input. Never throws — a failed unload is a degraded state (the
+ * model lingers until its normal keep-alive expires), not a pipeline failure.
+ */
+const unloadOllamaModel = async (url: string, model: string): Promise<void> => {
+  try {
+    await fetch(`${url}/api/embed`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model, input: ["."], keep_alive: 0 }),
+    });
+    logger.info("embedder_unloaded", { event: "embedder_unloaded", model_name: model });
+  } catch (err) {
+    logger.warn("embedder_unload_failed", {
+      event: "embedder_unload_failed",
+      model_name: model,
+      error_message: err instanceof Error ? err.message : String(err),
+    });
+  }
 };
 
 const truncateAndNormalize = (

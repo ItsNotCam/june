@@ -1,14 +1,14 @@
 // author: Claude
 import { z } from "zod";
-import { getConfig } from "@/lib/config";
-import { getEnv } from "@/lib/env";
+import { getConfig } from "#internal/lib/config";
+import { getEnv } from "#internal/lib/env";
 import {
   OllamaModelNotFoundError,
   OllamaTimeoutError,
-} from "@/lib/errors";
-import { logger } from "@/lib/logger";
-import { sleepWithJitter } from "@/lib/retry";
-import { DocumentOutlineSchema, type DocumentOutline } from "@/schemas/classifier";
+} from "#internal/lib/errors";
+import { logger } from "#internal/lib/logger";
+import { sleepWithJitter } from "#internal/lib/retry";
+import { DocumentOutlineSchema, type DocumentOutline } from "#internal/schemas/classifier";
 import {
   buildFitsPrompt,
   buildLongDocChunkPrompt,

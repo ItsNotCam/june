@@ -1,10 +1,10 @@
 // author: Claude
-import type { Chunk } from "@/types/chunk";
-import type { Document } from "@/types/document";
-import type { ChunkId, DocId, RunId, Version } from "@/types/ids";
-import type { Section } from "@/types/section";
-import type { IngestionError, IngestionRun, ReconcileEvent } from "@/types/run";
-import type { ChunkStatus, DocumentStatus } from "@/types/vocab";
+import type { Chunk } from "#internal/types/chunk";
+import type { Document } from "#internal/types/document";
+import type { ChunkId, DocId, RunId, Version } from "#internal/types/ids";
+import type { Section } from "#internal/types/section";
+import type { IngestionError, IngestionRun, ReconcileEvent } from "#internal/types/run";
+import type { ChunkStatus, DocumentStatus } from "#internal/types/vocab";
 
 /**
  * Transaction handle. Commit / rollback is the caller's responsibility; the
@@ -39,6 +39,33 @@ export type VectorPoint = {
 };
 
 /**
+ * A single hit returned by `VectorStorage.search`. `payload` carries the full
+ * chunk payload written at ingest (Stage 10) — including `content`, so callers
+ * never need a second sidecar read to surface chunk text.
+ */
+export type VectorSearchHit = {
+  id: string | number;
+  score: number;
+  payload: Record<string, unknown>;
+};
+
+/**
+ * A single-modality named-vector query against one collection.
+ *
+ * `using` selects the named vector (`dense` cosine or `bm25` sparse). When
+ * `onlyLatest` is left undefined it defaults to `true` — retrieval must never
+ * surface superseded chunk versions, so the implementation adds an
+ * `is_latest = true` filter unless the caller explicitly opts out.
+ */
+export type VectorSearchQuery = {
+  collection: "internal" | "external";
+  using: "dense" | "bm25";
+  vector: ReadonlyArray<number> | { indices: number[]; values: number[] };
+  limit: number;
+  onlyLatest?: boolean;
+};
+
+/**
  * Swappable vector-store interface. v1 ships `createQdrantStorage`; future
  * backends (pgvector, Weaviate) implement the same interface.
  */
@@ -47,6 +74,12 @@ export type VectorStorage = {
   /** Idempotent setup — called by `init` and at every pipeline startup. */
   ensureCollections(dim: number): Promise<void>;
   upsert(points: ReadonlyArray<VectorPoint>): Promise<void>;
+  /**
+   * Single-modality named-vector search over one collection. Returns hits with
+   * full payload (`with_payload: true`). Filters to `is_latest = true` by
+   * default. The retriever fuses dense + sparse hits across collections itself.
+   */
+  search(query: VectorSearchQuery): Promise<ReadonlyArray<VectorSearchHit>>;
   /** Flips `is_latest=false` on every point for (doc_id, prior_version). Returns the count flipped. */
   flipIsLatest(
     collection: "internal" | "external",

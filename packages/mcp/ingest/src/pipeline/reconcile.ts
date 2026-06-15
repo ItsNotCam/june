@@ -1,12 +1,12 @@
 // author: Claude
 import { ulid } from "ulid";
 import { fileURLToPath } from "node:url";
-import { logger } from "@/lib/logger";
-import { startHeartbeat } from "@/lib/lock";
-import { asRunId } from "@/types/ids";
+import { logger } from "#internal/lib/logger";
+import { startHeartbeat } from "#internal/lib/lock";
+import { asRunId } from "#internal/types/ids";
 import type { PipelineDeps } from "./factory";
-import type { IngestionRun } from "@/types/run";
-import type { RunId } from "@/types/ids";
+import type { IngestionRun } from "#internal/types/run";
+import type { RunId } from "#internal/types/ids";
 
 /**
  * Reconciliation ([§27.5](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#275-reconcile-command-detailed)). A compliance / drift-cleanup pass:

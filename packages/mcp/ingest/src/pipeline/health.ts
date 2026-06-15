@@ -1,9 +1,9 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
-import { getEnv } from "@/lib/env";
-import { logger } from "@/lib/logger";
-import { createQdrantStorage } from "@/lib/storage/qdrant";
-import { openSidecar } from "@/lib/storage/sqlite/migrate";
+import { getConfig } from "#internal/lib/config";
+import { getEnv } from "#internal/lib/env";
+import { logger } from "#internal/lib/logger";
+import { createQdrantStorage } from "#internal/lib/storage/qdrant";
+import { openSidecar } from "#internal/lib/storage/sqlite/migrate";
 
 /**
  * Reachability probe for `june health` ([§27](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#27-cli)). Checks:
