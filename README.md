@@ -11,12 +11,12 @@ june makes a developer feel like a senior engineer on a codebase they've never t
 ## AI usage disclosure
 
 <!-- authorship-stats-start -->
-_source: 58 commits · 30,925 lines written (excludes READMEs and .claude docs)_
+_source: 59 commits · 31,697 lines written (excludes READMEs and .claude docs)_
 
 | | Cam | Claude |
 |--|--:|--:|
-| Commits | 51 (88%) | 7 (12%) |
-| Lines written | 18,363 (59%) | 12,562 (41%) |
+| Commits | 52 (88%) | 7 (12%) |
+| Lines written | 19,135 (60%) | 12,562 (40%) |
 
 ![File ownership by package](.claude/assets/authorship-chart.svg)
 <!-- authorship-stats-end -->

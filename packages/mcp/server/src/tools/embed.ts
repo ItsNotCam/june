@@ -1,9 +1,9 @@
 // author: Cam
-import type { Config } from "@/config";
-import type { Env } from "@/env";
-import { embed } from "@/lib/ollama";
+import type { Config } from "../config";
+import type { Env } from "../env";
+import { embed } from "../lib/ollama";
 import z from "zod";
-import type { McpTool } from "@/types";
+import type { McpTool } from "../types";
 
 const inputSchema = { input: z.string().describe("Input to embed") };
 

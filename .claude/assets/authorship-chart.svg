@@ -16,8 +16,10 @@
 <rect x="130" y="89" width="410" height="22" fill="#f97316"/>
 <text class="pct" x="335" y="104" text-anchor="middle">100%</text>
 <text class="lbl" x="124" y="144" text-anchor="end">mcp/server</text>
-<rect x="130" y="129" width="410" height="22" fill="#3b82f6"/>
-<text class="pct" x="335" y="144" text-anchor="middle">100%</text>
+<rect x="130" y="129" width="287" height="22" fill="#3b82f6"/>
+<text class="pct" x="273" y="144" text-anchor="middle">70%</text>
+<rect x="417" y="129" width="123" height="22" fill="#f97316"/>
+<text class="pct" x="478" y="144" text-anchor="middle">30%</text>
 <text class="lbl" x="124" y="184" text-anchor="end">next</text>
 <rect x="130" y="169" width="193" height="22" fill="#3b82f6"/>
 <text class="pct" x="226" y="184" text-anchor="middle">47%</text>
