@@ -84,7 +84,15 @@ export const createLogger = <F extends LogFieldsBase = LogFieldsBase>(
     _winston = winston.createLogger({
       level: _levelOverride,
       format: _prettyMode ? makePrettyFormat() : makeJsonFormat(),
-      transports: [new winston.transports.Console()],
+      // Route every level to stderr, keeping stdout clean. This matters for the
+      // MCP server, whose stdout is the JSON-RPC transport — any log written to
+      // stdout would corrupt the protocol. Diagnostic logs on stderr is also the
+      // conventional split (stdout = program data, stderr = diagnostics).
+      transports: [
+        new winston.transports.Console({
+          stderrLevels: Object.keys(winston.config.npm.levels),
+        }),
+      ],
     });
     return _winston;
   };
