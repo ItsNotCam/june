@@ -105,8 +105,9 @@ export const runStage3 = async (args: {
     budget: args.budget,
   });
 
-  // T6 — 3-hop chains (2 relational links + 1 atomic). T7 (4-hop) is wired the
-  // same way in a later phase; both reuse buildDeepChains + buildDeepTier.
+  // T6 — 3-hop chains (2 relational links + 1 atomic). T7 — 4-hop chains
+  // (3 relational links + 1 atomic). Both reuse buildDeepChains + buildDeepTier;
+  // only the depth, prompt, and count differ.
   const t6 = await buildDeepTier({
     tier: "T6",
     promptName: "query-t6",
@@ -117,6 +118,17 @@ export const runStage3 = async (args: {
     budget: args.budget,
   });
   leakage_warnings += t6.leakage_warnings;
+
+  const t7 = await buildDeepTier({
+    tier: "T7",
+    promptName: "query-t7",
+    chains: buildDeepChains(atomic, relational, 4, cfg.queries.counts.T7, rng),
+    provider: args.provider,
+    model: args.model,
+    max_tokens: args.max_tokens,
+    budget: args.budget,
+  });
+  leakage_warnings += t7.leakage_warnings;
 
   const queries: Query[] = [];
   let counter = 1;
@@ -131,6 +143,7 @@ export const runStage3 = async (args: {
   append(t4.queries);
   append(t5.queries);
   append(t6.queries);
+  append(t7.queries);
 
   const file: QueriesFile = {
     fixture_id: args.facts.fixture_id,

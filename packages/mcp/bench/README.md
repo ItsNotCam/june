@@ -52,7 +52,7 @@ Operational tunables live in `config.yaml`. Copy `config.example.yaml` → `conf
 
 Notable tunables:
 
-- `queries.counts` — per-tier query counts (default 50/50/40/40/70 = 250; hard ceiling 500).
+- `queries.counts` — per-tier query counts (T1–T5 default 50/50/40/40/70 = 250; hard ceiling 500). T6 (3-hop) and T7 (4-hop) default 0 — only the dedicated deep-hop fixture sets them > 0.
 - `anti_leakage.threshold` — token-overlap floor (default 0.40).
 - `resolution.{max_unresolved_pct, max_embedding_pct}` — integrity thresholds (2% / 20%).
 - `judge.max_unjudged_pct` — aborts run if more than 5% of reader answers cannot be judged.

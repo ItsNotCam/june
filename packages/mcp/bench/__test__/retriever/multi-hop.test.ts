@@ -197,6 +197,57 @@ describe("multi-hop — N=3 chain walk", () => {
   });
 });
 
+describe("multi-hop — N=4 chain walk (T7 window pressure)", () => {
+  const base = ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10"].map(res);
+  const hops = {
+    hops: [
+      { query: "What does A authenticate via?" },
+      { query: "What does {0} wrap?", depends_on: 0 },
+      { query: "What does {1} route through?", depends_on: 1 },
+      { query: "What is the max packet size of {2}?", depends_on: 2 },
+    ],
+  };
+
+  test("3 injected gold (rel2+rel3+atomic) + base head all fit in top-5", async () => {
+    const inner = makeInner(base, [
+      { match: (q) => q.includes("wrap"), results: ["rel2", "d1"].map(res) },
+      { match: (q) => q.includes("route through"), results: ["rel3", "d2"].map(res) },
+      { match: (q) => q.includes("max packet size"), results: ["atomic", "d3"].map(res) },
+    ]);
+    const provider = makeProvider({
+      hops,
+      extracts: [
+        { when: "authenticate", entity: "B1" },
+        { when: "wrap", entity: "B2", chunk_id: "rel2" },
+        { when: "route through", entity: "B3", chunk_id: "rel3" },
+      ],
+    });
+    const out = await build(inner, provider).retrieve("orig query", K);
+    // reserve = [rel2, rel3, atomic] → headCount = 5 - 3 = 2 → the tight 4-gold+1
+    // window (rel1 lives among the base head; rel2/rel3/atomic are injected).
+    expect(ids(out).slice(0, WINDOW_K)).toEqual(["c1", "c2", "rel2", "rel3", "atomic"]);
+    for (const g of ["rel2", "rel3", "atomic"]) expect(ids(out)).toContain(g);
+  });
+
+  test("a middle hop that fails to resolve → base floor", async () => {
+    const inner = makeInner(base, [
+      { match: (q) => q.includes("wrap"), results: ["rel2"].map(res) },
+      { match: (q) => q.includes("route through"), results: ["rel3"].map(res) },
+      { match: (q) => q.includes("max packet size"), results: ["atomic"].map(res) },
+    ]);
+    const provider = makeProvider({
+      hops,
+      extracts: [
+        { when: "authenticate", entity: "B1" },
+        { when: "wrap", entity: "B2", chunk_id: "rel2" },
+        { when: "route through", entity: "" }, // B3 unresolved mid-chain
+      ],
+    });
+    const out = await build(inner, provider).retrieve("orig query", K);
+    expect(ids(out)).toEqual(ids(base));
+  });
+});
+
 describe("multi-hop — malformed chains degrade to the floor", () => {
   const base = ["c1", "c2", "c3", "c4", "c5"].map(res);
 
