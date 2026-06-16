@@ -44,8 +44,27 @@ export const QueryAuthorT5OutputSchema = z.object({
   queries: z.array(QueryTextOnly).min(1),
 });
 
+/**
+ * Deep multi-hop chain output (T6 = 3-hop, T7 = 4-hop). The exact `fact_ids`
+ * count varies by chain depth, but it is NOT enforced here: Stage 3 matches the
+ * returned `fact_ids` against the set of pre-built chains, so a wrong-length or
+ * fabricated id list simply fails to match and the query is dropped/regenerated.
+ * The schema therefore only asserts the multi-id shape (≥ 2).
+ */
+export const QueryAuthorDeepChainOutputSchema = z.object({
+  queries: z
+    .array(
+      z.object({
+        fact_ids: z.array(z.string().min(1)).min(2),
+        text: z.string().min(1),
+      }),
+    )
+    .min(1),
+});
+
 export type QueryAuthorT1Output = z.infer<typeof QueryAuthorT1OutputSchema>;
 export type QueryAuthorT2Output = z.infer<typeof QueryAuthorT2OutputSchema>;
 export type QueryAuthorT3Output = z.infer<typeof QueryAuthorT3OutputSchema>;
 export type QueryAuthorT4Output = z.infer<typeof QueryAuthorT4OutputSchema>;
 export type QueryAuthorT5Output = z.infer<typeof QueryAuthorT5OutputSchema>;
+export type QueryAuthorDeepChainOutput = z.infer<typeof QueryAuthorDeepChainOutputSchema>;

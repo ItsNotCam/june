@@ -90,6 +90,10 @@ export const BenchConfigSchema = z.object({
       T3: z.number().int().nonnegative(),
       T4: z.number().int().nonnegative(),
       T5: z.number().int().nonnegative(),
+      // T6 (3-hop) / T7 (4-hop) default to 0 so existing configs validate unchanged;
+      // only the dedicated deep-hop fixture's config sets them > 0.
+      T6: z.number().int().nonnegative().default(0),
+      T7: z.number().int().nonnegative().default(0),
     }),
     max_total: z.number().int().positive().max(500),
   }),
@@ -134,6 +138,41 @@ export const BenchConfigSchema = z.object({
         }),
       })
       .optional(),
+    /**
+     * Second-pass reranker around the inner retriever. When enabled, the bench
+     * fetches a deep candidate pool (`pool_k`), rescores every candidate against
+     * the query with a cross-encoder `scorer`, and returns the top-k by the new
+     * score. It only reorders + truncates the inner pool, so it cannot find a
+     * chunk the inner retriever missed — the win is purely ranking (recall@1 /
+     * MRR), targeting the "recall present, ranking weak" gap (recall@1 ≪
+     * recall@10). The `scorer.kind` is the swappable backend seam (today only a
+     * local cross-encoder; a hosted/LLM scorer can drop in later). See
+     * `src/retriever/reranker.ts`.
+     */
+    rerank: z
+      .object({
+        enabled: z.boolean(),
+        pool_k: z.number().int().positive(),
+        scorer: z.object({
+          kind: z.enum(["cross-encoder"]),
+          model: z.string().min(1),
+        }),
+      })
+      .optional(),
+  }).superRefine((retrieval, ctx) => {
+    // The pool must be at least as deep as the deepest evaluated cutoff, or the
+    // reranker would rescore fewer candidates than the metric needs and the
+    // "deep pool" guarantee silently evaporates.
+    if (retrieval.rerank?.enabled) {
+      const maxK = Math.max(...retrieval.k_values);
+      if (retrieval.rerank.pool_k < maxK) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["rerank", "pool_k"],
+          message: `rerank.pool_k (${retrieval.rerank.pool_k}) must be >= max(k_values) (${maxK})`,
+        });
+      }
+    }
   }),
   reader_eval: z.object({
     k: z.number().int().positive(),

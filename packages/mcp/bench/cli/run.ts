@@ -4,6 +4,7 @@ import { mkdir } from "fs/promises";
 import type { FactsFile } from "@/types/facts";
 import type { CorpusManifest } from "@/types/corpus";
 import type { QueriesFile, Query, QueryTier } from "@/types/query";
+import { QUERY_TIERS } from "@/types/query";
 import type { IngestManifestFile } from "@/types/ingest";
 import type { GroundTruthFile } from "@/types/ground-truth";
 import type { RetrievalResultsFile } from "@/types/retrieval";
@@ -18,6 +19,8 @@ import { runStage8 } from "@/stages/08-judge";
 import { runStage9 } from "@/stages/09-score";
 import { createStopgapRetriever } from "@/retriever/stopgap";
 import { createMultiHopRetriever } from "@/retriever/multi-hop";
+import { createRerankingRetriever } from "@/retriever/reranker";
+import { createCrossEncoderScorer } from "@/retriever/scorer";
 import { openJuneDatabase } from "@/lib/sqlite";
 import { qdrantCollectionExists } from "@/retriever/qdrant";
 import { buildProviders, resolveSyncProvider, wrapRegistryWithCache } from "@/providers";
@@ -48,6 +51,7 @@ import {
   parseArgv,
   stageProgress,
 } from "./shared";
+import { RUN_MODES, isControlReader, type RunMode } from "@/lib/modes";
 
 /** Stage roster emitted in `run_start` so a consumer can pre-render the list. */
 const RUN_STAGES: readonly StageDescriptor[] = [
@@ -103,6 +107,21 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     flagString(flags, "reader-provider"),
   );
   const reader_model_override = flagString(flags, "reader-model");
+  // Reader-by-purpose: --mode FORCES the reader (the flash↔gemma discipline).
+  const mode_flag = flagString(flags, "mode");
+  if (mode_flag !== undefined && mode_flag !== "iterate" && mode_flag !== "control") {
+    throw new UsageError(
+      `Invalid --mode "${mode_flag}". Use --mode iterate (flash scratchpad) or --mode control (gemma4:26b, the bar).`,
+    );
+  }
+  if (
+    mode_flag !== undefined &&
+    (reader_provider_override !== undefined || reader_model_override !== undefined)
+  ) {
+    throw new UsageError(
+      "--mode and --reader-provider/--reader-model are mutually exclusive. --mode forces the reader; drop the explicit reader flags (or omit --mode for a freeform run).",
+    );
+  }
   const judge_provider_override = parseJudgeProvider(
     flagString(flags, "judge-provider"),
   );
@@ -184,8 +203,39 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   // Resolve per-run overrides against config.yaml (flag wins when present).
   const baseline_enabled = baseline_override ?? cfg.baseline.no_rag_opus;
   const reader_concurrency = reader_concurrency_override ?? cfg.roles.reader.concurrency;
-  const reader_provider_name = reader_provider_override ?? cfg.roles.reader.provider;
-  const reader_model = reader_model_override ?? cfg.roles.reader.model;
+  // Resolve the reader by run mode. --mode iterate|control pins the reader from
+  // the committed contract; an explicit --reader-* run is `freeform`; declaring
+  // neither is an error — every run must state its intent (see src/lib/modes.ts).
+  let run_mode: RunMode;
+  let reader_provider_name: "ollama" | "anthropic" | "openai" | "deepseek";
+  let reader_model: string;
+  if (mode_flag === "iterate" || mode_flag === "control") {
+    run_mode = mode_flag;
+    reader_provider_name = RUN_MODES[mode_flag].provider;
+    reader_model = RUN_MODES[mode_flag].model;
+  } else if (
+    reader_provider_override !== undefined ||
+    reader_model_override !== undefined
+  ) {
+    run_mode = "freeform";
+    reader_provider_name = reader_provider_override ?? cfg.roles.reader.provider;
+    reader_model = reader_model_override ?? cfg.roles.reader.model;
+  } else {
+    throw new UsageError(
+      "Declare run intent: --mode iterate (flash scratchpad) | --mode control (gemma4:26b, the bar) " +
+        "| explicit --reader-provider/--reader-model (freeform). See packages/mcp/bench/CLAUDE.md.",
+    );
+  }
+  // Defense-in-depth: a control run MUST be the reference reader. Impossible to
+  // violate (mode forces the reader), but assert so it can never silently drift.
+  if (
+    run_mode === "control" &&
+    !isControlReader({ provider: reader_provider_name, model: reader_model })
+  ) {
+    throw new UsageError(
+      "Internal invariant violated: --mode control did not resolve to the reference reader (gemma4:26b).",
+    );
+  }
   const judge_provider_name = judge_provider_override ?? cfg.roles.judge.provider;
   const judge_model = judge_model_override ?? cfg.roles.judge.model;
   // anthropic-batch submits one batch; deepseek fans out concurrent sync calls.
@@ -339,6 +389,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       run_status = "aborted_integrity_resolution";
       await writeStubResults({
         run_status,
+        mode: run_mode,
         run_id,
         facts,
         started_at,
@@ -365,32 +416,51 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     ingestRunId: ingest.ingest_run_id,
   });
 
-  // Optionally wrap with the multi-hop planner so T4 queries get decomposed.
-  // Owns its own SQLite handle for the bridge-entity extraction step; closed
-  // after Stage 6 completes (Stage 7 reopens its own — the connections are
-  // read-only so no contention).
+  // Both the multi-hop planner (bridge-entity extraction) and the reranker
+  // (candidate rescoring) need chunk raw text by id. Open ONE read-only SQLite
+  // handle when either is enabled and share a single prepared-statement fetcher;
+  // closed after Stage 6 (Stage 7 reopens its own — read-only, no contention).
   const mhCfg = cfg.retrieval.multi_hop;
-  const mhDb = mhCfg?.enabled
-    ? openJuneDatabase(join(ingest.scratch_path, "june.db"))
-    : null;
-  const retriever =
-    mhCfg?.enabled && mhDb
+  const rerankCfg = cfg.retrieval.rerank;
+  const chunkDb =
+    mhCfg?.enabled || rerankCfg?.enabled
+      ? openJuneDatabase(join(ingest.scratch_path, "june.db"))
+      : null;
+  const fetchChunkContent = chunkDb
+    ? (() => {
+        const stmt = chunkDb.query<{ raw_content: string }, [string]>(
+          `SELECT raw_content FROM chunks WHERE chunk_id = ?`,
+        );
+        return (chunkId: string) => stmt.get(chunkId)?.raw_content ?? null;
+      })()
+    : undefined;
+
+  // Compose outward: stopgap -> optional multi-hop -> optional rerank (outermost).
+  // Phase 1 runs multi_hop OFF, so the reranker wraps stopgap directly (isolates
+  // the T1-T3 ranking win). Rerank<->multi-hop nesting is a separate Phase-2
+  // experiment.
+  const baseRetriever =
+    mhCfg?.enabled && fetchChunkContent
       ? createMultiHopRetriever({
           inner: innerRetriever,
           plannerProvider: resolveSyncProvider(providers, mhCfg.planner.provider),
           plannerModel: mhCfg.planner.model,
           plannerMaxTokens: mhCfg.planner.max_tokens,
-          fetchChunkContent: (() => {
-            const stmt = mhDb.query<{ raw_content: string }, [string]>(
-              `SELECT raw_content FROM chunks WHERE chunk_id = ?`,
-            );
-            return (chunkId: string) => stmt.get(chunkId)?.raw_content ?? null;
-          })(),
+          fetchChunkContent,
           // The reader window — bridged atomic chunks must land within it.
           windowK: cfg.reader_eval.k,
           budget,
         })
       : innerRetriever;
+  const retriever =
+    rerankCfg?.enabled && fetchChunkContent
+      ? createRerankingRetriever({
+          inner: baseRetriever,
+          scorer: createCrossEncoderScorer({ model: rerankCfg.scorer.model }),
+          poolK: rerankCfg.pool_k,
+          fetchChunkContent,
+        })
+      : baseRetriever;
 
   let retrieval: RetrievalResultsFile;
   try {
@@ -408,7 +478,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       });
     }
   } finally {
-    mhDb?.close();
+    chunkDb?.close();
   }
   stageProgress({ quiet, json_log, stage_num: 6, stage_name: "retrieval evaluation", duration_ms: Date.now() - t6 });
   events.stageEnd(6, "retrieval evaluation", Date.now() - t6);
@@ -499,6 +569,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       run_status = "aborted_integrity_judge";
       await writeStubResults({
         run_status,
+        mode: run_mode,
         run_id,
         facts,
         started_at,
@@ -524,6 +595,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     retriever_config_snapshot: retriever.config_snapshot,
     budget_cap_usd: cfg.cost.max_budget_usd,
     baseline_enabled,
+    mode: run_mode,
     reader_provider: reader_provider_name,
     reader_model,
   });
@@ -655,8 +727,7 @@ const stratifiedSample = (queries: readonly Query[], ratio: number): Query[] => 
   }
   const out: Query[] = [];
   // Iterate tiers in canonical order so the output queries are also stable across runs.
-  const tierOrder: readonly QueryTier[] = ["T1", "T2", "T3", "T4", "T5"];
-  for (const tier of tierOrder) {
+  for (const tier of QUERY_TIERS) {
     const tierQueries = byTier.get(tier);
     if (!tierQueries || tierQueries.length === 0) continue;
     const take = Math.max(1, Math.ceil(tierQueries.length * ratio));
@@ -933,6 +1004,7 @@ const buildManifest = (args: {
   retriever_config_snapshot: Record<string, unknown>;
   budget_cap_usd: number;
   baseline_enabled: boolean;
+  mode: RunMode;
   reader_provider: "ollama" | "anthropic" | "openai" | "deepseek";
   reader_model: string;
 }): RunManifest => {
@@ -946,6 +1018,7 @@ const buildManifest = (args: {
     schema_version: 1,
     started_at: args.started_at,
     completed_at: new Date().toISOString(),
+    mode: args.mode,
     roles: {
       corpus_author: {
         provider: cfg.roles.corpus_author.provider,
@@ -1001,6 +1074,7 @@ const renderCostPreview = (
 
 const writeStubResults = async (args: {
   run_status: RunStatus;
+  mode: RunMode;
   run_id: string;
   facts: FactsFile;
   started_at: string;
@@ -1026,6 +1100,7 @@ const writeStubResults = async (args: {
       schema_version: 1,
       started_at: args.started_at,
       completed_at,
+      mode: args.mode,
       roles: {
         corpus_author: { provider: "", model: "" },
         query_author: { provider: "", model: "" },
@@ -1050,6 +1125,8 @@ const writeStubResults = async (args: {
       T3: emptyTierAggregates(),
       T4: emptyTierAggregates(),
       T5: emptyTierAggregates(),
+      T6: emptyTierAggregates(),
+      T7: emptyTierAggregates(),
     },
     overall: {
       macro: emptyOverall(),
@@ -1141,8 +1218,14 @@ FLAGS
   --ingest-config <path>   YAML merged into the Stage 4 ingest config (chunk /
                            embedding / summarizer overrides). sidecar.path is
                            always set by the bench and cannot be overridden.
+  --mode <m>               REQUIRED intent (reader-by-purpose). One of:
+                             iterate  → reader deepseek-v4-flash (scratchpad; NOT
+                                        "expected results").
+                             control  → reader gemma4:26b (the authoritative bar).
+                           Mutually exclusive with --reader-*. See src/lib/modes.ts.
   --reader-concurrency <n> override config.yaml roles.reader.concurrency.
   --reader-provider <p>    override roles.reader.provider (ollama|anthropic|openai|deepseek).
+                           A run with --reader-* and no --mode is a freeform run.
   --reader-model <m>       override roles.reader.model.
   --judge-provider <p>     override roles.judge.provider (anthropic-batch|deepseek).
                            anthropic-batch = Sonnet batch (system-of-record);

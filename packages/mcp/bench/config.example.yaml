@@ -28,6 +28,12 @@ roles:
 
   # Role 3 — reader (the system under test). Temperature locked to 0 in practice;
   # any nonzero value warns at config load (L8).
+  #
+  # NOTE: provider/model here are only the default for a `freeform` run (an explicit
+  # --reader-* invocation). The disciplined modes IGNORE these: `--mode iterate` forces
+  # deepseek-v4-flash, `--mode control` forces gemma4:26b — the committed contract in
+  # src/lib/modes.ts. See packages/mcp/bench/CLAUDE.md (reader-by-purpose). max_tokens /
+  # temperature / concurrency below still apply in every mode.
   reader:
     provider: ollama
     model: qwen2.5:14b
@@ -62,6 +68,8 @@ queries:
     T3: 40
     T4: 40
     T5: 70
+    T6: 0                     # 3-hop chains; only the dedicated deep-hop fixture sets this > 0
+    T7: 0                     # 4-hop chains; only the dedicated deep-hop fixture sets this > 0
   max_total: 500              # hard ceiling per Q2
 
 anti_leakage:
@@ -82,6 +90,18 @@ retrieval:
     bm25_weight: 0.4
     rank_constant: 60         # RRF k; literature convention. Changing this flags
                               # runs incomparable to prior runs (I-EVAL-3).
+  # multi_hop:                # Optional. "Anchored bridge injection" for T4
+  #   enabled: true           # multi-hop queries — see src/retriever/multi-hop.ts.
+  #   planner:                # LLM planner detects an indirect entity bridge.
+  #     provider: deepseek
+  #     model: deepseek-v4-flash
+  #     max_tokens: 512
+  # rerank:                   # Optional second-pass reranker — see
+  #   enabled: true           # src/retriever/reranker.ts. Rescores a deep pool
+  #   pool_k: 40              # with a cross-encoder; pool_k MUST be >= max(k_values).
+  #   scorer:
+  #     kind: cross-encoder   # swappable backend seam (today: local cross-encoder)
+  #     model: Xenova/bge-reranker-base
 
 reader_eval:
   k: 5

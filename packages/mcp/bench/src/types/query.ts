@@ -8,8 +8,21 @@
  * - T3 conceptual — scenario frame; retriever must infer the fact.
  * - T4 multi-hop — two facts chained; top-K must contain BOTH.
  * - T5 negative — no fact exists; correct behavior is refusal.
+ * - T6 three-hop — three facts chained (2 relational + 1 atomic); top-K must contain ALL.
+ * - T7 four-hop — four facts chained (3 relational + 1 atomic); top-K must contain ALL.
  */
-export type QueryTier = "T1" | "T2" | "T3" | "T4" | "T5";
+export type QueryTier = "T1" | "T2" | "T3" | "T4" | "T5" | "T6" | "T7";
+
+/** All query tiers in canonical order — the single source for tier iteration. */
+export const QUERY_TIERS: readonly QueryTier[] = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+/**
+ * Tiers whose recall requires ALL expected chunks in top-K (multi-hop composition):
+ * T4 (2-hop), T6 (3-hop), T7 (4-hop). Single-fact tiers (T1-T3) need only one chunk and
+ * T5 (negative) has none — so scoring dispatch keys on this set rather than on `=== "T4"`.
+ */
+export const MULTI_HOP_TIERS: readonly QueryTier[] = ["T4", "T6", "T7"];
+export const isMultiHopTier = (tier: QueryTier): boolean => MULTI_HOP_TIERS.includes(tier);
 
 /**
  * Canonical query record — the shape that lives in `queries.json`.
@@ -28,6 +41,7 @@ export type Query = {
    * - T1 / T2 — exactly one id.
    * - T3 — one or more (the "any" scoring rule applies; §13).
    * - T4 — exactly two ids (the "all" scoring rule applies; §13).
+   * - T6 / T7 — three / four ids (the "all" scoring rule; multi-hop chains).
    * - T5 — empty (no answer exists in the fixture).
    */
   expected_fact_ids: string[];

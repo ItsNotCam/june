@@ -8,6 +8,7 @@ import {
   QueryAuthorT3OutputSchema,
   QueryAuthorT4OutputSchema,
   QueryAuthorT5OutputSchema,
+  QueryAuthorDeepChainOutputSchema,
 } from "@/schemas/queries";
 import { renderPrompt } from "@/lib/prompts";
 import { writeJsonAtomic } from "@/lib/artifacts";
@@ -104,6 +105,19 @@ export const runStage3 = async (args: {
     budget: args.budget,
   });
 
+  // T6 — 3-hop chains (2 relational links + 1 atomic). T7 (4-hop) is wired the
+  // same way in a later phase; both reuse buildDeepChains + buildDeepTier.
+  const t6 = await buildDeepTier({
+    tier: "T6",
+    promptName: "query-t6",
+    chains: buildDeepChains(atomic, relational, 3, cfg.queries.counts.T6, rng),
+    provider: args.provider,
+    model: args.model,
+    max_tokens: args.max_tokens,
+    budget: args.budget,
+  });
+  leakage_warnings += t6.leakage_warnings;
+
   const queries: Query[] = [];
   let counter = 1;
   const append = (rows: Omit<Query, "id">[]): void => {
@@ -116,6 +130,7 @@ export const runStage3 = async (args: {
   append(t3.queries);
   append(t4.queries);
   append(t5.queries);
+  append(t6.queries);
 
   const file: QueriesFile = {
     fixture_id: args.facts.fixture_id,
@@ -297,6 +312,79 @@ export const buildFactChains = (
   return shuffle(rng, chains).slice(0, count);
 };
 
+/**
+ * A deep (≥3-hop) chain: an ordered list of relational facts forming a path
+ * `A --R1--> B --R2--> C [--R3--> D]`, plus an atomic fact about the path's last
+ * entity. `relationals.length === depth - 1`; T6 → depth 3 (2 relationals), T7 →
+ * depth 4 (3 relationals). All entities along the path are distinct (no cycles).
+ */
+export type DeepChain = {
+  relationals: RelationalFact[];
+  atomic: AtomicFact;
+};
+
+/** Fact ids of a deep chain, relationals-in-order then the atomic. */
+export const deepChainFactIds = (c: DeepChain): string[] => [
+  ...c.relationals.map((r) => r.id),
+  c.atomic.id,
+];
+
+/**
+ * Enumerates deep multi-hop chains of the given `depth` from the fact graph
+ * (§17 generalized). A chain links `R(i).object === R(i+1).subject` for
+ * `depth - 1` relational facts and ends at an atomic fact whose `entity` is the
+ * last object. Entities along a chain are kept distinct so a question never
+ * folds back on an entity it already named.
+ *
+ * Like `buildFactChains`, the result is seed-shuffled and truncated to `count`
+ * so the selected subset is stable across regenerations of the same fixture.
+ */
+export const buildDeepChains = (
+  atomic: AtomicFact[],
+  relational: RelationalFact[],
+  depth: number,
+  count: number,
+  rng: ReturnType<typeof seededRng>,
+): DeepChain[] => {
+  const numRel = depth - 1;
+  if (count === 0 || numRel < 1) return [];
+
+  const relBySubject = new Map<string, RelationalFact[]>();
+  for (const r of relational) {
+    const arr = relBySubject.get(r.subject) ?? [];
+    arr.push(r);
+    relBySubject.set(r.subject, arr);
+  }
+  const atomicByEntity = new Map<string, AtomicFact[]>();
+  for (const a of atomic) {
+    const arr = atomicByEntity.get(a.entity) ?? [];
+    arr.push(a);
+    atomicByEntity.set(a.entity, arr);
+  }
+
+  const chains: DeepChain[] = [];
+  const extend = (path: RelationalFact[], visited: Set<string>): void => {
+    if (path.length === numRel) {
+      const last = path[path.length - 1]!.object;
+      for (const a of atomicByEntity.get(last) ?? []) {
+        chains.push({ relationals: [...path], atomic: a });
+      }
+      return;
+    }
+    const from = path[path.length - 1]!.object;
+    for (const next of relBySubject.get(from) ?? []) {
+      if (visited.has(next.object)) continue; // keep entities distinct (no cycles)
+      visited.add(next.object);
+      extend([...path, next], visited);
+      visited.delete(next.object);
+    }
+  };
+  for (const r1 of relational) {
+    extend([r1], new Set([r1.subject, r1.object]));
+  }
+  return shuffle(rng, chains).slice(0, count);
+};
+
 const buildT4 = async (args: {
   chains: FactChain[];
   provider: LlmProvider;
@@ -379,6 +467,108 @@ const buildT4 = async (args: {
       tier: "T4",
       text: entry.text,
       expected_fact_ids: [chain.relational.id, chain.atomic.id],
+      anti_leakage_score: entry.score,
+      generation_attempts: entry.attempts,
+    });
+  }
+  return { queries, leakage_warnings };
+};
+
+/**
+ * Builds queries for a deep multi-hop tier (T6 3-hop, T7 4-hop) — the N-fact
+ * generalization of `buildT4`. Each chain (`relationals[] + atomic`) is sent to
+ * the tier's prompt, which must name only the START entity and hide every bridge.
+ *
+ * The LLM echoes the chain's `fact_ids`; we match them to a pre-built chain by
+ * the unordered id set (so id reordering is tolerated) and only then accept the
+ * query. Anti-leakage is jaccard overlap against ALL the chain's surface hints
+ * (every relational link + the atomic) — the same rule as T4, widened to N hints.
+ */
+const buildDeepTier = async (args: {
+  tier: QueryTier;
+  promptName: string;
+  chains: DeepChain[];
+  provider: LlmProvider;
+  model: string;
+  max_tokens: number;
+  budget: BudgetMeter;
+}): Promise<{ queries: Omit<Query, "id">[]; leakage_warnings: number }> => {
+  const cfg = getConfig();
+  if (args.chains.length === 0) return { queries: [], leakage_warnings: 0 };
+
+  const keyOf = (ids: readonly string[]): string => [...ids].sort().join("|");
+  const byKey = new Map<string, DeepChain>();
+  for (const c of args.chains) byKey.set(keyOf(deepChainFactIds(c)), c);
+
+  const accepted = new Map<string, { text: string; score: number; attempts: number }>();
+  let leakage_warnings = 0;
+  const maxAttempts = cfg.anti_leakage.max_retries + 1;
+  let attempt = 0;
+
+  while (attempt < maxAttempts && accepted.size < args.chains.length) {
+    const missing = args.chains.filter((c) => !accepted.has(keyOf(deepChainFactIds(c))));
+    const prompt = await renderPrompt(args.promptName, {
+      fact_chains_json: JSON.stringify(
+        missing.map((c) => ({ relationals: c.relationals, atomic: c.atomic })),
+        null,
+        2,
+      ),
+    });
+    const res = await args.provider.call({
+      model: args.model,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: args.max_tokens,
+      temperature: 0,
+      response_format: "json",
+    });
+    args.budget.record("role_2", res.cost_usd);
+
+    const payload = extractJson(res.text);
+    if (!payload) {
+      logger.warn("query.deep.extract_failed", {
+        tier: args.tier,
+        attempt,
+        text_preview: res.text.slice(0, 200),
+      });
+      break;
+    }
+    const parsed = QueryAuthorDeepChainOutputSchema.safeParse(payload);
+    if (!parsed.success) {
+      logger.warn("query.deep.schema_failed", {
+        tier: args.tier,
+        attempt,
+        zod_error: parsed.error.issues.slice(0, 3),
+      });
+      break;
+    }
+
+    for (const q of parsed.data.queries) {
+      const key = keyOf(q.fact_ids);
+      const chain = byKey.get(key);
+      if (!chain || accepted.has(key)) continue;
+      const hints = [
+        ...chain.relationals.map((r) => r.surface_hint),
+        chain.atomic.surface_hint,
+      ];
+      const score = jaccardOverlap(q.text, hints);
+      const attempts = attempt + 1;
+      if (score > cfg.anti_leakage.threshold) {
+        if (attempt < maxAttempts - 1) continue;
+        leakage_warnings++;
+      }
+      accepted.set(key, { text: q.text, score, attempts });
+    }
+    attempt++;
+  }
+
+  const queries: Omit<Query, "id">[] = [];
+  for (const chain of args.chains) {
+    const entry = accepted.get(keyOf(deepChainFactIds(chain)));
+    if (!entry) continue;
+    queries.push({
+      tier: args.tier,
+      text: entry.text,
+      expected_fact_ids: deepChainFactIds(chain),
       anti_leakage_score: entry.score,
       generation_attempts: entry.attempts,
     });

@@ -1,6 +1,7 @@
 // author: Claude
 import type { FactsFile } from "@/types/facts";
 import type { QueriesFile, QueryTier } from "@/types/query";
+import { isMultiHopTier } from "@/types/query";
 import type { GroundTruthFile } from "@/types/ground-truth";
 import type {
   RetrievalResult,
@@ -23,7 +24,7 @@ import { logger } from "@/lib/logger";
  * Scoring dispatches on `query.tier`:
  * - T1, T2 — single expected chunk in top-K.
  * - T3 — any expected chunk in top-K.
- * - T4 — all expected chunks in top-K.
+ * - T4 / T6 / T7 — all expected chunks in top-K (multi-hop).
  * - T5 — recall undefined; only `t5_top1_score` is recorded.
  */
 export const runStage6 = async (args: {
@@ -99,8 +100,8 @@ export const computeRecall = (
   if (tier === "T5") return 0;
   if (expected_chunk_ids.length === 0) return 0;
   const topK = new Set(retrieved.slice(0, k).map((r) => r.chunk_id));
-  if (tier === "T4") {
-    // all expected chunks must be present
+  if (isMultiHopTier(tier)) {
+    // multi-hop (T4/T6/T7): all expected chunks must be present
     return expected_chunk_ids.every((id) => topK.has(id)) ? 1 : 0;
   }
   // T1 / T2 / T3: any match suffices
@@ -111,7 +112,7 @@ export const computeRecall = (
  * Per-query MRR (§20).
  *
  * - T1/T2/T3 — rank of the earliest expected chunk.
- * - T4 — rank of the *latest* expected chunk (multi-hop bottleneck).
+ * - T4/T6/T7 — rank of the *latest* expected chunk (multi-hop bottleneck).
  * - T5 — 0.
  * - No expected chunk in top-K — 0.
  */
@@ -126,7 +127,7 @@ export const computeMrr = (
     if (!rankMap.has(r.chunk_id)) rankMap.set(r.chunk_id, i + 1);
   });
 
-  if (tier === "T4") {
+  if (isMultiHopTier(tier)) {
     let latest: number | null = null;
     for (const id of expected_chunk_ids) {
       const rank = rankMap.get(id);

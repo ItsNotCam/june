@@ -47,7 +47,6 @@ const BridgeOutputSchema = z.object({
 type Hop = z.infer<typeof HopSchema>;
 
 const HOP_FETCH_K = 5;
-const BRIDGE_LOOKUP_TOP = 3;
 /**
  * How many novel atomic chunks to inject into the reader window. 1 is provably
  * non-demoting within the protected head (top `windowK - INJECT_SLOTS`) and the
@@ -155,9 +154,12 @@ export const createMultiHopRetriever = (args: {
     // Anchor on the ORIGINAL query. This is authoritative and the floor every
     // degraded path below returns to — single-hop, planner failure, missing
     // bridge, or atomic-already-present all yield exactly this ranking.
-    const base = await inner.retrieve(queryText, k);
-
-    const hops = await decompose(queryText);
+    // Base retrieval (Qdrant) and decomposition (planner LLM) are independent —
+    // both depend only on `queryText`, so run them concurrently.
+    const [base, hops] = await Promise.all([
+      inner.retrieve(queryText, k),
+      decompose(queryText),
+    ]);
     if (hops.length === 1) return base;
 
     // The atomic hop is the one carrying `depends_on`; the hop it points to is
@@ -171,11 +173,17 @@ export const createMultiHopRetriever = (args: {
     const bridgeHop = hops[depIdx];
     if (!bridgeHop) return base;
 
-    // Resolve B from `base`'s own top chunks — the relational chunk lives there
-    // ~95% of the time, vs the ~30% the old rephrased hop achieved.
+    // Resolve B from `base`'s own reader window. The relational chunk reliably
+    // lands in the top-`windowK` (measured: present in the window for 100% of
+    // T4 queries even single-pass), so reading the whole window — not an
+    // arbitrary top-3 — guarantees the extractor sees the relational fact even
+    // when it ranks 4th–5th. A shallower lookup silently dropped bridges whose
+    // relational chunk sat just below rank 3 (e.g. "the layer that X wraps"
+    // where the wrap fact ranked 4th), resolving the bridge to the question's
+    // own subject instead. T1–T3 are single-hop and never reach this path.
     const bridgeEntity = await extractBridge(
       bridgeHop.query,
-      base.slice(0, BRIDGE_LOOKUP_TOP).map((r) => r.chunk_id),
+      base.slice(0, windowK).map((r) => r.chunk_id),
     );
     if (!bridgeEntity) return base;
 

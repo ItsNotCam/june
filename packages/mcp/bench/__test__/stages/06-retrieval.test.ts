@@ -27,6 +27,13 @@ describe("computeRecall — tier dispatch", () => {
     expect(computeRecall("T4", ["c-a", "c-b"], top(["c-a", "c-z"]), 3)).toBe(0);
   });
 
+  test("T6 / T7: ALL expected chunks in top-K (multi-hop, like T4)", () => {
+    expect(computeRecall("T6", ["c-a", "c-b", "c-c"], top(["c-a", "c-b", "c-c"]), 5)).toBe(1);
+    expect(computeRecall("T6", ["c-a", "c-b", "c-c"], top(["c-a", "c-b", "c-z"]), 5)).toBe(0);
+    expect(computeRecall("T7", ["c-a", "c-b", "c-c", "c-d"], top(["c-a", "c-b", "c-c", "c-d"]), 5)).toBe(1);
+    expect(computeRecall("T7", ["c-a", "c-b", "c-c", "c-d"], top(["c-a", "c-b", "c-c"]), 5)).toBe(0);
+  });
+
   test("T5: recall undefined — always returns 0", () => {
     expect(computeRecall("T5", [], top(["c-a"]), 3)).toBe(0);
   });
@@ -54,6 +61,13 @@ describe("computeMrr — tier dispatch", () => {
 
   test("T4: missing expected chunk → 0", () => {
     expect(computeMrr("T4", ["c-a", "c-b"], top(["c-a", "c-x"]))).toBe(0);
+  });
+
+  test("T6 / T7: latest-rank bottleneck over all N chunks", () => {
+    expect(
+      computeMrr("T6", ["c-a", "c-b", "c-c"], top(["c-a", "c-b", "c-x", "c-c"])),
+    ).toBeCloseTo(1 / 4, 6);
+    expect(computeMrr("T7", ["c-a", "c-b", "c-c", "c-d"], top(["c-a", "c-b", "c-c"]))).toBe(0);
   });
 
   test("T5 always 0", () => {

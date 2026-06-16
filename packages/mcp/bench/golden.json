@@ -1,0 +1,13 @@
+{
+  "run_id": "20260615204700-DA21FQM9",
+  "fixture_hash": "ca986263b0ca25fa5f4c6e60f7e0aa51811978b130dc396c5b2285a3d1927c72",
+  "noise_floor": 0.05,
+  "per_tier_correct": {
+    "T1": 1,
+    "T2": 0.96,
+    "T3": 0.975,
+    "T4": 0.95,
+    "T5": 0
+  },
+  "note": "Pinned gemma4:26b control baseline — the bar for 'expected results'. See packages/mcp/bench/CLAUDE.md."
+}

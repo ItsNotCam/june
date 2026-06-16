@@ -3,6 +3,7 @@ import { stringify as yamlStringify } from "yaml";
 import { writeFile } from "fs/promises";
 import type { FactsFile } from "@/types/facts";
 import type { QueriesFile, QueryTier } from "@/types/query";
+import { QUERY_TIERS as TIERS } from "@/types/query";
 import type { GroundTruthFile } from "@/types/ground-truth";
 import type { RetrievalResultsFile } from "@/types/retrieval";
 import type {
@@ -10,7 +11,9 @@ import type {
   ReaderAnswersFile,
 } from "@/types/reader";
 import type { JudgeResultsFile } from "@/types/judge";
+import { BASELINE_QUERY_PREFIX } from "@/types/judge";
 import type { Verdict } from "@/types/verdict";
+import { isVerdictCorrectForTier } from "@/types/verdict";
 import type {
   MetricWithCi,
   OverallAggregates,
@@ -26,7 +29,13 @@ import { writeJsonAtomic } from "@/lib/artifacts";
 import { BudgetMeter } from "@/lib/cost";
 import { logger } from "@/lib/logger";
 
-const TIERS: readonly QueryTier[] = ["T1", "T2", "T3", "T4", "T5"];
+/** Recall-at-k stand-in for a query with no retrieval record (all misses). */
+const EMPTY_RECALL_AT_K: Record<"1" | "3" | "5" | "10", number> = {
+  "1": 0,
+  "3": 0,
+  "5": 0,
+  "10": 0,
+};
 
 /**
  * Stage 9 — scoring + report (§23, §30).
@@ -70,7 +79,7 @@ export const runStage9 = async (args: {
   };
 
   const unjudgedReader = args.judge.verdicts.filter(
-    (v) => !v.query_id.startsWith("baseline_") && v.verdict === "UNJUDGED",
+    (v) => !v.query_id.startsWith(BASELINE_QUERY_PREFIX) && v.verdict === "UNJUDGED",
   );
   const unjudged_pct =
     args.reader.answers.length === 0
@@ -128,13 +137,13 @@ const buildPerQueryRecords = (args: {
     : null;
   const verdictById = new Map(
     args.judge.verdicts
-      .filter((v) => !v.query_id.startsWith("baseline_"))
+      .filter((v) => !v.query_id.startsWith(BASELINE_QUERY_PREFIX))
       .map((v) => [v.query_id, v]),
   );
   const baselineVerdictById = new Map(
     args.judge.verdicts
-      .filter((v) => v.query_id.startsWith("baseline_"))
-      .map((v) => [v.query_id.slice("baseline_".length), v]),
+      .filter((v) => v.query_id.startsWith(BASELINE_QUERY_PREFIX))
+      .map((v) => [v.query_id.slice(BASELINE_QUERY_PREFIX.length), v]),
   );
 
   const out: PerQueryRecord[] = [];
@@ -153,7 +162,7 @@ const buildPerQueryRecords = (args: {
       reader_answer: reader?.answer_text ?? "",
       verdict: verdict?.verdict ?? "UNJUDGED",
       rationale: verdict?.rationale ?? "",
-      recall_at_k: retr?.recall_at_k ?? { "1": 0, "3": 0, "5": 0, "10": 0 },
+      recall_at_k: retr?.recall_at_k ?? EMPTY_RECALL_AT_K,
       mrr: retr?.mrr ?? 0,
       t5_top1_score: retr?.t5_top1_score ?? null,
       baseline_answer: baseline?.answer_text ?? null,
@@ -252,7 +261,11 @@ const macroOverall = (
   perTier: Record<QueryTier, TierAggregates>,
 ): OverallAggregates => {
   const meanMetric = (pick: (t: TierAggregates) => MetricWithCi): MetricWithCi => {
-    const xs = TIERS.map((t) => pick(perTier[t]));
+    // Average only over tiers that actually have queries — a tier configured to 0
+    // (e.g. T5 on the current fixture, or T6/T7 on any non-deep-hop fixture) must not
+    // dilute the macro with empty-aggregate zeros.
+    const xs = TIERS.filter((t) => perTier[t].query_count > 0).map((t) => pick(perTier[t]));
+    if (xs.length === 0) return { point: 0, ci_low: 0, ci_high: 0, query_ids: [] };
     const point = xs.reduce((acc, m) => acc + m.point, 0) / xs.length;
     const ci_low = xs.reduce((acc, m) => acc + m.ci_low, 0) / xs.length;
     const ci_high = xs.reduce((acc, m) => acc + m.ci_high, 0) / xs.length;
@@ -276,11 +289,7 @@ const microOverall = (
   const reader_correct_pct = computeBootstrapCi(
     records.map<PerQueryValue>((r) => ({
       query_id: r.query_id,
-      value:
-        (r.tier === "T5" && r.verdict === "REFUSED") ||
-        (r.tier !== "T5" && r.verdict === "CORRECT")
-          ? 1
-          : 0,
+      value: isVerdictCorrectForTier(r.tier, r.verdict) ? 1 : 0,
     })),
     seed("reader_correct_pct"),
   );
@@ -319,6 +328,7 @@ const microOverall = (
  */
 export const renderSummary = (results: ResultsFile): string => {
   const parts: string[] = [];
+  parts.push(modeBanner(results));
   parts.push(headline(results));
   parts.push(perTierTable(results));
   parts.push(integrityBlock(results));
@@ -334,6 +344,23 @@ export const renderSummary = (results: ResultsFile): string => {
 const pct = (x: number): string => `${(x * 100).toFixed(1)}%`;
 const metricCell = (m: MetricWithCi): string =>
   `${pct(m.point)} [${pct(m.ci_low)}, ${pct(m.ci_high)}]`;
+
+/**
+ * Loud, unmissable banner declaring whether these numbers are authoritative
+ * (control / gemma4:26b) or directional scratchpad (iterate / flash) — so a run
+ * can never be mis-cited. See `src/lib/modes.ts`.
+ */
+const modeBanner = (results: ResultsFile): string => {
+  const reader = results.manifest.roles.reader.model;
+  switch (results.manifest.mode) {
+    case "control":
+      return `> ✅ **CONTROL run** — reader \`${reader}\`. **Authoritative: these define "expected results."**\n`;
+    case "iterate":
+      return `> ⚠️ **SCRATCHPAD run** — reader \`${reader}\` (iterate). **Directional signal only — NOT "expected results."** Certify on a \`control\` (gemma4:26b) run.\n`;
+    default:
+      return `> ⚠️ **FREEFORM run** — reader \`${reader}\`. Ad-hoc; **never a baseline or control.**\n`;
+  }
+};
 
 const headline = (results: ResultsFile): string => {
   const hasBaseline = results.per_query.some((r) => r.baseline_verdict !== null);
@@ -352,10 +379,8 @@ const headline = (results: ResultsFile): string => {
 const computeBaselineCorrectPct = (results: ResultsFile): number => {
   const withBaseline = results.per_query.filter((r) => r.baseline_verdict !== null);
   if (withBaseline.length === 0) return 0;
-  const correct = withBaseline.filter(
-    (r) =>
-      (r.tier === "T5" && r.baseline_verdict === "REFUSED") ||
-      (r.tier !== "T5" && r.baseline_verdict === "CORRECT"),
+  const correct = withBaseline.filter((r) =>
+    isVerdictCorrectForTier(r.tier, r.baseline_verdict),
   ).length;
   return correct / withBaseline.length;
 };
