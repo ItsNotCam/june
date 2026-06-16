@@ -63,6 +63,7 @@ export type BenchLogFields = {
   text_preview?: string;
   text_length?: number;
   chunk_ids?: readonly string[];
+  hop?: number;
   error?: string;
   zod_error?: unknown;
   candidates?: number;
@@ -73,6 +74,7 @@ export type BenchLogFields = {
   sampled_ratio?: number;
   key?: string;
   cache_root?: string;
+  missing?: number;
 };
 
 /**

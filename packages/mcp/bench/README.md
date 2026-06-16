@@ -58,12 +58,16 @@ Notable tunables:
 - `judge.max_unjudged_pct` — aborts run if more than 5% of reader answers cannot be judged.
 - `cost.max_budget_usd` — hard cap (default $5.00); aborts mid-run if exceeded.
 - `baseline.no_rag_opus` — when true, runs a sibling reader pass for the headline comparison.
+- `retrieval.multi_hop` — optional "anchored bridge injection" decorator for multi-hop queries (T4/T6/T7; LLM planner; see `src/retriever/multi-hop.ts`). The planner decomposes a question into a linear chain of hops; the retriever resolves each bridge entity in sequence (the first from the base reader window, each next from the prior hop's own sub-retrieval), captures every intermediate relational chunk, and injects those + the atomic chunk into the reader window without demoting the base head. A 2-hop (T4) call is byte-identical to the original single-bridge behavior (the N=2 parity invariant). Diagnose misses with `scripts/triage-multihop.ts <run_dir> <fixture_dir> [debug_log]`.
+- `retrieval.rerank` — optional second-pass cross-encoder reranker (`src/retriever/reranker.ts`). Fetches a deep candidate pool (`pool_k`, must be ≥ `max(k_values)`), rescores each candidate against the query with a local cross-encoder (`scorer.kind: cross-encoder`, `scorer.model` e.g. `Xenova/bge-reranker-base`), and returns the top-k by relevance. Order-only — it refines ranking (recall@1 / MRR) without changing which chunks the inner retriever found. `scorer.kind` is the swappable backend seam (a hosted/LLM scorer can be added later).
 
 ## CLI
 
 ```bash
 june-eval generate [--seed <n>] [--domain <name>] [--out <dir>]
-june-eval run <fixture_dir> [--out <dir>]
+june-eval run <fixture_dir> (--mode iterate | --mode control |
+                             --reader-provider <p> --reader-model <m>)
+                            [--out <dir>]
                             [--resume | --skip-ingest <run_id> |
                              --from <run_id> --rerun-from <stage>]
                             [--quick | --sample <ratio>] [--cache] [--yes]
@@ -72,6 +76,8 @@ june-eval run <fixture_dir> [--out <dir>]
                             [--baseline | --no-baseline]
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
+june-eval control-pin <run_dir> [--noise-floor <0..1>]
+june-eval control-check <run_dir>
 june-eval health
 ```
 
@@ -109,6 +115,31 @@ the Batch API — keep this as system-of-record for final/published runs). deeps
 has no Batch API, so the sync path has no checkpoint/resume — `--cache` covers
 re-runs instead. Both run at `temperature: 0`.
 
+### Reader-by-purpose — flash iterates, gemma4:26b is the bar
+
+june is BYO-AI with a 24GB-VRAM floor; **`gemma4:26b` is the reference reader that defines
+"expected results."** It's slow, so iteration uses hosted **`deepseek-v4-flash`**. Every
+`run` **must declare intent** (a run with neither flag below hard-errors; a PreToolUse hook
+blocks it too):
+
+- `--mode iterate` → reader `deepseek-v4-flash`. **Scratchpad — directional signal ONLY,
+  never "expected results."**
+- `--mode control` → reader `gemma4:26b` (Ollama @ `OLLAMA_URL`). **The authoritative bar.**
+- explicit `--reader-provider/--reader-model` → `freeform` (e.g. a model bake-off). Never a
+  baseline. Mutually exclusive with `--mode`.
+
+`--mode` **forces** the reader (you cannot run `control` on the wrong model) — the contract
+is committed in `src/lib/modes.ts`, not the gitignored `config.yaml`. Each run is stamped
+with its `mode`; `summary.md` banners SCRATCHPAD vs CONTROL; `compare` flags cross-mode diffs.
+
+**The golden bar.** Pin one control run as the golden baseline
+(`june-eval control-pin <run_dir> --noise-floor <pp>`, stored in `golden.json`); gate later
+control runs with `june-eval control-check <run_dir>` — it fails if any tier's reader-correct%
+regresses beyond the noise floor. Flash deltas are hypotheses; the gemma control run is the
+verdict (a change that helps flash but regresses gemma is overfit). Cadence is batched at
+milestones; track flash-predicted vs gemma-actual deltas by failure class in `transfer-log.md`.
+See `CLAUDE.md` (reader-by-purpose) for the full discipline.
+
 ### Exit codes
 
 `0` success. `1` fatal / config error. `2` run-dir lock contention. `3` integrity violation (resolution thresholds, unjudged cap, budget cap). `4` operator aborted at a confirmation prompt. `64` usage error.
@@ -123,7 +154,7 @@ packages/mcp/bench/
 ├── src/
 │   ├── stages/01–09.ts        One file per stage; pure functions that write one artifact each.
 │   ├── providers/             Ollama, Anthropic, OpenAI, DeepSeek, Anthropic Batch.
-│   ├── retriever/             Pluggable — stopgap (Qdrant+SQLite direct) for v1.
+│   ├── retriever/             Pluggable — stopgap (Qdrant+SQLite direct) for v1, with optional multi-hop + reranker decorators.
 │   ├── judge/                 Pluggable — Anthropic Batch judge + sync deepseek judge.
 │   ├── domains/               Synthetic-fact templates (Glorbulon Protocol in v1).
 │   ├── lib/                   env, config, logger, rng, tokens, bootstrap, cost, artifacts, prompts.

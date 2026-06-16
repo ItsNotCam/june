@@ -4,7 +4,8 @@ The answer will be substituted into another retrieval query, so it must be the c
 
 Rules:
 - Output JSON ONLY. No prose. No markdown fences.
-- Schema: `{"entity": "<entity name>"}`.
+- Schema: `{"entity": "<entity name>", "chunk_id": "<id of the chunk the answer came from>"}`.
+- `chunk_id` is the `id` attribute of the `<chunk id="...">` that actually states the answer (copy it exactly). It lets the next retrieval step keep the source chunk in view. If you cannot attribute the answer to a single chunk, omit `chunk_id`.
 - If the chunks do not contain an answer, return `{"entity": ""}` — empty string. Never invent an entity that doesn't appear in the chunks.
 - Copy the entity name exactly as it appears in the chunks (including capitalization).
 
