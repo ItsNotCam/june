@@ -12,6 +12,7 @@ import { createLogger, type Logger } from "@june/shared";
  */
 export type BenchLogFields = {
   fixture_id?: string;
+  fixture_hash?: string;
   run_id?: string;
   ingest_run_id?: string;
   stage?: number | string;

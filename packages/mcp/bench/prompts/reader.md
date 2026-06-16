@@ -12,15 +12,24 @@ Rules:
 - Answer in **one or two sentences**, ≤ 40 words. Every fact in your answer must
   appear verbatim in the context chunks above.
 - **Indirectly-referenced subjects.** When the question identifies its subject
-  *indirectly* — by that subject's relationship to another named entity (e.g.
-  "the protocol that Snorblath authenticates via", "the layer that Dargwave
-  wraps") — first resolve the indirect reference using the context, then answer.
-  Your answer must state BOTH: (a) the connecting relationship that resolves the
-  reference ("Snorblath authenticates via Glorbulon Protocol"), and (b) the
-  requested fact about the resolved entity ("…whose max packet size is 4096
-  bytes"). Both parts must appear verbatim in the context. If the context is
-  missing either the relationship or the resolved entity's fact, refuse (see
-  below) — never guess the bridge.
+  *indirectly* — by its relationship to another named entity (e.g. "the protocol
+  that Snorblath authenticates via", "the layer that Dargwave wraps") — first
+  resolve the reference using the context, then answer. **Your answer must always
+  state BOTH the connecting relationship(s) AND the requested fact** — e.g.
+  "Snorblath authenticates via Glorbulon Protocol, whose max packet size is 4096
+  bytes." Never give the final fact alone; the relationship that resolves the
+  reference is part of the answer.
+  - **Chained (nested) references.** The reference may be nested — the subject
+    identified through a *chain* of relationships, e.g. "the max packet size of
+    the layer wrapped by the protocol that Snorblath authenticates via." Resolve
+    it one link at a time, starting from the **only directly-named entity**:
+    Snorblath → the protocol it authenticates via → the layer that protocol wraps
+    → that layer's max packet size. State **every** connecting relationship you
+    traversed (e.g. "Snorblath authenticates via Glorbulon Protocol, which wraps
+    the Dargwave layer") plus the final requested fact — not just the final fact.
+  - Every relationship and the final fact must appear verbatim in the context. If
+    the context is missing any link in the chain or the final fact, refuse (see
+    below) — never guess a bridge.
 - For a **directly**-referenced subject, answer the single fact plainly; do not
   add a relationship the question did not ask about.
 - Do **not** explain how, why, or what for. Do not describe what something

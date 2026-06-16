@@ -1,13 +1,30 @@
 {
-  "run_id": "20260615204700-DA21FQM9",
-  "fixture_hash": "ca986263b0ca25fa5f4c6e60f7e0aa51811978b130dc396c5b2285a3d1927c72",
-  "noise_floor": 0.05,
-  "per_tier_correct": {
-    "T1": 1,
-    "T2": 0.96,
-    "T3": 0.975,
-    "T4": 0.95,
-    "T5": 0
+  "ca986263b0ca25fa5f4c6e60f7e0aa51811978b130dc396c5b2285a3d1927c72": {
+    "run_id": "20260615204700-DA21FQM9",
+    "fixture_hash": "ca986263b0ca25fa5f4c6e60f7e0aa51811978b130dc396c5b2285a3d1927c72",
+    "noise_floor": 0.05,
+    "per_tier_correct": {
+      "T1": 1,
+      "T2": 0.96,
+      "T3": 0.975,
+      "T4": 0.95,
+      "T5": 0
+    },
+    "note": "Pinned gemma4:26b control baseline — the bar for 'expected results'. See packages/mcp/bench/CLAUDE.md."
   },
-  "note": "Pinned gemma4:26b control baseline — the bar for 'expected results'. See packages/mcp/bench/CLAUDE.md."
+  "a1b760fa861c8ca105994842bcf1ffbe2f0095e5e95032f00d2204c4a0486c4e": {
+    "run_id": "20260616024139-V6N40FHP",
+    "fixture_hash": "a1b760fa861c8ca105994842bcf1ffbe2f0095e5e95032f00d2204c4a0486c4e",
+    "noise_floor": 0.05,
+    "per_tier_correct": {
+      "T1": 1,
+      "T2": 0.8,
+      "T3": 1,
+      "T4": 0.9333333333333333,
+      "T5": 1,
+      "T6": 0.6333333333333333,
+      "T7": 0
+    },
+    "note": "Pinned gemma4:26b control baseline — the bar for 'expected results'. See packages/mcp/bench/CLAUDE.md."
+  }
 }

@@ -132,13 +132,16 @@ blocks it too):
 is committed in `src/lib/modes.ts`, not the gitignored `config.yaml`. Each run is stamped
 with its `mode`; `summary.md` banners SCRATCHPAD vs CONTROL; `compare` flags cross-mode diffs.
 
-**The golden bar.** Pin one control run as the golden baseline
-(`june-eval control-pin <run_dir> --noise-floor <pp>`, stored in `golden.json`); gate later
-control runs with `june-eval control-check <run_dir>` — it fails if any tier's reader-correct%
-regresses beyond the noise floor. Flash deltas are hypotheses; the gemma control run is the
-verdict (a change that helps flash but regresses gemma is overfit). Cadence is batched at
-milestones; track flash-predicted vs gemma-actual deltas by failure class in `transfer-log.md`.
-See `CLAUDE.md` (reader-by-purpose) for the full discipline.
+**The golden bar.** Pin a control run as a golden baseline
+(`june-eval control-pin <run_dir> --noise-floor <pp>`); gate later control runs with
+`june-eval control-check <run_dir>` — it fails if any tier's reader-correct% regresses beyond
+the noise floor. `golden.json` is a **per-fixture registry** keyed by `fixture_hash`: each
+fixture (e.g. the current fixture vs the deep-hop T6/T7 fixture) keeps its own golden, so
+pinning one never clobbers another, and `control-check` resolves the golden for the run's own
+fixture. Flash deltas are hypotheses; the gemma control run is the verdict (a change that helps
+flash but regresses gemma is overfit). Cadence is batched at milestones; track flash-predicted
+vs gemma-actual deltas by failure class in `transfer-log.md`. See `CLAUDE.md` (reader-by-purpose)
+for the full discipline.
 
 ### Exit codes
 
