@@ -679,9 +679,11 @@ type JudgeProvider = (typeof JUDGE_PROVIDERS)[number];
 /**
  * Parses `--judge-provider <p>`, validating against the supported judge
  * providers, or `undefined` when absent (config.yaml's `roles.judge.provider`
- * then applies). `anthropic-batch` is the Sonnet batch judge (system-of-record);
- * `deepseek` is the sync deepseek-v4-pro judge. The `/test` UI surfaces this so
- * the judge can be swapped per run without editing config.yaml.
+ * then applies). `deepseek` is the sync deepseek-v4-pro judge — the certification
+ * judge of record (κ ≈ 0.894 vs the older Sonnet judge) and the config.yaml
+ * default. `anthropic-batch` is the legacy Sonnet batch judge, still selectable
+ * but no longer the bar. The `/test` UI surfaces this so the judge can be swapped
+ * per run without editing config.yaml.
  */
 const parseJudgeProvider = (input: string | undefined): JudgeProvider | undefined => {
   if (input === undefined) return undefined;
@@ -1228,8 +1230,9 @@ FLAGS
                            A run with --reader-* and no --mode is a freeform run.
   --reader-model <m>       override roles.reader.model.
   --judge-provider <p>     override roles.judge.provider (anthropic-batch|deepseek).
-                           anthropic-batch = Sonnet batch (system-of-record);
-                           deepseek = sync deepseek-v4-pro (cheap, no batch API).
+                           deepseek = sync deepseek-v4-pro (certification judge of
+                           record, config default); anthropic-batch = legacy Sonnet
+                           batch (selectable, needs Anthropic credits).
   --judge-model <m>        override roles.judge.model.
   --baseline               force the no-RAG baseline pass on (overrides config).
   --no-baseline            force the no-RAG baseline pass off (overrides config).
