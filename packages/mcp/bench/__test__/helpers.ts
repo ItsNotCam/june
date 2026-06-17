@@ -97,15 +97,27 @@ const BASE_CONFIG = {
 };
 
 /**
- * Loads a fresh bench config for a test. Pass an `override` object of partial
- * fields to tweak the defaults without copy-pasting the whole tree.
+ * Writes a fresh bench config to a temp file and returns its path WITHOUT
+ * loading it — for tests that drive a CLI runner whose own `bootstrap(flags)`
+ * reloads config from `--config <path>` (passing this path keeps them hermetic,
+ * independent of the gitignored ./config.yaml).
  */
-export const loadTestConfig = async (override: Partial<typeof BASE_CONFIG> = {}): Promise<void> => {
+export const writeTestConfig = async (
+  override: Partial<typeof BASE_CONFIG> = {},
+): Promise<string> => {
   const merged = deepMerge(BASE_CONFIG, override);
   const dir = await mkdtemp(join(tmpdir(), "bench-test-"));
   const path = join(dir, "config.yaml");
   await writeFile(path, yamlStringify(merged), "utf-8");
-  await loadConfig(path);
+  return path;
+};
+
+/**
+ * Loads a fresh bench config for a test. Pass an `override` object of partial
+ * fields to tweak the defaults without copy-pasting the whole tree.
+ */
+export const loadTestConfig = async (override: Partial<typeof BASE_CONFIG> = {}): Promise<void> => {
+  await loadConfig(await writeTestConfig(override));
 };
 
 const deepMerge = <T extends Record<string, unknown>>(a: T, b: Partial<T>): T => {

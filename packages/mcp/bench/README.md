@@ -77,7 +77,9 @@ june-eval run <fixture_dir> (--mode iterate | --mode control |
 june-eval score <run_dir> --verdicts <verdicts.json>
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
-june-eval control-pin <run_dir> [--noise-floor <0..1>]
+june-eval measure-noise-floor <run_dir...> [--out <path>] [--epsilon <n>]
+june-eval measure-consistency <run_dir> <verdicts.json...> [--out <path>]
+june-eval control-pin <run_dir> [--noise-floor-file <path>] [--accept-floor <0..1>]
 june-eval control-check <run_dir>
 june-eval health
 ```
@@ -142,16 +144,33 @@ blocks it too):
 is committed in `src/lib/modes.ts`, not the gitignored `config.yaml`. Each run is stamped
 with its `mode`; `summary.md` banners SCRATCHPAD vs CONTROL; `compare` flags cross-mode diffs.
 
-**The golden bar.** Pin a control run as a golden baseline
-(`june-eval control-pin <run_dir> --noise-floor <pp>`); gate later control runs with
-`june-eval control-check <run_dir>` — it fails if any tier's reader-correct% regresses beyond
-the noise floor. `golden.json` is a **per-fixture registry** keyed by `fixture_hash`: each
-fixture (e.g. the current fixture vs the deep-hop T6/T7 fixture) keeps its own golden, so
-pinning one never clobbers another, and `control-check` resolves the golden for the run's own
-fixture. Flash deltas are hypotheses; the gemma control run is the verdict (a change that helps
-flash but regresses gemma is overfit). Cadence is batched at milestones; track flash-predicted
-vs gemma-actual deltas by failure class in `transfer-log.md`. See `CLAUDE.md` (reader-by-purpose)
-for the full discipline.
+**The golden bar.** Pin a control run as a golden baseline (`june-eval control-pin
+<run_dir>`); gate later control runs with `june-eval control-check <run_dir>` — it fails when
+a gated metric (reader-correct%, recall@1/@5, MRR) **confidently** regresses (point drop past
+the noise floor AND non-overlapping 95% CI). `golden.json` is a **per-fixture registry** keyed
+by `fixture_hash`: each fixture (e.g. the current fixture vs the deep-hop T6/T7 fixture) keeps
+its own golden, so pinning one never clobbers another, and `control-check` resolves the golden
+for the run's own fixture. Flash deltas are hypotheses; the gemma control run is the verdict (a
+change that helps flash but regresses gemma is overfit). Cadence is batched at milestones; track
+flash-predicted vs gemma-actual deltas by failure class in `transfer-log.md`. See `CLAUDE.md`
+(reader-by-purpose) for the full discipline.
+
+**The measured noise floor (not a guess).** `control-pin`'s floor is **measured**, not typed.
+Two commands produce a `noise-floor.json` per fixture:
+
+- `june-eval measure-noise-floor <run_dir...>` — re-run retrieval against ≥2 runs of one
+  fixture (ideally sharing one ingest via `--skip-ingest`) and report the recall@k/MRR spread.
+  Retrieval is LLM-free, so on a shared ingest the spread **must** be ≈0 — the command
+  **asserts** it and fails (exit 3) on any non-zero drift (a real determinism bug, e.g. an
+  unstable RRF tie-break). This is the proof the retrieval metrics can be gated tightly.
+- `june-eval measure-consistency <run_dir> <verdicts.json...>` — re-score one run under ≥2
+  independent agent re-judges of its tasks and report the reader-correct% spread. The judge is
+  the only non-deterministic stage, so this is where the real floor comes from.
+
+`control-pin` consumes the file's conservative `recommended_noise_floor`; a deliberate
+`--accept-floor <0..1>` is the only way to pin without a measured file (logged as UNMEASURED).
+The live N-run/N-judge execution needs the local stack (Qdrant + Ollama gemma + the
+orchestrator's agents); the commands are the pure-aggregation half. See `JUDGE-RUNNER.md`.
 
 ### Exit codes
 

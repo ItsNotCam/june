@@ -6,6 +6,7 @@ import { runScore } from "./score";
 import { runReport } from "./report";
 import { runCompare } from "./compare";
 import { runControlPin, runControlCheck } from "./control";
+import { runMeasureNoiseFloor, runMeasureConsistency } from "./measure";
 import { runHealth } from "./health";
 import { logger } from "@/lib/logger";
 import {
@@ -44,6 +45,8 @@ COMMANDS
   compare     diff two runs
   control-pin   pin a control (gemma4:26b) run as the golden baseline
   control-check fail if a control run regresses vs the golden baseline
+  measure-noise-floor  measure retrieval determinism across ≥2 runs (asserts ≈0)
+  measure-consistency  measure judge variance across ≥2 re-judges of one run
   health      provider + june + qdrant reachability probe
 
 See \`june-eval <command> --help\` for command-specific flags.
@@ -71,6 +74,10 @@ const dispatch = async (argv: readonly string[]): Promise<void> => {
       return runControlPin(rest);
     case "control-check":
       return runControlCheck(rest);
+    case "measure-noise-floor":
+      return runMeasureNoiseFloor(rest);
+    case "measure-consistency":
+      return runMeasureConsistency(rest);
     case "health":
       return runHealth(rest);
     default:

@@ -87,6 +87,17 @@ export type BenchLogFields = {
   run_stamped?: string;
   verdicts_used?: string;
   note?: string;
+  // Measured noise floor (Phase 2): measure-noise-floor / measure-consistency / control-pin.
+  noise_floor?: number;
+  noise_floor_source?: string;
+  recommended_noise_floor?: number;
+  runs?: number;
+  judges?: number;
+  shared_ingest?: boolean;
+  max_drift?: number;
+  deterministic?: boolean;
+  existing?: string;
+  current?: string;
 };
 
 /**

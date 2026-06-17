@@ -4,7 +4,8 @@ import { writeFile } from "fs/promises";
 import { z } from "zod";
 import type { MetricWithCi, ResultsFile } from "@/types/results";
 import { QUERY_TIERS } from "@/types/query";
-import { readJson } from "@/lib/artifacts";
+import { NoiseFloorFileSchema, type NoiseFloorFile } from "@/types/noise-floor";
+import { readJson, fileExists } from "@/lib/artifacts";
 import { UsageError, OperatorAbortError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { bootstrap, parseArgv, flagString } from "./shared";
@@ -70,7 +71,8 @@ const GoldenRegistrySchema = z.record(z.string(), GoldenEntrySchema);
 type GoldenRegistry = z.infer<typeof GoldenRegistrySchema>;
 
 const GOLDEN_PATH = join(import.meta.dir, "..", "golden.json");
-const DEFAULT_NOISE_FLOOR = 0.05;
+/** Default `noise-floor.json` location — package root, beside `golden.json`. Written by `measure-*`. */
+export const DEFAULT_NOISE_FLOOR_PATH = join(import.meta.dir, "..", "noise-floor.json");
 
 /**
  * The metrics the gate watches. `reader_correct_pct` is gated on every tier;
@@ -224,10 +226,70 @@ const assertCompleted = (results: ResultsFile, verb: string): void => {
 };
 
 /**
- * `june-eval control-pin <run_dir> [--noise-floor <0..1>]` — pins a control run
- * as the golden baseline. Set `--noise-floor` from the consistency run (run
- * control twice; the max per-metric drift is the floor). Phase 2 replaces the
- * typed flag with a measured `noise-floor.json`.
+ * Resolves the noise floor for `control-pin` from MEASUREMENT, not a guess
+ * (Phase 2, the audit's gap #2). Order:
+ *  1. `--accept-floor <0..1>` — an explicit, deliberately-flagged typed override
+ *     ("I know this is unmeasured"). The only way to pin without a measured file.
+ *  2. otherwise a measured `noise-floor.json` (`--noise-floor-file`, default the
+ *     package-root file `measure-*` writes) whose `fixture_hash` matches this run
+ *     AND whose `consistency` block is present (the gated correct% floor must be
+ *     measured) — its `recommended_noise_floor` is used.
+ * A bare run with neither is refused, with the commands to produce a floor.
+ */
+export const resolveNoiseFloor = async (
+  flags: Record<string, string | boolean>,
+  fixture_hash: string,
+): Promise<{ noise_floor: number; source: string }> => {
+  const acceptStr = flagString(flags, "accept-floor");
+  if (acceptStr !== undefined) {
+    const noise_floor = Number(acceptStr);
+    if (!Number.isFinite(noise_floor) || noise_floor < 0 || noise_floor > 1) {
+      throw new UsageError(`--accept-floor must be in [0,1]; got "${acceptStr}".`);
+    }
+    logger.warn("control.noise_floor_unmeasured", {
+      noise_floor,
+      note: "pinned with a typed --accept-floor, not a measured noise-floor.json",
+    });
+    return { noise_floor, source: `--accept-floor ${noise_floor} (UNMEASURED)` };
+  }
+
+  const filePath = resolve(flagString(flags, "noise-floor-file") ?? DEFAULT_NOISE_FLOOR_PATH);
+  if (!(await fileExists(filePath))) {
+    throw new UsageError(
+      `control-pin needs a measured noise floor. No noise-floor.json at ${filePath}.\n` +
+        `  Measure it: \`june-eval measure-noise-floor <run_dir...>\` (retrieval determinism) AND\n` +
+        `             \`june-eval measure-consistency <run_dir> <verdicts.json...>\` (judge variance).\n` +
+        `  Or override deliberately with \`--accept-floor <0..1>\` (records the floor as UNMEASURED).`,
+    );
+  }
+  const parsed = NoiseFloorFileSchema.safeParse(await readJson(filePath));
+  if (!parsed.success) {
+    throw new UsageError(`control-pin: ${filePath} is not a valid noise-floor.json (${parsed.error.issues[0]?.message}).`);
+  }
+  const file: NoiseFloorFile = parsed.data;
+  if (file.fixture_hash !== fixture_hash) {
+    throw new UsageError(
+      `control-pin: ${filePath} was measured on fixture ${file.fixture_hash}, but this run is fixture ${fixture_hash}. ` +
+        `Re-measure the noise floor on this fixture.`,
+    );
+  }
+  if (!file.consistency) {
+    throw new UsageError(
+      `control-pin: ${filePath} has no measured judge consistency (reader_correct_pct is gated, so its floor must be ` +
+        `measured). Run \`june-eval measure-consistency ${"<run_dir> <verdicts.json...>"}\`, or override with --accept-floor.`,
+    );
+  }
+  return {
+    noise_floor: file.recommended_noise_floor,
+    source: `measured ${filePath} (det ${file.determinism ? `${(file.determinism.max_drift * 100).toFixed(4)}pp` : "—"}, judge ${(file.consistency.max_drift * 100).toFixed(2)}pp)`,
+  };
+};
+
+/**
+ * `june-eval control-pin <run_dir>` — pins a control run as the golden baseline.
+ * The noise floor comes from a MEASURED `noise-floor.json` (run
+ * `measure-noise-floor` + `measure-consistency` first), or an explicit
+ * `--accept-floor <0..1>` override — never a hidden default (Phase 2).
  */
 export const runControlPin = async (argv: readonly string[]): Promise<void> => {
   const { positionals, flags } = parseArgv(argv);
@@ -243,11 +305,7 @@ export const runControlPin = async (argv: readonly string[]): Promise<void> => {
   assertControl(results, "control-pin");
   assertCompleted(results, "control-pin");
 
-  const nfStr = flagString(flags, "noise-floor");
-  const noise_floor = nfStr !== undefined ? Number(nfStr) : DEFAULT_NOISE_FLOOR;
-  if (!Number.isFinite(noise_floor) || noise_floor < 0 || noise_floor > 1) {
-    throw new UsageError(`--noise-floor must be in [0,1]; got "${nfStr}".`);
-  }
+  const { noise_floor, source } = await resolveNoiseFloor(flags, results.manifest.fixture_hash);
 
   const judge = results.manifest.roles.judge;
   const entry: GoldenEntry = {
@@ -270,10 +328,12 @@ export const runControlPin = async (argv: readonly string[]): Promise<void> => {
     run_id: results.run_id,
     fixture_hash: entry.fixture_hash,
     judge_model: judge.model,
+    noise_floor,
+    noise_floor_source: source,
   });
   process.stderr.write(
     `Pinned golden for fixture ${entry.fixture_hash} = ${results.run_id} ` +
-      `(noise_floor ${noise_floor}, judge ${judge.model}). Wrote ${GOLDEN_PATH}\n`,
+      `(noise_floor ${noise_floor.toFixed(4)} from ${source}, judge ${judge.model}). Wrote ${GOLDEN_PATH}\n`,
   );
 };
 
@@ -331,12 +391,19 @@ export const runControlCheck = async (argv: readonly string[]): Promise<void> =>
 const CONTROL_PIN_HELP = `june-eval control-pin — pin a control run as the golden baseline.
 
 USAGE
-  june-eval control-pin <run_dir> [--noise-floor <0..1>] [--config <path>]
+  june-eval control-pin <run_dir> [--noise-floor-file <path>] [--accept-floor <0..1>] [--config <path>]
 
 Only a COMPLETED --mode control (gemma4:26b) run can be pinned. Records per-tier
-correct% + recall@1/@5 + MRR (each with its CI) and the judge identity. Set
---noise-floor from the consistency run (run control twice; the max per-metric
-drift is the floor). Phase 2 replaces this flag with a measured noise-floor.json.
+correct% + recall@1/@5 + MRR (each with its CI) and the judge identity.
+
+The noise floor is MEASURED, not guessed (Phase 2):
+  --noise-floor-file <path>  a noise-floor.json from \`measure-noise-floor\` +
+                             \`measure-consistency\`. Default: package-root
+                             noise-floor.json. Must match this run's fixture and
+                             carry a measured judge-consistency block.
+  --accept-floor <0..1>      deliberate typed override when no measured file
+                             exists — recorded as UNMEASURED in the logs.
+A bare control-pin with neither is refused (it points you at the measure commands).
 `;
 
 const CONTROL_CHECK_HELP = `june-eval control-check — fail if a control run regresses vs the golden baseline.
