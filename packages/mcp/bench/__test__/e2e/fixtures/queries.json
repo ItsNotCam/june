@@ -1,0 +1,31 @@
+{
+  "fixture_id": "e2e-mini-v1",
+  "schema_version": 1,
+  "query_author": { "provider": "claude-code-agent", "model": "opus" },
+  "queries": [
+    {
+      "id": "q-T1",
+      "tier": "T1",
+      "text": "What port does the Florbix module health endpoint listen on?",
+      "expected_fact_ids": ["f-florbix-health-port"],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-T3",
+      "tier": "T3",
+      "text": "How does the Florbix module authenticate the callers that connect to it?",
+      "expected_fact_ids": ["f-florbix-auth"],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-T5",
+      "tier": "T5",
+      "text": "What is the maximum payload size the Florbix module accepts on its health endpoint?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    }
+  ]
+}

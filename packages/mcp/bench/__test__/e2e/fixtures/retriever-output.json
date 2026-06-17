@@ -1,0 +1,5 @@
+{
+  "q-T1": ["chunk-florbix-health", "chunk-quibblenet-batch", "chunk-florbix-auth"],
+  "q-T3": ["chunk-quibblenet-batch", "chunk-florbix-auth", "chunk-florbix-health"],
+  "q-T5": ["chunk-quibblenet-batch", "chunk-florbix-health"]
+}

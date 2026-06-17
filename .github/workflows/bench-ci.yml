@@ -1,0 +1,57 @@
+# RSI-foundation CI — the bench's fitness-function guardrails run on every change.
+#
+# This is the HOT PATH: it must stay fast, hermetic, and API-free. It runs the
+# unit + property + hermetic e2e suites and the agent-free judge-calibration gate
+# (the committed gold set + recorded verdicts re-scored to κ — see VALIDATE-JUDGE.md).
+# It NEVER runs a live `control`/holdout pass: those need the BYO gemma reader
+# (Ollama) + Qdrant and are kept off the hot path, run periodically by the user's
+# stack. No ANTHROPIC_API_KEY / DEEPSEEK_API_KEY / OLLAMA_URL is set here — if any
+# test reached for a provider SDK or a network call, it would fail, which is the
+# point (it proves the no-API seam).
+name: bench-ci
+
+on:
+  push:
+    paths:
+      - "packages/mcp/bench/**"
+      - "packages/mcp/ingest/**"
+      - "packages/shared/**"
+      - ".github/workflows/bench-ci.yml"
+  pull_request:
+    paths:
+      - "packages/mcp/bench/**"
+      - "packages/mcp/ingest/**"
+      - "packages/shared/**"
+      - ".github/workflows/bench-ci.yml"
+
+jobs:
+  bench:
+    name: typecheck + unit/property/e2e + calibration gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.10"
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (shared + ingest + bench)
+        run: |
+          bun run --filter='@june/shared' typecheck
+          bun run --filter='@june/mcp-ingest' typecheck
+          bun run --filter='@june/mcp-bench' typecheck
+
+      - name: Bench — unit + property + hermetic e2e + judge-calibration gate
+        # Includes __test__/e2e (hermetic pipeline), __test__/retriever (RRF
+        # property/parity), and __test__/judge/calibration-gold.test.ts, which
+        # re-scores the committed Sonnet verdicts to a PASSING κ with no agent.
+        working-directory: packages/mcp/bench
+        run: bun test
+
+      - name: Ingest — pipeline unit tests (incl. RRF tie-break parity)
+        working-directory: packages/mcp/ingest
+        run: bun test

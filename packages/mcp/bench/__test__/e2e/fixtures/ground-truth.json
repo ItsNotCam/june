@@ -1,0 +1,35 @@
+{
+  "fixture_id": "e2e-mini-v1",
+  "schema_version": 1,
+  "ingest_run_id": "e2e-ingest",
+  "ingest_schema_version": 1,
+  "ingest_embedding_model": "e2e-fake-embedder",
+  "resolutions": [
+    {
+      "fact_id": "f-florbix-health-port",
+      "status": "resolved_substring",
+      "doc_id": "doc-florbix",
+      "chunk_id": "chunk-florbix-health",
+      "similarity": null
+    },
+    {
+      "fact_id": "f-florbix-auth",
+      "status": "resolved_substring",
+      "doc_id": "doc-florbix",
+      "chunk_id": "chunk-florbix-auth",
+      "similarity": null
+    },
+    {
+      "fact_id": "f-quibblenet-batch",
+      "status": "resolved_substring",
+      "doc_id": "doc-quibblenet",
+      "chunk_id": "chunk-quibblenet-batch",
+      "similarity": null
+    }
+  ],
+  "integrity": {
+    "unresolved_pct": 0,
+    "embedding_pct": 0,
+    "aborted_over_threshold": false
+  }
+}

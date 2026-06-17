@@ -1,0 +1,31 @@
+{
+  "fixture_id": "e2e-mini-v1",
+  "run_id": "e2e-mini-run-1",
+  "schema_version": 1,
+  "judge": {
+    "kind": "claude-code-agent",
+    "model": "claude-sonnet-4-6",
+    "prompt_template_hash": "cbba4ecceba82690f09209b76e1fd9b8aa5306f6e54b04b1d0d7a8850d4b3e77",
+    "judged_at": "2026-06-17T00:00:00Z"
+  },
+  "verdicts": [
+    {
+      "query_id": "q-T1",
+      "verdict": "CORRECT",
+      "rationale": "States port 8421, grounded in the retrieved Florbix health chunk.",
+      "unjudged_reason": null
+    },
+    {
+      "query_id": "q-T3",
+      "verdict": "CORRECT",
+      "rationale": "Rotating HMAC token refreshed every 90 seconds, grounded in the retrieved auth chunk.",
+      "unjudged_reason": null
+    },
+    {
+      "query_id": "q-T5",
+      "verdict": "REFUSED",
+      "rationale": "Correctly declines: the context contains no maximum payload size for the health endpoint.",
+      "unjudged_reason": null
+    }
+  ]
+}

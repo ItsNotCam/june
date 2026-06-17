@@ -1,0 +1,33 @@
+{
+  "fixture_id": "e2e-mini-v1",
+  "fixture_seed": 7,
+  "schema_version": 1,
+  "domain_name": "E2E mini (fictional)",
+  "generated_at": "2026-01-01T00:00:00Z",
+  "facts": [
+    {
+      "kind": "atomic",
+      "id": "f-florbix-health-port",
+      "entity": "Florbix module",
+      "attribute": "health_port",
+      "value": "8421",
+      "surface_hint": "The Florbix module exposes its health endpoint on port 8421"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-florbix-auth",
+      "entity": "Florbix module",
+      "attribute": "auth_scheme",
+      "value": "rotating HMAC token",
+      "surface_hint": "Florbix authenticates callers with a rotating HMAC token refreshed every 90 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-quibblenet-batch",
+      "entity": "Quibblenet scheduler",
+      "attribute": "batch_size",
+      "value": "256",
+      "surface_hint": "The Quibblenet scheduler batches jobs into windows of 256 tasks"
+    }
+  ]
+}

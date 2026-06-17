@@ -61,6 +61,10 @@ fixtures/
 # gold set + recorded verdicts) — test data, tracked despite the broad `fixtures/` rule.
 !packages/mcp/bench/__test__/judge/fixtures/
 !packages/mcp/bench/__test__/judge/fixtures/**
+# …and the committed Phase-7 hermetic e2e fixtures (tiny frozen corpus + recorded
+# verdicts the e2e replays) — test data, tracked despite the broad `fixtures/` rule.
+!packages/mcp/bench/__test__/e2e/fixtures/
+!packages/mcp/bench/__test__/e2e/fixtures/**
 
 # bench local state — runs, june scratch SQLite + Qdrant config, and the
 # LLM response cache all live under packages/mcp/bench/state/. The dir

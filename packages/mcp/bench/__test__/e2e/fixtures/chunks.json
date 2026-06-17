@@ -1,0 +1,14 @@
+[
+  {
+    "chunk_id": "chunk-florbix-health",
+    "raw_content": "The Florbix module exposes its health endpoint on port 8421. Operators poll this endpoint to confirm the module is live before routing traffic to it."
+  },
+  {
+    "chunk_id": "chunk-florbix-auth",
+    "raw_content": "Florbix authenticates callers with a rotating HMAC token refreshed every 90 seconds. A caller presenting a stale token is rejected and must re-fetch a fresh one from the token broker."
+  },
+  {
+    "chunk_id": "chunk-quibblenet-batch",
+    "raw_content": "The Quibblenet scheduler batches jobs into windows of 256 tasks. Each window is dispatched as a single unit so the downstream workers see a stable, predictable load."
+  }
+]
