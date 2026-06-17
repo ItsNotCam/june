@@ -24,6 +24,15 @@ export type RetrievalResultsRecord = {
   recall_at_k: Record<"1" | "3" | "5" | "10", number>;
   mrr: number;
   t5_top1_score: number | null;
+  /**
+   * Per-fact hop recall — the FRACTION of a query's expected chunks present in
+   * top-k, vs `recall_at_k`'s all-or-nothing binary (§ RSI Phase 6). For a
+   * multi-hop tier (T4/T6/T7) this distinguishes "retrieved 1 of 2 hops" (0.5)
+   * from "retrieved neither" (0.0) when the binary recall is 0 either way — the
+   * diagnostic for WHERE a compositional retrieval failed. Diagnostic only; the
+   * gated metric stays `recall_at_k`. Optional (older records omit it).
+   */
+  per_fact_recall_at_k?: Record<"1" | "3" | "5" | "10", number>;
 };
 
 /** On-disk shape of `retrieval_results.json`. */

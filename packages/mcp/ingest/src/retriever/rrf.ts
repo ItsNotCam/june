@@ -57,7 +57,12 @@ export const reciprocalRankFusion = (args: {
 
   return [...fused.entries()]
     .map(([chunk_id, entry]) => ({ chunk_id, ...entry }))
-    .sort((a, b) => b.score - a.score)
+    // Explicit total order — (score desc, chunk_id asc). The secondary key makes
+    // equal-score ties resolve deterministically by chunk_id instead of by Map
+    // insertion (vector-store arrival) order, which can vary when the dense/bm25
+    // scores themselves tie. Kept byte-identical to the bench's rrf.ts so the
+    // two stay in parity (a cross-package parity test guards this).
+    .sort((a, b) => b.score - a.score || a.chunk_id.localeCompare(b.chunk_id))
     .slice(0, k)
     .map((row) => ({
       chunk_id: row.chunk_id,

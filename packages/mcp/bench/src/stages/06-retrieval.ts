@@ -63,6 +63,12 @@ export const runStage6 = async (args: {
       },
       mrr: computeMrr(q.tier, expected, top),
       t5_top1_score: q.tier === "T5" ? (top[0]?.score ?? null) : null,
+      per_fact_recall_at_k: {
+        "1": perFactRecall(q.tier, expected, top, 1),
+        "3": perFactRecall(q.tier, expected, top, 3),
+        "5": perFactRecall(q.tier, expected, top, 5),
+        "10": perFactRecall(q.tier, expected, top, 10),
+      },
     });
     args.onItem?.();
   }
@@ -106,6 +112,28 @@ export const computeRecall = (
   }
   // T1 / T2 / T3: any match suffices
   return expected_chunk_ids.some((id) => topK.has(id)) ? 1 : 0;
+};
+
+/**
+ * Per-fact hop recall (§ RSI Phase 6) — the FRACTION of expected chunks present
+ * in top-k, a diagnostic complement to the all-or-nothing `computeRecall`.
+ *
+ * For T1–T3 (single expected chunk) this equals the binary recall. For multi-hop
+ * (T4/T6/T7) it reveals partial composition: 1 of 2 hops retrieved → 0.5, even
+ * though the gated `computeRecall` scores it 0. T5 (no expected chunk) → 0. This
+ * is reported alongside, never instead of, the gated recall — it diagnoses WHERE
+ * a compositional retrieval broke without changing the score.
+ */
+export const perFactRecall = (
+  tier: QueryTier,
+  expected_chunk_ids: readonly string[],
+  retrieved: readonly RetrievalResult[],
+  k: number,
+): number => {
+  if (tier === "T5" || expected_chunk_ids.length === 0) return 0;
+  const topK = new Set(retrieved.slice(0, k).map((r) => r.chunk_id));
+  const hit = expected_chunk_ids.filter((id) => topK.has(id)).length;
+  return hit / expected_chunk_ids.length;
 };
 
 /**

@@ -60,7 +60,14 @@ export const reciprocalRankFusion = (args: {
 
   const ordered = [...fused.entries()]
     .map(([chunk_id, entry]) => ({ chunk_id, ...entry }))
-    .sort((a, b) => b.score - a.score)
+    // Sort by an EXPLICIT total order — (score desc, chunk_id asc) — so equal-score
+    // ties resolve to a stable, content-addressable key rather than to Map insertion
+    // (i.e. Qdrant arrival) order, which can vary run-to-run when the dense/bm25
+    // scores themselves tie. Without the secondary key the fused ranking is
+    // non-deterministic at tie boundaries (the Phase-2 measure-noise-floor
+    // determinism assertion is the probe built to catch exactly this). Mirrors the
+    // explicit tie-break in reranker.ts.
+    .sort((a, b) => b.score - a.score || a.chunk_id.localeCompare(b.chunk_id))
     .slice(0, k);
 
   return ordered.map((row) => ({

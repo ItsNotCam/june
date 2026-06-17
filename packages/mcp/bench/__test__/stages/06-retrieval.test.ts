@@ -1,7 +1,7 @@
 // author: Claude
 import { describe, expect, test } from "bun:test";
 import type { RetrievalResult } from "@/types/retrieval";
-import { computeMrr, computeRecall } from "@/stages/06-retrieval";
+import { computeMrr, computeRecall, perFactRecall } from "@/stages/06-retrieval";
 
 const top = (ids: readonly string[]): RetrievalResult[] =>
   ids.map((chunk_id, i) => ({
@@ -72,5 +72,26 @@ describe("computeMrr — tier dispatch", () => {
 
   test("T5 always 0", () => {
     expect(computeMrr("T5", [], top(["c-a"]))).toBe(0);
+  });
+});
+
+describe("perFactRecall — partial-hop diagnostic", () => {
+  test("multi-hop: distinguishes 1-of-2 hops (0.5) from 0-of-2 (0) where binary recall is 0 for both", () => {
+    // 1 of 2 hops retrieved — gated computeRecall is 0, but the diagnostic shows 0.5.
+    expect(computeRecall("T4", ["c-a", "c-b"], top(["c-a", "c-z"]), 3)).toBe(0);
+    expect(perFactRecall("T4", ["c-a", "c-b"], top(["c-a", "c-z"]), 3)).toBeCloseTo(0.5, 6);
+    // neither hop → 0
+    expect(perFactRecall("T4", ["c-a", "c-b"], top(["c-y", "c-z"]), 3)).toBe(0);
+  });
+
+  test("multi-hop: all hops present → 1.0 (agrees with binary recall)", () => {
+    expect(perFactRecall("T6", ["c-a", "c-b", "c-c"], top(["c-a", "c-b", "c-c"]), 5)).toBe(1);
+    expect(perFactRecall("T7", ["c-a", "c-b", "c-c", "c-d"], top(["c-a", "c-b", "c-c"]), 5)).toBeCloseTo(3 / 4, 6);
+  });
+
+  test("single-fact tier equals the binary recall; respects k; T5 → 0", () => {
+    expect(perFactRecall("T1", ["c-x"], top(["c-x", "c-y"]), 3)).toBe(1);
+    expect(perFactRecall("T1", ["c-x"], top(["c-y", "c-z", "c-x"]), 1)).toBe(0);
+    expect(perFactRecall("T5", [], top(["c-a"]), 3)).toBe(0);
   });
 });
