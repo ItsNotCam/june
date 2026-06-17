@@ -1,3 +1,18 @@
+---
+title: "Multi-hop benchmark — Phase 2: reader + judge chain composition, T6 gemma-certified"
+type: engineering-log
+feature: bench-multihop
+sequence: 3
+project: june
+status: complete
+tags: [eng-log, bench-multihop, area/research, tech/reader]
+created: 2026-06-15
+prev_commit: ecf2ff7
+new_commit: 5baabaa
+summary: Reader/judge now compose N-link chains; T6 control-certified at 63.3% correct = recall, proving zero reading-composition gap (ceiling is retrieval).
+keywords: [multi-hop, reader, judge, chain composition, T6, gemma, certification, golden registry, phase 2]
+---
+
 # Multi-hop benchmark — Phase 2: reader + judge chain composition, T6 gemma-certified
 
 Phase 2 of the deep multi-hop plan: teach the reader and judge to compose an

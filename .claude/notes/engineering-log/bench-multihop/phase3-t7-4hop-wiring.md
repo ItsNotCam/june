@@ -1,3 +1,18 @@
+---
+title: "Multi-hop benchmark — Phase 3: 4-hop (T7) tier wired"
+type: engineering-log
+feature: bench-multihop
+sequence: 4
+project: june
+status: in-progress
+tags: [eng-log, bench-multihop, area/research, tech/rag]
+created: 2026-06-15
+prev_commit: 0d26465
+new_commit: 6a82059
+summary: Wired the 4-hop tier (T7) — typechecks and unit-validated, but uncertified (fixture regen + gemma cert owed once Anthropic credits return).
+keywords: [multi-hop, T7, 4-hop, tier wiring, chain builder, uncertified, window pressure, phase 3]
+---
+
 # Multi-hop benchmark — Phase 3: 4-hop (T7) tier wired
 
 Phase 3 of the deep multi-hop plan: wire the 4-hop tier (T7 — three relational

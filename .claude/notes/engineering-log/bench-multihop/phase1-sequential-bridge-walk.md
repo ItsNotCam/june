@@ -1,3 +1,18 @@
+---
+title: "Multi-hop benchmark — Phase 1: sequential N-bridge retriever walk"
+type: engineering-log
+feature: bench-multihop
+sequence: 2
+project: june
+status: complete
+tags: [eng-log, bench-multihop, area/research, tech/retrieval]
+created: 2026-06-15
+prev_commit: 3663444
+new_commit: 257e92f
+summary: Retriever now walks the full hidden chain link-by-link, lifting 3-hop recall@5 from 3.3% to 63.3% with a provable 2-hop no-op.
+keywords: [multi-hop, chain walk, n-bridge, retriever, 3-hop, recall@5, T4, no-op, phase 1]
+---
+
 # Multi-hop benchmark — Phase 1: sequential N-bridge retriever walk
 
 Phase 1 of the deep multi-hop plan: the retriever now walks a whole chain of

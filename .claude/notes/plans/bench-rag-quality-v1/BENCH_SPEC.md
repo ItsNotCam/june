@@ -1,3 +1,16 @@
+---
+title: june-eval — Synthetic-Corpus RAG Quality Benchmark (v1)
+type: reference
+status: active
+tags: [project/june, area/research, tech/bench, tech/rag]
+project: june
+area: research
+created: 2026-04-21
+summary: Authoritative spec for june-eval — a standalone synthetic-corpus RAG-quality benchmark measuring retrieval + reader end-to-end.
+keywords: [bench spec, june-eval, synthetic corpus, rag quality, retrieval, reader, judging, bootstrap ci, regression]
+aliases: [BENCH_SPEC, bench spec]
+---
+
 # june-eval — Synthetic-Corpus RAG Quality Benchmark (v1)
 
 **Scope:** A standalone synthetic-corpus RAG-quality benchmark tool that sits **beside** june (not inside it), ingests a generated fictional corpus through june's pipeline, and measures retrieval + reader quality end-to-end. Primary use: regression detection for pipeline changes.

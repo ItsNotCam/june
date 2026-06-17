@@ -1,3 +1,18 @@
+---
+title: "Multi-hop benchmark — Phase 4: double every tier to 160 questions"
+type: engineering-log
+feature: bench-multihop
+sequence: 6
+project: june
+status: complete
+tags: [eng-log, bench-multihop, area/research, tech/bench]
+created: 2026-06-17
+prev_commit: 903a031
+new_commit: 11db99c
+summary: Doubled every tier in place (+80 self-authored questions over the frozen ingest) and re-certified all 160 on gemma — T6 gap stays 0.
+keywords: [multi-hop, double, 160 questions, re-certify, frozen ingest, T5 refusals, golden, phase 4]
+---
+
 # Multi-hop benchmark — Phase 4: double every tier to 160 questions
 
 The deep-hop fixture certified at 80 questions (entry 05). This entry doubles

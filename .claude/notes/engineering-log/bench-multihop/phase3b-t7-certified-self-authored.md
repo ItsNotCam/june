@@ -1,3 +1,18 @@
+---
+title: "Multi-hop benchmark — Phase 3b: T7 certified via in-session query authoring"
+type: engineering-log
+feature: bench-multihop
+sequence: 5
+project: june
+status: complete
+tags: [eng-log, bench-multihop, area/research, tech/rag]
+created: 2026-06-15
+prev_commit: 5f2fc3c
+new_commit: 29bfd3e
+summary: Certified T7 by authoring the 15 four-hop questions in-session (no re-ingest, no Anthropic call) — T7 recall@5 46.7%, correct% 60.0%.
+keywords: [multi-hop, T7, 4-hop, certification, in-session authoring, golden-pinned, recall@5, phase 3b]
+---
+
 # Multi-hop benchmark — Phase 3b: T7 certified via in-session query authoring
 
 Entry 04 wired the 4-hop tier (T7) but left it *uncertified* because producing

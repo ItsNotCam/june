@@ -1,3 +1,16 @@
+---
+title: june — Ingestion Pipeline Specification (v1)
+type: reference
+status: active
+tags: [project/june, area/research, tech/ingestion, tech/rag]
+project: june
+area: research
+created: 2026-04-21
+summary: Authoritative end-to-end ingestion spec (file→enriched/embedded/stored chunks) — the source of truth behind the pipeline.
+keywords: [ingestion spec, pipeline, 10 stages, data model, chunking, embeddings, qdrant, sqlite, source of truth]
+aliases: [INGESTION_PIPELINE_SPEC, ingestion spec, SPEC.md]
+---
+
 # june — Ingestion Pipeline Specification (v1)
 
 **Scope:** End-to-end markdown ingestion from file-on-disk → enriched, embedded, stored chunks ready for retrieval.

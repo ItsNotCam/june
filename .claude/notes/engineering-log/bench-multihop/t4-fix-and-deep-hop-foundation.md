@@ -1,3 +1,18 @@
+---
+title: Multi-hop benchmark — T4 bridge-lookup fix + deep-hop (3/4-hop) foundation
+type: engineering-log
+feature: bench-multihop
+sequence: 1
+project: june
+status: complete
+tags: [eng-log, bench-multihop, area/research, tech/rag]
+created: 2026-06-15
+prev_commit: 6955bdf
+new_commit: 8a36d89
+summary: Certified the T4 2-hop fix (recall@5 92.5%→95%) and laid the 3-hop/4-hop (T6/T7) code foundation with an honest 3.3% baseline.
+keywords: [multi-hop, bridge entity, recall@5, T4, T6, T7, 3-hop, 4-hop, retriever, gemma-certified, baseline]
+---
+
 # Multi-hop benchmark — T4 bridge-lookup fix + deep-hop (3/4-hop) foundation
 
 This entry covers two related pieces of multi-hop work on the `@june/mcp-bench` RAG
