@@ -36,15 +36,16 @@ Per-phase history with commit hashes:
 | 0 | Externalize the judge (no-API seam) | ✅ done, tested | `664da18`→`a02eb9f` |
 | 1 | Statistically-sound gate | ✅ done, tested | `a02eb9f`→`4ac80ea` |
 | 2 | Measured noise floor | ✅ done, tested | `31cadf0`→`9c0a777` |
-| 3 | Freeze fixtures | ⬜ **NEXT** | |
-| 4 | Real-doc holdout (**needs your docs**) | ⬜ | |
+| 3 | Freeze fixtures (+ no-API agent authoring) | ✅ done, tested | `ae64b66`→`88f5621` |
+| 4 | Real-doc holdout (**Next.js llms-full.txt**) | ⬜ **NEXT** | |
 | 5 | Judge calibration gate (Cohen's κ) | ⬜ | |
 | 6 | Property/metamorphic tests + retriever fixes | ⬜ | |
 | 7 | Meta-tests, CI, docs | ⬜ | |
 
-**Branch:** Phase 2 landed on `rsi-phase-2-noise-floor` (off `main` @ `31cadf0`); not yet merged.
+**Branch:** Phases 2–3 merged to `main`. Phase 3 landed on `rsi-phase-3-freeze-fixtures`
+(commits `73ac3f9` backbone → `ae64b66` authoring seam → `88f5621` the glorbulon-v1 fixture).
 
-**Health:** `tsc --noEmit` clean; **147 tests, 0 fail** (1 pre-existing live-judge skip).
+**Health:** `tsc --noEmit` clean; **186 tests, 0 fail** (1 pre-existing live-judge skip).
 
 ## What's landed
 
@@ -76,14 +77,27 @@ sample-variance/range), `src/types/noise-floor.ts` (schema). +26 unit tests. The
 LLM/agent calls here — the live N-run/N-judge execution is the orchestrator's; these are the
 pure-aggregation half.
 
-## Next: Phase 3 — freeze fixtures (gaps 5, 7)
-- Commit a canonical fixture dir (`facts.json` + `corpus/` + `corpus_manifest.json` +
-  `queries.json`) under `fixtures/<name>/` with provenance (author models, prompt hashes, human
-  sign-off); never regenerate — runs always evaluate the frozen set.
-- Make GT resolution deterministic (prefer tier-1 substring; keep/seed or drop tier-2 embedding).
-- Restore anti-collusion: authorship moves to distinct orchestrator agents per role at freeze
-  time; strengthen anti-leakage Jaccard + human review.
-- Tests: fixture-load determinism; fixture-hash stability; anti-leakage enforcement.
+**Phase 3 — freeze fixtures + no-API agent authoring (gaps #5/#7/#8).** A fixture is now an
+immutable, hash-locked artifact. `src/lib/fixture-lock.ts` writes `fixture.lock.json` (canonical
+hash + per-file SHA-256 + authoring provenance incl. an `anti_collusion` verdict); `run` calls
+`assertFrozenFixtureIntact` before ingest, and `verify-fixture` re-checks on demand
+(`FixtureTamperedError` on drift). `freeze` commits a fixture into `fixtures/<name>/` and REFUSES
+a colluded one (same author model) unless `--allow-collusion`. Per the user's directive, fixtures
+are authored with **NO API** — Claude Code's own agents write them: the `scaffold`→agents→`assemble`
+seam (`src/lib/authoring.ts`, `cli/author.ts`, `AUTHORING.md`) emits a deterministic plan (Stage-1
+facts + doc/query specs), agents author the prose (**sonnet corpus / opus queries** — distinct
+models = anti-collusion), and `assemble` validates every hint is embedded verbatim + every gated
+query stays under the anti-leakage threshold. Shipped the first canonical fixture
+**`fixtures/glorbulon-v1/`** (10 docs, 30 queries T1–T5, `anti_collusion: true`, max leak 0.375).
+First Stage-5 resolution-determinism tests. +38 tests (148→186).
+
+## Next: Phase 4 — real-doc holdout (gap #6)
+- **Source (user-specified): the Next.js docs `llms-full.txt`** —
+  https://nextjs.org/docs/llms-full.txt. Fetch, split into real documents, hand-label a small Q/A
+  set, and seal as `fixtures/holdout-real/`: run with `--holdout`, reported **separately**, and
+  **never pinned/gated/tuned**. Synthetic↔holdout divergence is the reward-hacking alarm.
+- Reuse Phase 3's freeze/verify lock machinery (commit it immutable, hash-locked). No synthetic
+  authoring needed (real docs), but the no-API discipline still holds for any labeling agents.
 
 ### Phase 2 follow-ups (when the live stack is up — the user runs these)
 - `--mode control` twice against one ingest (`--skip-ingest`) → `measure-noise-floor` to assert
@@ -99,7 +113,9 @@ pure-aggregation half.
 ## Decisions locked (from the user)
 1. **Foundation only** — design the loop's seams, don't build the optimizer.
 2. **Freeze fixtures** — commit corpus + queries as versioned immutable artifacts (Phase 3).
-3. **Real-doc holdout: yes, small** — sealed, never gated/tuned (Phase 4; needs real docs).
+3. **Real-doc holdout: yes, small** — sealed, never gated/tuned (Phase 4). **Source: Next.js
+   `llms-full.txt`** (https://nextjs.org/docs/llms-full.txt). Authoring is no-API (agents), distinct
+   models per role — extended to fixture generation in Phase 3.
 4. **Externalized judge, Sonnet agents, no API** — keep a single hardened judge; cross-judge
    guard + κ calibration gate (Phase 5).
 
