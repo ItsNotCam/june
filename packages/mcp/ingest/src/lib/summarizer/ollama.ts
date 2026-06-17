@@ -80,6 +80,31 @@ const generate = async (
 };
 
 /**
+ * Best-effort eviction of the summarizer model from Ollama's VRAM. Posts a
+ * trivial `/api/generate` (the SAME endpoint the model is loaded on — `/api/embed`
+ * would load the *embed* model instead) with `keep_alive: 0`, which loads-then-
+ * immediately-unloads. Never throws: a failed unload just leaves the model to its
+ * normal keep-alive, not an error. This is what lets the two-phase ingest free the
+ * gemma summarizer before the embedder needs the GPU.
+ */
+const unloadOllamaSummarizer = async (url: string, model: string): Promise<void> => {
+  try {
+    await fetch(`${url}/api/generate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model, prompt: ".", stream: false, keep_alive: 0 }),
+    });
+    logger.info("summarizer_unloaded", { event: "summarizer_unloaded", model_name: model });
+  } catch (err) {
+    logger.warn("summarizer_unload_failed", {
+      event: "summarizer_unload_failed",
+      model_name: model,
+      error_message: err instanceof Error ? err.message : String(err),
+    });
+  }
+};
+
+/**
  * Ollama-backed summarizer. Builds a deterministic `generate` closure (with the
  * classifier-style retry) and delegates all shared behaviour to the core.
  */
@@ -132,5 +157,6 @@ export const createOllamaSummarizer = (): Summarizer => {
       retryLoop("generate", () =>
         generate(env.OLLAMA_URL, model, prompt, timeoutFor(), jsonMode),
       ),
+    unload: () => unloadOllamaSummarizer(env.OLLAMA_URL, model),
   });
 };

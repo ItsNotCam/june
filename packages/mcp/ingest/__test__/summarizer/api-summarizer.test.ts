@@ -83,6 +83,18 @@ describe("createApiSummarizer request shape", () => {
     expect(String(body.system)).toContain("single JSON object");
     expect(Array.isArray(body.messages)).toBe(true);
   });
+
+  test("unload() is a no-op (API backend holds no local VRAM) — resolves, never throws", async () => {
+    const s = createApiSummarizer({
+      apiKey: "test-key",
+      model: "deepseek-v4-flash",
+      maxTokens: 1024,
+      baseURL: DEEPSEEK_ANTHROPIC_BASE_URL,
+      fetch: (async (_url: string | URL | Request, _init?: RequestInit) =>
+        messageResponse("x".repeat(80))) as typeof fetch,
+    });
+    await expect(s.unload()).resolves.toBeUndefined();
+  });
 });
 
 describe("API key guard", () => {

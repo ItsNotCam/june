@@ -24,4 +24,5 @@ export const createStubSummarizer = (): Summarizer => ({
     purpose: "Stubbed outline — no model call.",
     sections: [{ heading_path: [input.document_title], one_line: "document" }],
   }),
+  unload: async () => {},
 });

@@ -28,6 +28,13 @@ export type Summarizer = {
     document_title: string;
     document_body: string;
   }): Promise<DocumentOutline>;
+  /**
+   * Evict the summarizer model from the backend's memory (best-effort, never
+   * throws). Called between ingest phases so the summarizer never stays resident
+   * in VRAM while the embedder needs the GPU. No-op for stubs and API-backed
+   * (Anthropic/DeepSeek) backends that hold no local VRAM.
+   */
+  unload(): Promise<void>;
 };
 
 export type { SummarizerOutput };

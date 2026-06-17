@@ -12,6 +12,7 @@ import { runStage1, runStage1FromContent } from "./stages/01-discover";
 import { runStage2 } from "./stages/02-parse";
 import { runStage3 } from "./stages/03-chunk";
 import { runStage6 } from "./stages/06-summarize";
+import type { SummarizedChunk } from "./stages/06-summarize";
 import { runStage8 } from "./stages/08-embed-text";
 import { runStage9 } from "./stages/09-embed";
 import { runStage10 } from "./stages/10-store";
@@ -70,27 +71,120 @@ const walkMarkdownFiles = async (root: string): Promise<string[]> => {
 };
 
 /**
- * Run Stages 2–10 for a single document. Caller supplies the Stage 1 result
- * (file-based or content-based) and a `source_uri` used purely for progress
- * + log lines. Each stage commits in its own transaction.
+ * Two-phase ingest carrier. A document that has cleared the SUMMARIZE phase
+ * (Stages 1–6) in memory, ready for the EMBED phase (Stages 8–10). Phase B
+ * consumes `chunks` directly and never re-reads summaries from the DB, so the
+ * summarizer can be fully unloaded from VRAM before Phase B begins.
  */
-const runStagesAfterDiscover = async (
-  stage1: Stage1Result,
-  source_uri: string,
+type SummarizedDoc = {
+  readonly document: Document;
+  readonly chunks: ReadonlyArray<SummarizedChunk>;
+  readonly priorVersion: Version | undefined;
+  readonly source_uri: string;
+};
+
+/**
+ * Max docs carried in memory per phase window. Each window runs
+ * {summarize all → unload summarizer → embed all → unload embedder}, so only ONE
+ * model is GPU-resident at a time (the fix for single-GPU summarizer↔embedder
+ * VRAM contention). A window ≥ corpus size ⇒ a single model swap for the whole
+ * run (the 19-doc holdout is one window); a large vault swaps once per window
+ * instead of once per doc, which both removes the thrash AND bounds the
+ * in-memory `SummarizedDoc[]`.
+ */
+const DEFAULT_PHASE_WINDOW = 256;
+
+type PhaseOpts = {
+  readonly deps: PipelineDeps;
+  readonly runId: RunId;
+  readonly progress: ProgressReporter;
+};
+
+/** Stage 1 (discover) for a file, in its own transaction. */
+const discoverFile = async (
+  absolutePath: string,
   opts: {
     deps: PipelineDeps;
     runId: RunId;
-    progress: ProgressReporter;
+    runVersion: Version;
+    cliVersion: Version | undefined;
+    force: boolean;
   },
-): Promise<"processed" | "skipped" | "errored"> => {
+): Promise<Stage1Result> => {
+  const sidecar = opts.deps.storage.sidecar;
+  const tx1 = await sidecar.begin();
+  try {
+    const stage1 = await runStage1({
+      absolutePath,
+      runId: opts.runId,
+      runVersion: opts.runVersion,
+      cliVersion: opts.cliVersion,
+      sidecar,
+      tx: tx1,
+      force: opts.force,
+    });
+    await tx1.commit();
+    return stage1;
+  } catch (err) {
+    await tx1.rollback();
+    throw err;
+  }
+};
+
+/** Stage 1 (discover) for an in-memory document, in its own transaction. */
+const discoverContent = async (
+  rawBytes: Uint8Array,
+  sourceUri: string,
+  opts: {
+    deps: PipelineDeps;
+    runId: RunId;
+    runVersion: Version;
+    cliVersion: Version | undefined;
+    source_modified_at: string | undefined;
+    force: boolean;
+  },
+): Promise<Stage1Result> => {
+  const sidecar = opts.deps.storage.sidecar;
+  const tx1 = await sidecar.begin();
+  try {
+    const stage1 = await runStage1FromContent({
+      rawBytes,
+      sourceUri,
+      source_modified_at: opts.source_modified_at,
+      runId: opts.runId,
+      runVersion: opts.runVersion,
+      cliVersion: opts.cliVersion,
+      sidecar,
+      tx: tx1,
+      force: opts.force,
+    });
+    await tx1.commit();
+    return stage1;
+  } catch (err) {
+    await tx1.rollback();
+    throw err;
+  }
+};
+
+/**
+ * SUMMARIZE phase — Stages 2,3,6 for one discovered document. Returns the
+ * in-memory `SummarizedDoc` carrier on success, or a terminal disposition.
+ * Uses only the summarizer (not the embedder). Each stage commits in its own
+ * transaction; an unexpected stage failure throws and is tallied by the caller.
+ */
+const runSummarizePhase = async (
+  stage1: Stage1Result,
+  source_uri: string,
+  opts: PhaseOpts,
+): Promise<
+  { kind: "ok"; doc: SummarizedDoc } | { kind: "skipped" } | { kind: "errored" }
+> => {
   const { deps, progress } = opts;
   const sidecar = deps.storage.sidecar;
-  const vector = deps.storage.vector;
   const summarizer = deps.summarizer;
-  const embedder = deps.embedder;
 
-  if (stage1.kind === "unchanged") return "skipped";
-  if (stage1.kind === "skipped_too_large") return "skipped";
+  if (stage1.kind === "unchanged") return { kind: "skipped" };
+  if (stage1.kind === "skipped_too_large") return { kind: "skipped" };
 
   // Remaining kinds (ingest / resume / resurrection) all carry rawBytes.
   const document: Document = stage1.document;
@@ -117,11 +211,11 @@ const runStagesAfterDiscover = async (
     await tx2.commit();
     if (s2.kind === "skipped_empty" || s2.kind === "skipped_metadata_only") {
       progress.doc_skipped(source_uri, s2.kind);
-      return "skipped";
+      return { kind: "skipped" };
     }
     if (s2.kind === "failed") {
       progress.doc_errored(source_uri, s2.error_type);
-      return "errored";
+      return { kind: "errored" };
     }
     parsed = s2.parsed;
     progress.tick(source_uri, "parsed");
@@ -165,14 +259,40 @@ const runStagesAfterDiscover = async (
     await tx6.rollback();
     throw err;
   }
-
   progress.tick(source_uri, "contextualized");
+
+  return {
+    kind: "ok",
+    doc: {
+      document: parsed.document,
+      chunks: summarized.chunks,
+      priorVersion,
+      source_uri,
+    },
+  };
+};
+
+/**
+ * EMBED phase — Stages 8,9,10 for one already-summarized document. Uses only
+ * the embedder (the summarizer is unloaded before this runs). Stage 8 is pure —
+ * it re-derives the embed-text from the in-memory summarized chunks, so no
+ * summary is ever re-read from the DB. Throws on an unexpected stage failure
+ * (tallied by the caller).
+ */
+const runEmbedPhase = async (
+  doc: SummarizedDoc,
+  opts: PhaseOpts,
+): Promise<"processed"> => {
+  const { deps, progress } = opts;
+  const sidecar = deps.storage.sidecar;
+  const vector = deps.storage.vector;
+  const embedder = deps.embedder;
 
   // ---- Stage 8 (pure; records audit rows on truncation in own tx) ----
   const tx8 = await sidecar.begin();
   let composed;
   try {
-    composed = await runStage8({ chunks: summarized.chunks, sidecar, runId: opts.runId });
+    composed = await runStage8({ chunks: doc.chunks, sidecar, runId: opts.runId });
     await tx8.commit();
   } catch (err) {
     await tx8.rollback();
@@ -184,7 +304,7 @@ const runStagesAfterDiscover = async (
   let embedded;
   try {
     embedded = await runStage9({
-      document: parsed.document,
+      document: doc.document,
       chunks: composed.chunks,
       embedder,
       sidecar,
@@ -196,15 +316,15 @@ const runStagesAfterDiscover = async (
     await tx9.rollback();
     throw err;
   }
-  progress.tick(source_uri, "embedded");
+  progress.tick(doc.source_uri, "embedded");
 
   // ---- Stage 10 (own tx) ----
   const tx10 = await sidecar.begin();
   try {
     await runStage10({
-      document: parsed.document,
+      document: doc.document,
       chunks: embedded.chunks,
-      priorVersion,
+      priorVersion: doc.priorVersion,
       vector,
       sidecar,
       tx: tx10,
@@ -215,99 +335,9 @@ const runStagesAfterDiscover = async (
     await tx10.rollback();
     throw err;
   }
-  progress.tick(source_uri, "stored");
+  progress.tick(doc.source_uri, "stored");
 
   return "processed";
-};
-
-/**
- * Run the pipeline for a single file, starting from the document's current
- * status. Stages 1–3 + 10 persist in their own transactions; the stages
- * between derive in-memory.
- */
-const processFile = async (
-  absolutePath: string,
-  opts: {
-    deps: PipelineDeps;
-    runId: RunId;
-    runVersion: Version;
-    cliVersion: Version | undefined;
-    progress: ProgressReporter;
-    force: boolean;
-  },
-): Promise<"processed" | "skipped" | "errored"> => {
-  const sidecar = opts.deps.storage.sidecar;
-  const source_uri = pathToFileURL(absolutePath).toString();
-
-  const tx1 = await sidecar.begin();
-  let stage1: Stage1Result;
-  try {
-    stage1 = await runStage1({
-      absolutePath,
-      runId: opts.runId,
-      runVersion: opts.runVersion,
-      cliVersion: opts.cliVersion,
-      sidecar,
-      tx: tx1,
-      force: opts.force,
-    });
-    await tx1.commit();
-  } catch (err) {
-    await tx1.rollback();
-    throw err;
-  }
-
-  return runStagesAfterDiscover(stage1, source_uri, {
-    deps: opts.deps,
-    runId: opts.runId,
-    progress: opts.progress,
-  });
-};
-
-/**
- * Run the pipeline for a single in-memory document. Caller supplies raw
- * markdown bytes + a virtual `sourceUri`; no filesystem read happens.
- */
-const processContent = async (
-  rawBytes: Uint8Array,
-  sourceUri: string,
-  opts: {
-    deps: PipelineDeps;
-    runId: RunId;
-    runVersion: Version;
-    cliVersion: Version | undefined;
-    source_modified_at: string | undefined;
-    progress: ProgressReporter;
-    force: boolean;
-  },
-): Promise<"processed" | "skipped" | "errored"> => {
-  const sidecar = opts.deps.storage.sidecar;
-
-  const tx1 = await sidecar.begin();
-  let stage1: Stage1Result;
-  try {
-    stage1 = await runStage1FromContent({
-      rawBytes,
-      sourceUri,
-      source_modified_at: opts.source_modified_at,
-      runId: opts.runId,
-      runVersion: opts.runVersion,
-      cliVersion: opts.cliVersion,
-      sidecar,
-      tx: tx1,
-      force: opts.force,
-    });
-    await tx1.commit();
-  } catch (err) {
-    await tx1.rollback();
-    throw err;
-  }
-
-  return runStagesAfterDiscover(stage1, sourceUri, {
-    deps: opts.deps,
-    runId: opts.runId,
-    progress: opts.progress,
-  });
 };
 
 /**
@@ -351,7 +381,13 @@ export const ingestPath = async (opts: IngestOptions): Promise<IngestResult> => 
 
     progress.start(files.length);
 
-    for (const abs of files) {
+    const phaseOpts: PhaseOpts = { deps: opts.deps, runId, progress };
+
+    // Two-phase, windowed: per window summarize ALL docs → unload the summarizer
+    // → embed ALL docs → unload the embedder. Only one model is GPU-resident at a
+    // time, so the summarizer (gemma) and embedder never thrash the GPU. See
+    // DEFAULT_PHASE_WINDOW.
+    for (let start = 0; start < files.length; start += DEFAULT_PHASE_WINDOW) {
       if (isShutdownRequested()) {
         logger.info("ingest_shutdown_requested", {
           event: "ingest_shutdown_requested",
@@ -359,33 +395,62 @@ export const ingestPath = async (opts: IngestOptions): Promise<IngestResult> => 
         });
         break;
       }
-      const docStart = performance.now();
-      try {
-        const res = await processFile(abs, {
-          deps: opts.deps,
-          runId,
-          runVersion,
-          cliVersion: opts.cliVersion,
-          progress,
-          force: opts.force ?? false,
-        });
-        if (res === "processed") {
-          processed++;
-          progress.doc_done(pathToFileURL(abs).toString(), performance.now() - docStart);
-        } else if (res === "skipped") {
-          skipped++;
-        } else {
+      const window = files.slice(start, start + DEFAULT_PHASE_WINDOW);
+
+      // Free the embedder — its startup dim-probe (first window) or the prior
+      // window's embed phase leaves it resident — so Phase A has the full GPU.
+      await opts.deps.embedder.unload();
+
+      // ---- Phase A: summarize every doc in the window (embedder NOT resident) ----
+      const summarizedDocs: SummarizedDoc[] = [];
+      for (const abs of window) {
+        if (isShutdownRequested()) break;
+        const source_uri = pathToFileURL(abs).toString();
+        try {
+          const stage1 = await discoverFile(abs, {
+            deps: opts.deps,
+            runId,
+            runVersion,
+            cliVersion: opts.cliVersion,
+            force: opts.force ?? false,
+          });
+          const r = await runSummarizePhase(stage1, source_uri, phaseOpts);
+          if (r.kind === "ok") summarizedDocs.push(r.doc);
+          else if (r.kind === "skipped") skipped++;
+          else errored++;
+        } catch (err) {
           errored++;
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.error("doc_failed", {
+            event: "doc_failed",
+            source_uri: abs,
+            error_message: msg,
+          });
+          progress.doc_errored(source_uri, msg);
         }
-      } catch (err) {
-        errored++;
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.error("doc_failed", {
-          event: "doc_failed",
-          source_uri: abs,
-          error_message: msg,
-        });
-        progress.doc_errored(pathToFileURL(abs).toString(), msg);
+      }
+
+      // ---- Boundary: free the summarizer's VRAM before the embedder loads ----
+      await opts.deps.summarizer.unload();
+
+      // ---- Phase B: embed every summarized doc (summarizer NOT resident) ----
+      for (const doc of summarizedDocs) {
+        if (isShutdownRequested()) break;
+        const docStart = performance.now();
+        try {
+          await runEmbedPhase(doc, phaseOpts);
+          processed++;
+          progress.doc_done(doc.source_uri, performance.now() - docStart);
+        } catch (err) {
+          errored++;
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.error("doc_failed", {
+            event: "doc_failed",
+            source_uri: doc.source_uri,
+            error_message: msg,
+          });
+          progress.doc_errored(doc.source_uri, msg);
+        }
       }
     }
 
@@ -488,19 +553,26 @@ export const ingestContent = async (
 
     const docStart = performance.now();
     try {
-      const res = await processContent(rawBytes, opts.sourceUri, {
+      // Same two-phase discipline as ingestPath (one doc = one window): free the
+      // embedder, summarize, unload the summarizer, then embed. A single doc never
+      // alternated, but this keeps both entry points structurally identical.
+      await opts.deps.embedder.unload();
+      const phaseOpts: PhaseOpts = { deps: opts.deps, runId, progress };
+      const stage1 = await discoverContent(rawBytes, opts.sourceUri, {
         deps: opts.deps,
         runId,
         runVersion,
         cliVersion: opts.cliVersion,
         source_modified_at: opts.source_modified_at,
-        progress,
         force: opts.force ?? false,
       });
-      if (res === "processed") {
+      const r = await runSummarizePhase(stage1, opts.sourceUri, phaseOpts);
+      if (r.kind === "ok") {
+        await opts.deps.summarizer.unload();
+        await runEmbedPhase(r.doc, phaseOpts);
         processed++;
         progress.doc_done(opts.sourceUri, performance.now() - docStart);
-      } else if (res === "skipped") {
+      } else if (r.kind === "skipped") {
         skipped++;
       } else {
         errored++;

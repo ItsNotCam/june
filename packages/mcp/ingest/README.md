@@ -266,7 +266,28 @@ The schema is enforced by Zod; see `config.example.yaml` for the full set of tun
 
 - `src/pipeline/stages/01-discover.ts` … `10-store.ts` — one file per stage.
 - `src/lib/{parser,chunker,classifier,summarizer,embedder,storage}/` — swappable backends behind typed interfaces.
-- `src/pipeline/ingest.ts` — orchestrator (stages 1 → 10 per doc).
+- `src/pipeline/ingest.ts` — orchestrator. Runs **two global phases** per window: summarize every doc (stages 1–6), unload the summarizer, then embed + store every doc (stages 8–10). See below.
+
+### Two-phase, single-GPU-safe ingest
+
+The summarizer (a chat model, e.g. `gemma4:26b`) and the embedder must never be resident in
+VRAM at the same time — on a 24 GB BYO host they don't co-fit, and Ollama would thrash
+evict/reload them and time out. So `ingestPath`/`ingestContent` process the corpus in **windows**
+(`DEFAULT_PHASE_WINDOW`, 256 docs) and run each window strictly mono-model:
+
+1. unload the embedder (frees the startup dim-probe / prior window) →
+2. **Phase A** — summarize all docs in the window (only the summarizer is resident) →
+3. `summarizer.unload()` (`keep_alive: 0` on `/api/generate`) →
+4. **Phase B** — embed + store all docs (only the embedder is resident).
+
+This is safe because Phase B consumes the in-memory summarized chunks (stage 8 is pure and never
+re-reads summaries), and a crash between phases is recoverable: a doc left at `contextualized` is
+re-summarized deterministically (`temperature: 0` + fixed seed) on resume, yielding identical
+embeddings. A window ≥ corpus size is a single model swap for the whole run; a large vault swaps
+once per window instead of once per doc, which also bounds the in-memory carry. The `Summarizer`
+interface gains `unload()` (real for Ollama; no-op for the API/stub backends, which hold no VRAM),
+mirroring the embedder's. *Resume's per-doc replay still alternates models — acceptable on that rare
+recovery path; batching it is a fast-follow.*
 - `src/lib/{env,config,logger,errors,error-types,offline-guard,lock,shutdown,progress,ids,encoding,tokenize,retry}.ts` — shared primitives.
 - `cli/*.ts` — thin argv wrappers around the public API in `src/index.ts`.
 

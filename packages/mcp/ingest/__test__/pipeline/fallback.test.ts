@@ -45,6 +45,7 @@ const throwingSummarizer: Summarizer = {
     purpose: "x",
     sections: [],
   }),
+  unload: async () => {},
 };
 
 let tempRoot: string;

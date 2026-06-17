@@ -48,6 +48,12 @@ export type SummarizerCoreOptions = {
   readonly name: string;
   readonly version?: string;
   readonly generate: GenerateFn;
+  /**
+   * Backend-supplied model eviction. Local backends (Ollama) inject a real
+   * impl that frees VRAM; API backends omit it and get a no-op (no local model
+   * to unload).
+   */
+  readonly unload?: () => Promise<void>;
 };
 
 /**
@@ -209,7 +215,13 @@ export const createSummarizerFromGenerate = (
     } as DocumentOutline;
   };
 
-  return { name, version, summarizeChunk, summarizeDocument };
+  return {
+    name,
+    version,
+    summarizeChunk,
+    summarizeDocument,
+    unload: opts.unload ?? (async () => {}),
+  };
 };
 
 /** Exported for the deterministic core test. */
