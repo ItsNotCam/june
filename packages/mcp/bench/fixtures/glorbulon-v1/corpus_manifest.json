@@ -1,0 +1,230 @@
+{
+  "fixture_id": "VZJWC40R0WZG024SRQ7368QSMM",
+  "schema_version": 1,
+  "documents": [
+    {
+      "filename": "glorbulon-protocol.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/glorbulon-protocol.md",
+      "document_title": "Glorbulon Protocol: reference",
+      "planted_fact_ids": [
+        "f-atomic-0001",
+        "f-atomic-0002",
+        "f-atomic-0003",
+        "f-atomic-0004",
+        "f-atomic-0005",
+        "f-atomic-0006",
+        "f-atomic-0007",
+        "f-atomic-0008",
+        "f-rel-0001",
+        "f-rel-0002",
+        "f-rel-0003",
+        "f-rel-0004"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "38951bacb3b639dd735caa90c6fd3ea5ec5ef738dd3e5b582467b1dd6aa5333b"
+    },
+    {
+      "filename": "froznet-v2.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/froznet-v2.md",
+      "document_title": "Froznet v2: reference",
+      "planted_fact_ids": [
+        "f-atomic-0009",
+        "f-atomic-0010",
+        "f-atomic-0011",
+        "f-atomic-0012",
+        "f-atomic-0013",
+        "f-atomic-0014",
+        "f-atomic-0015",
+        "f-atomic-0016",
+        "f-rel-0005",
+        "f-rel-0006",
+        "f-rel-0007",
+        "f-rel-0008"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "65a93ea6f5ae05c2e9a4e768365382814e678652202109533ccd399a894d4a7e"
+    },
+    {
+      "filename": "snorblath-protocol.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/snorblath-protocol.md",
+      "document_title": "Snorblath Protocol: reference",
+      "planted_fact_ids": [
+        "f-atomic-0017",
+        "f-atomic-0018",
+        "f-atomic-0019",
+        "f-atomic-0020",
+        "f-atomic-0021",
+        "f-atomic-0022",
+        "f-atomic-0023",
+        "f-atomic-0024",
+        "f-rel-0009",
+        "f-rel-0010",
+        "f-rel-0011",
+        "f-rel-0012"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "cc2b41183283fd395f66da552a328169f76dfd64ce8f7ba5529322e4c14aa058"
+    },
+    {
+      "filename": "viznet-exchange.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/viznet-exchange.md",
+      "document_title": "Viznet Exchange: reference",
+      "planted_fact_ids": [
+        "f-atomic-0025",
+        "f-atomic-0026",
+        "f-atomic-0027",
+        "f-atomic-0028",
+        "f-atomic-0029",
+        "f-atomic-0030",
+        "f-atomic-0031",
+        "f-atomic-0032",
+        "f-rel-0013",
+        "f-rel-0014",
+        "f-rel-0015",
+        "f-rel-0016"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "63ab282d58b44d73af75108b1ffd3ea5aeb80b8b94d30ccc95ce17325f0d894d"
+    },
+    {
+      "filename": "dargwave-transport.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/dargwave-transport.md",
+      "document_title": "Dargwave Transport: reference",
+      "planted_fact_ids": [
+        "f-atomic-0033",
+        "f-atomic-0034",
+        "f-atomic-0035",
+        "f-atomic-0036",
+        "f-atomic-0037",
+        "f-atomic-0038",
+        "f-atomic-0039",
+        "f-atomic-0040",
+        "f-rel-0017",
+        "f-rel-0018",
+        "f-rel-0019",
+        "f-rel-0020"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "5fbef884aa32bc4ce749b4f95d81f47aaf265d7786e2ca800ebb391305874f05"
+    },
+    {
+      "filename": "querban-layer.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/querban-layer.md",
+      "document_title": "Querban Layer: reference",
+      "planted_fact_ids": [
+        "f-atomic-0041",
+        "f-atomic-0042",
+        "f-atomic-0043",
+        "f-atomic-0044",
+        "f-atomic-0045",
+        "f-atomic-0046",
+        "f-atomic-0047",
+        "f-atomic-0048",
+        "f-rel-0021",
+        "f-rel-0022",
+        "f-rel-0023",
+        "f-rel-0024"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "da351e33e1d0df839f4b45f51661b218a9dc008a5de272ac7f26d0d1df015ca4"
+    },
+    {
+      "filename": "wexmar-session.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/wexmar-session.md",
+      "document_title": "Wexmar Session: reference",
+      "planted_fact_ids": [
+        "f-atomic-0049",
+        "f-atomic-0050",
+        "f-atomic-0051",
+        "f-atomic-0052",
+        "f-atomic-0053",
+        "f-atomic-0054",
+        "f-atomic-0055",
+        "f-atomic-0056",
+        "f-rel-0025",
+        "f-rel-0026",
+        "f-rel-0027",
+        "f-rel-0028"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "7ef2b91f19b647581ee706b81dac5ab9bbd0dbb3ab393929a95529ccb782c538"
+    },
+    {
+      "filename": "plirnode-framework.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/plirnode-framework.md",
+      "document_title": "Plirnode Framework: reference",
+      "planted_fact_ids": [
+        "f-atomic-0057",
+        "f-atomic-0058",
+        "f-atomic-0059",
+        "f-atomic-0060",
+        "f-atomic-0061",
+        "f-atomic-0062",
+        "f-atomic-0063",
+        "f-atomic-0064",
+        "f-rel-0029",
+        "f-rel-0030",
+        "f-rel-0031",
+        "f-rel-0032"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "fe0aeff3298ff8087083496e0c183a8dcbdd9f10e5eaa1016ba38c5cf6e659d6"
+    },
+    {
+      "filename": "borghyl-control.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/borghyl-control.md",
+      "document_title": "Borghyl Control: reference",
+      "planted_fact_ids": [
+        "f-atomic-0065",
+        "f-atomic-0066",
+        "f-atomic-0067",
+        "f-atomic-0068",
+        "f-atomic-0069",
+        "f-atomic-0070",
+        "f-atomic-0071",
+        "f-atomic-0072",
+        "f-rel-0033",
+        "f-rel-0034",
+        "f-rel-0035",
+        "f-rel-0036"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "5fd53de7d3cd7105ec9babf79fd1683bdf362405cbe491e938e7dec2d86fa39c"
+    },
+    {
+      "filename": "kreznak-signal.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/glorbulon-v1/corpus/kreznak-signal.md",
+      "document_title": "Kreznak Signal: reference",
+      "planted_fact_ids": [
+        "f-atomic-0073",
+        "f-atomic-0074",
+        "f-atomic-0075",
+        "f-atomic-0076",
+        "f-atomic-0077",
+        "f-atomic-0078",
+        "f-atomic-0079",
+        "f-atomic-0080",
+        "f-rel-0037",
+        "f-rel-0038",
+        "f-rel-0039",
+        "f-rel-0040"
+      ],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "4291a4530d98787995e93a378b8f68223f872b0c07a29b2b7329fa474055ad10"
+    }
+  ],
+  "corpus_author": {
+    "provider": "claude-code-agent",
+    "model": "claude-sonnet-4-6"
+  }
+}

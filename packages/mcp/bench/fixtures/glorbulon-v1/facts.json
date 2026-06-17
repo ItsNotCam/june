@@ -1,0 +1,969 @@
+{
+  "fixture_id": "VZJWC40R0WZG024SRQ7368QSMM",
+  "fixture_seed": 31337,
+  "schema_version": 1,
+  "domain_name": "Glorbulon Protocol",
+  "generated_at": "2026-06-17T19:19:47.457Z",
+  "facts": [
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0001",
+      "entity": "Glorbulon Protocol",
+      "attribute": "control_port",
+      "value": "7694",
+      "surface_hint": "Glorbulon Protocol uses port 7694 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0002",
+      "entity": "Glorbulon Protocol",
+      "attribute": "data_port",
+      "value": "7207",
+      "surface_hint": "Glorbulon Protocol uses port 7207 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0003",
+      "entity": "Glorbulon Protocol",
+      "attribute": "heartbeat_interval_ms",
+      "value": "2961",
+      "surface_hint": "Glorbulon Protocol sends heartbeats every 2961 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0004",
+      "entity": "Glorbulon Protocol",
+      "attribute": "session_timeout_s",
+      "value": "2893",
+      "surface_hint": "Glorbulon Protocol session timeout is 2893 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0005",
+      "entity": "Glorbulon Protocol",
+      "attribute": "max_packet_size",
+      "value": "38912",
+      "surface_hint": "Glorbulon Protocol max packet size is 38912 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0006",
+      "entity": "Glorbulon Protocol",
+      "attribute": "encoding",
+      "value": "CBOR",
+      "surface_hint": "Glorbulon Protocol encodes payloads with CBOR"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0007",
+      "entity": "Glorbulon Protocol",
+      "attribute": "compression",
+      "value": "zstd",
+      "surface_hint": "Glorbulon Protocol compresses data with zstd"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0008",
+      "entity": "Glorbulon Protocol",
+      "attribute": "handshake_duration_s",
+      "value": "8",
+      "surface_hint": "Glorbulon Protocol handshake takes 8 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0009",
+      "entity": "Froznet v2",
+      "attribute": "control_port",
+      "value": "7966",
+      "surface_hint": "Froznet v2 uses port 7966 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0010",
+      "entity": "Froznet v2",
+      "attribute": "data_port",
+      "value": "7295",
+      "surface_hint": "Froznet v2 uses port 7295 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0011",
+      "entity": "Froznet v2",
+      "attribute": "heartbeat_interval_ms",
+      "value": "4629",
+      "surface_hint": "Froznet v2 sends heartbeats every 4629 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0012",
+      "entity": "Froznet v2",
+      "attribute": "session_timeout_s",
+      "value": "3153",
+      "surface_hint": "Froznet v2 session timeout is 3153 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0013",
+      "entity": "Froznet v2",
+      "attribute": "max_packet_size",
+      "value": "7168",
+      "surface_hint": "Froznet v2 max packet size is 7168 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0014",
+      "entity": "Froznet v2",
+      "attribute": "encoding",
+      "value": "Thrift",
+      "surface_hint": "Froznet v2 encodes payloads with Thrift"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0015",
+      "entity": "Froznet v2",
+      "attribute": "compression",
+      "value": "zstd",
+      "surface_hint": "Froznet v2 compresses data with zstd"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0016",
+      "entity": "Froznet v2",
+      "attribute": "handshake_duration_s",
+      "value": "9",
+      "surface_hint": "Froznet v2 handshake takes 9 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0017",
+      "entity": "Snorblath Protocol",
+      "attribute": "control_port",
+      "value": "7513",
+      "surface_hint": "Snorblath Protocol uses port 7513 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0018",
+      "entity": "Snorblath Protocol",
+      "attribute": "data_port",
+      "value": "7509",
+      "surface_hint": "Snorblath Protocol uses port 7509 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0019",
+      "entity": "Snorblath Protocol",
+      "attribute": "heartbeat_interval_ms",
+      "value": "3681",
+      "surface_hint": "Snorblath Protocol sends heartbeats every 3681 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0020",
+      "entity": "Snorblath Protocol",
+      "attribute": "session_timeout_s",
+      "value": "3252",
+      "surface_hint": "Snorblath Protocol session timeout is 3252 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0021",
+      "entity": "Snorblath Protocol",
+      "attribute": "max_packet_size",
+      "value": "55296",
+      "surface_hint": "Snorblath Protocol max packet size is 55296 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0022",
+      "entity": "Snorblath Protocol",
+      "attribute": "encoding",
+      "value": "BSON",
+      "surface_hint": "Snorblath Protocol encodes payloads with BSON"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0023",
+      "entity": "Snorblath Protocol",
+      "attribute": "compression",
+      "value": "deflate",
+      "surface_hint": "Snorblath Protocol compresses data with deflate"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0024",
+      "entity": "Snorblath Protocol",
+      "attribute": "handshake_duration_s",
+      "value": "1",
+      "surface_hint": "Snorblath Protocol handshake takes 1 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0025",
+      "entity": "Viznet Exchange",
+      "attribute": "control_port",
+      "value": "7561",
+      "surface_hint": "Viznet Exchange uses port 7561 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0026",
+      "entity": "Viznet Exchange",
+      "attribute": "data_port",
+      "value": "7708",
+      "surface_hint": "Viznet Exchange uses port 7708 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0027",
+      "entity": "Viznet Exchange",
+      "attribute": "heartbeat_interval_ms",
+      "value": "4829",
+      "surface_hint": "Viznet Exchange sends heartbeats every 4829 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0028",
+      "entity": "Viznet Exchange",
+      "attribute": "session_timeout_s",
+      "value": "1988",
+      "surface_hint": "Viznet Exchange session timeout is 1988 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0029",
+      "entity": "Viznet Exchange",
+      "attribute": "max_packet_size",
+      "value": "55296",
+      "surface_hint": "Viznet Exchange max packet size is 55296 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0030",
+      "entity": "Viznet Exchange",
+      "attribute": "encoding",
+      "value": "Thrift",
+      "surface_hint": "Viznet Exchange encodes payloads with Thrift"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0031",
+      "entity": "Viznet Exchange",
+      "attribute": "compression",
+      "value": "brotli",
+      "surface_hint": "Viznet Exchange compresses data with brotli"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0032",
+      "entity": "Viznet Exchange",
+      "attribute": "handshake_duration_s",
+      "value": "3",
+      "surface_hint": "Viznet Exchange handshake takes 3 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0033",
+      "entity": "Dargwave Transport",
+      "attribute": "control_port",
+      "value": "7315",
+      "surface_hint": "Dargwave Transport uses port 7315 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0034",
+      "entity": "Dargwave Transport",
+      "attribute": "data_port",
+      "value": "7900",
+      "surface_hint": "Dargwave Transport uses port 7900 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0035",
+      "entity": "Dargwave Transport",
+      "attribute": "heartbeat_interval_ms",
+      "value": "2712",
+      "surface_hint": "Dargwave Transport sends heartbeats every 2712 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0036",
+      "entity": "Dargwave Transport",
+      "attribute": "session_timeout_s",
+      "value": "347",
+      "surface_hint": "Dargwave Transport session timeout is 347 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0037",
+      "entity": "Dargwave Transport",
+      "attribute": "max_packet_size",
+      "value": "15360",
+      "surface_hint": "Dargwave Transport max packet size is 15360 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0038",
+      "entity": "Dargwave Transport",
+      "attribute": "encoding",
+      "value": "Thrift",
+      "surface_hint": "Dargwave Transport encodes payloads with Thrift"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0039",
+      "entity": "Dargwave Transport",
+      "attribute": "compression",
+      "value": "deflate",
+      "surface_hint": "Dargwave Transport compresses data with deflate"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0040",
+      "entity": "Dargwave Transport",
+      "attribute": "handshake_duration_s",
+      "value": "8",
+      "surface_hint": "Dargwave Transport handshake takes 8 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0041",
+      "entity": "Querban Layer",
+      "attribute": "control_port",
+      "value": "7334",
+      "surface_hint": "Querban Layer uses port 7334 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0042",
+      "entity": "Querban Layer",
+      "attribute": "data_port",
+      "value": "7293",
+      "surface_hint": "Querban Layer uses port 7293 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0043",
+      "entity": "Querban Layer",
+      "attribute": "heartbeat_interval_ms",
+      "value": "1199",
+      "surface_hint": "Querban Layer sends heartbeats every 1199 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0044",
+      "entity": "Querban Layer",
+      "attribute": "session_timeout_s",
+      "value": "1383",
+      "surface_hint": "Querban Layer session timeout is 1383 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0045",
+      "entity": "Querban Layer",
+      "attribute": "max_packet_size",
+      "value": "8192",
+      "surface_hint": "Querban Layer max packet size is 8192 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0046",
+      "entity": "Querban Layer",
+      "attribute": "encoding",
+      "value": "Protobuf",
+      "surface_hint": "Querban Layer encodes payloads with Protobuf"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0047",
+      "entity": "Querban Layer",
+      "attribute": "compression",
+      "value": "zstd",
+      "surface_hint": "Querban Layer compresses data with zstd"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0048",
+      "entity": "Querban Layer",
+      "attribute": "handshake_duration_s",
+      "value": "9",
+      "surface_hint": "Querban Layer handshake takes 9 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0049",
+      "entity": "Wexmar Session",
+      "attribute": "control_port",
+      "value": "7110",
+      "surface_hint": "Wexmar Session uses port 7110 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0050",
+      "entity": "Wexmar Session",
+      "attribute": "data_port",
+      "value": "7002",
+      "surface_hint": "Wexmar Session uses port 7002 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0051",
+      "entity": "Wexmar Session",
+      "attribute": "heartbeat_interval_ms",
+      "value": "4834",
+      "surface_hint": "Wexmar Session sends heartbeats every 4834 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0052",
+      "entity": "Wexmar Session",
+      "attribute": "session_timeout_s",
+      "value": "1660",
+      "surface_hint": "Wexmar Session session timeout is 1660 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0053",
+      "entity": "Wexmar Session",
+      "attribute": "max_packet_size",
+      "value": "11264",
+      "surface_hint": "Wexmar Session max packet size is 11264 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0054",
+      "entity": "Wexmar Session",
+      "attribute": "encoding",
+      "value": "YAML",
+      "surface_hint": "Wexmar Session encodes payloads with YAML"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0055",
+      "entity": "Wexmar Session",
+      "attribute": "compression",
+      "value": "brotli",
+      "surface_hint": "Wexmar Session compresses data with brotli"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0056",
+      "entity": "Wexmar Session",
+      "attribute": "handshake_duration_s",
+      "value": "6",
+      "surface_hint": "Wexmar Session handshake takes 6 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0057",
+      "entity": "Plirnode Framework",
+      "attribute": "control_port",
+      "value": "7404",
+      "surface_hint": "Plirnode Framework uses port 7404 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0058",
+      "entity": "Plirnode Framework",
+      "attribute": "data_port",
+      "value": "7258",
+      "surface_hint": "Plirnode Framework uses port 7258 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0059",
+      "entity": "Plirnode Framework",
+      "attribute": "heartbeat_interval_ms",
+      "value": "1654",
+      "surface_hint": "Plirnode Framework sends heartbeats every 1654 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0060",
+      "entity": "Plirnode Framework",
+      "attribute": "session_timeout_s",
+      "value": "1735",
+      "surface_hint": "Plirnode Framework session timeout is 1735 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0061",
+      "entity": "Plirnode Framework",
+      "attribute": "max_packet_size",
+      "value": "22528",
+      "surface_hint": "Plirnode Framework max packet size is 22528 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0062",
+      "entity": "Plirnode Framework",
+      "attribute": "encoding",
+      "value": "Protobuf",
+      "surface_hint": "Plirnode Framework encodes payloads with Protobuf"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0063",
+      "entity": "Plirnode Framework",
+      "attribute": "compression",
+      "value": "snappy",
+      "surface_hint": "Plirnode Framework compresses data with snappy"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0064",
+      "entity": "Plirnode Framework",
+      "attribute": "handshake_duration_s",
+      "value": "9",
+      "surface_hint": "Plirnode Framework handshake takes 9 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0065",
+      "entity": "Borghyl Control",
+      "attribute": "control_port",
+      "value": "7607",
+      "surface_hint": "Borghyl Control uses port 7607 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0066",
+      "entity": "Borghyl Control",
+      "attribute": "data_port",
+      "value": "7614",
+      "surface_hint": "Borghyl Control uses port 7614 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0067",
+      "entity": "Borghyl Control",
+      "attribute": "heartbeat_interval_ms",
+      "value": "2464",
+      "surface_hint": "Borghyl Control sends heartbeats every 2464 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0068",
+      "entity": "Borghyl Control",
+      "attribute": "session_timeout_s",
+      "value": "1683",
+      "surface_hint": "Borghyl Control session timeout is 1683 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0069",
+      "entity": "Borghyl Control",
+      "attribute": "max_packet_size",
+      "value": "18432",
+      "surface_hint": "Borghyl Control max packet size is 18432 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0070",
+      "entity": "Borghyl Control",
+      "attribute": "encoding",
+      "value": "Avro",
+      "surface_hint": "Borghyl Control encodes payloads with Avro"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0071",
+      "entity": "Borghyl Control",
+      "attribute": "compression",
+      "value": "deflate",
+      "surface_hint": "Borghyl Control compresses data with deflate"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0072",
+      "entity": "Borghyl Control",
+      "attribute": "handshake_duration_s",
+      "value": "9",
+      "surface_hint": "Borghyl Control handshake takes 9 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0073",
+      "entity": "Kreznak Signal",
+      "attribute": "control_port",
+      "value": "7255",
+      "surface_hint": "Kreznak Signal uses port 7255 for control messages"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0074",
+      "entity": "Kreznak Signal",
+      "attribute": "data_port",
+      "value": "7088",
+      "surface_hint": "Kreznak Signal uses port 7088 for data transfer"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0075",
+      "entity": "Kreznak Signal",
+      "attribute": "heartbeat_interval_ms",
+      "value": "1589",
+      "surface_hint": "Kreznak Signal sends heartbeats every 1589 ms"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0076",
+      "entity": "Kreznak Signal",
+      "attribute": "session_timeout_s",
+      "value": "2153",
+      "surface_hint": "Kreznak Signal session timeout is 2153 seconds"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0077",
+      "entity": "Kreznak Signal",
+      "attribute": "max_packet_size",
+      "value": "39936",
+      "surface_hint": "Kreznak Signal max packet size is 39936 bytes"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0078",
+      "entity": "Kreznak Signal",
+      "attribute": "encoding",
+      "value": "Protobuf",
+      "surface_hint": "Kreznak Signal encodes payloads with Protobuf"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0079",
+      "entity": "Kreznak Signal",
+      "attribute": "compression",
+      "value": "lz4",
+      "surface_hint": "Kreznak Signal compresses data with lz4"
+    },
+    {
+      "kind": "atomic",
+      "id": "f-atomic-0080",
+      "entity": "Kreznak Signal",
+      "attribute": "handshake_duration_s",
+      "value": "1",
+      "surface_hint": "Kreznak Signal handshake takes 1 seconds"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0001",
+      "subject": "Glorbulon Protocol",
+      "predicate": "interoperates_with",
+      "object": "Wexmar Session",
+      "surface_hint": "Glorbulon Protocol interoperates with Wexmar Session"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0002",
+      "subject": "Glorbulon Protocol",
+      "predicate": "tunnels_through",
+      "object": "Snorblath Protocol",
+      "surface_hint": "Glorbulon Protocol tunnels through Snorblath Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0003",
+      "subject": "Glorbulon Protocol",
+      "predicate": "depends_on",
+      "object": "Dargwave Transport",
+      "surface_hint": "Glorbulon Protocol depends on Dargwave Transport"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0004",
+      "subject": "Glorbulon Protocol",
+      "predicate": "authenticates_via",
+      "object": "Froznet v2",
+      "surface_hint": "Glorbulon Protocol authenticates via Froznet v2"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0005",
+      "subject": "Froznet v2",
+      "predicate": "depends_on",
+      "object": "Viznet Exchange",
+      "surface_hint": "Froznet v2 depends on Viznet Exchange"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0006",
+      "subject": "Froznet v2",
+      "predicate": "tunnels_through",
+      "object": "Dargwave Transport",
+      "surface_hint": "Froznet v2 tunnels through Dargwave Transport"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0007",
+      "subject": "Froznet v2",
+      "predicate": "interoperates_with",
+      "object": "Kreznak Signal",
+      "surface_hint": "Froznet v2 interoperates with Kreznak Signal"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0008",
+      "subject": "Froznet v2",
+      "predicate": "authenticates_via",
+      "object": "Borghyl Control",
+      "surface_hint": "Froznet v2 authenticates via Borghyl Control"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0009",
+      "subject": "Snorblath Protocol",
+      "predicate": "wraps",
+      "object": "Plirnode Framework",
+      "surface_hint": "Snorblath Protocol wraps Plirnode Framework"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0010",
+      "subject": "Snorblath Protocol",
+      "predicate": "interoperates_with",
+      "object": "Kreznak Signal",
+      "surface_hint": "Snorblath Protocol interoperates with Kreznak Signal"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0011",
+      "subject": "Snorblath Protocol",
+      "predicate": "extends",
+      "object": "Froznet v2",
+      "surface_hint": "Snorblath Protocol extends Froznet v2"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0012",
+      "subject": "Snorblath Protocol",
+      "predicate": "supersedes",
+      "object": "Wexmar Session",
+      "surface_hint": "Snorblath Protocol supersedes Wexmar Session"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0013",
+      "subject": "Viznet Exchange",
+      "predicate": "depends_on",
+      "object": "Plirnode Framework",
+      "surface_hint": "Viznet Exchange depends on Plirnode Framework"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0014",
+      "subject": "Viznet Exchange",
+      "predicate": "tunnels_through",
+      "object": "Glorbulon Protocol",
+      "surface_hint": "Viznet Exchange tunnels through Glorbulon Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0015",
+      "subject": "Viznet Exchange",
+      "predicate": "wraps",
+      "object": "Querban Layer",
+      "surface_hint": "Viznet Exchange wraps Querban Layer"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0016",
+      "subject": "Viznet Exchange",
+      "predicate": "extends",
+      "object": "Dargwave Transport",
+      "surface_hint": "Viznet Exchange extends Dargwave Transport"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0017",
+      "subject": "Dargwave Transport",
+      "predicate": "tunnels_through",
+      "object": "Kreznak Signal",
+      "surface_hint": "Dargwave Transport tunnels through Kreznak Signal"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0018",
+      "subject": "Dargwave Transport",
+      "predicate": "depends_on",
+      "object": "Viznet Exchange",
+      "surface_hint": "Dargwave Transport depends on Viznet Exchange"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0019",
+      "subject": "Dargwave Transport",
+      "predicate": "supersedes",
+      "object": "Wexmar Session",
+      "surface_hint": "Dargwave Transport supersedes Wexmar Session"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0020",
+      "subject": "Dargwave Transport",
+      "predicate": "wraps",
+      "object": "Glorbulon Protocol",
+      "surface_hint": "Dargwave Transport wraps Glorbulon Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0021",
+      "subject": "Querban Layer",
+      "predicate": "authenticates_via",
+      "object": "Borghyl Control",
+      "surface_hint": "Querban Layer authenticates via Borghyl Control"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0022",
+      "subject": "Querban Layer",
+      "predicate": "interoperates_with",
+      "object": "Plirnode Framework",
+      "surface_hint": "Querban Layer interoperates with Plirnode Framework"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0023",
+      "subject": "Querban Layer",
+      "predicate": "depends_on",
+      "object": "Froznet v2",
+      "surface_hint": "Querban Layer depends on Froznet v2"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0024",
+      "subject": "Querban Layer",
+      "predicate": "extends",
+      "object": "Glorbulon Protocol",
+      "surface_hint": "Querban Layer extends Glorbulon Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0025",
+      "subject": "Wexmar Session",
+      "predicate": "supersedes",
+      "object": "Querban Layer",
+      "surface_hint": "Wexmar Session supersedes Querban Layer"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0026",
+      "subject": "Wexmar Session",
+      "predicate": "wraps",
+      "object": "Plirnode Framework",
+      "surface_hint": "Wexmar Session wraps Plirnode Framework"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0027",
+      "subject": "Wexmar Session",
+      "predicate": "depends_on",
+      "object": "Glorbulon Protocol",
+      "surface_hint": "Wexmar Session depends on Glorbulon Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0028",
+      "subject": "Wexmar Session",
+      "predicate": "authenticates_via",
+      "object": "Dargwave Transport",
+      "surface_hint": "Wexmar Session authenticates via Dargwave Transport"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0029",
+      "subject": "Plirnode Framework",
+      "predicate": "depends_on",
+      "object": "Snorblath Protocol",
+      "surface_hint": "Plirnode Framework depends on Snorblath Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0030",
+      "subject": "Plirnode Framework",
+      "predicate": "authenticates_via",
+      "object": "Dargwave Transport",
+      "surface_hint": "Plirnode Framework authenticates via Dargwave Transport"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0031",
+      "subject": "Plirnode Framework",
+      "predicate": "supersedes",
+      "object": "Borghyl Control",
+      "surface_hint": "Plirnode Framework supersedes Borghyl Control"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0032",
+      "subject": "Plirnode Framework",
+      "predicate": "tunnels_through",
+      "object": "Froznet v2",
+      "surface_hint": "Plirnode Framework tunnels through Froznet v2"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0033",
+      "subject": "Borghyl Control",
+      "predicate": "supersedes",
+      "object": "Plirnode Framework",
+      "surface_hint": "Borghyl Control supersedes Plirnode Framework"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0034",
+      "subject": "Borghyl Control",
+      "predicate": "extends",
+      "object": "Viznet Exchange",
+      "surface_hint": "Borghyl Control extends Viznet Exchange"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0035",
+      "subject": "Borghyl Control",
+      "predicate": "interoperates_with",
+      "object": "Wexmar Session",
+      "surface_hint": "Borghyl Control interoperates with Wexmar Session"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0036",
+      "subject": "Borghyl Control",
+      "predicate": "authenticates_via",
+      "object": "Kreznak Signal",
+      "surface_hint": "Borghyl Control authenticates via Kreznak Signal"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0037",
+      "subject": "Kreznak Signal",
+      "predicate": "interoperates_with",
+      "object": "Wexmar Session",
+      "surface_hint": "Kreznak Signal interoperates with Wexmar Session"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0038",
+      "subject": "Kreznak Signal",
+      "predicate": "depends_on",
+      "object": "Snorblath Protocol",
+      "surface_hint": "Kreznak Signal depends on Snorblath Protocol"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0039",
+      "subject": "Kreznak Signal",
+      "predicate": "tunnels_through",
+      "object": "Borghyl Control",
+      "surface_hint": "Kreznak Signal tunnels through Borghyl Control"
+    },
+    {
+      "kind": "relational",
+      "id": "f-rel-0040",
+      "subject": "Kreznak Signal",
+      "predicate": "wraps",
+      "object": "Dargwave Transport",
+      "surface_hint": "Kreznak Signal wraps Dargwave Transport"
+    }
+  ]
+}

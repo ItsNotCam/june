@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "name": "glorbulon-v1",
+  "fixture_id": "VZJWC40R0WZG024SRQ7368QSMM",
+  "fixture_hash": "dd68e4e27c464cc7f85d32a1de20c6bd9b8737da33c6db4fd88bcb5866156819",
+  "domain": "Glorbulon Protocol",
+  "seed": 31337,
+  "authoring": {
+    "facts": "deterministic",
+    "corpus_author": {
+      "provider": "claude-code-agent",
+      "model": "claude-sonnet-4-6"
+    },
+    "query_author": {
+      "provider": "claude-code-agent",
+      "model": "claude-opus-4-8"
+    },
+    "anti_collusion": true
+  },
+  "query_count": 30,
+  "per_tier_counts": {
+    "T1": 6,
+    "T2": 6,
+    "T3": 6,
+    "T4": 6,
+    "T5": 6
+  },
+  "anti_leakage": {
+    "threshold": 0.4,
+    "max_score": 0.375,
+    "mean_score": 0.19982716117477037,
+    "scored_count": 18
+  },
+  "files": [
+    {
+      "path": "corpus/borghyl-control.md",
+      "sha256": "5fd53de7d3cd7105ec9babf79fd1683bdf362405cbe491e938e7dec2d86fa39c"
+    },
+    {
+      "path": "corpus/dargwave-transport.md",
+      "sha256": "5fbef884aa32bc4ce749b4f95d81f47aaf265d7786e2ca800ebb391305874f05"
+    },
+    {
+      "path": "corpus/froznet-v2.md",
+      "sha256": "65a93ea6f5ae05c2e9a4e768365382814e678652202109533ccd399a894d4a7e"
+    },
+    {
+      "path": "corpus/glorbulon-protocol.md",
+      "sha256": "38951bacb3b639dd735caa90c6fd3ea5ec5ef738dd3e5b582467b1dd6aa5333b"
+    },
+    {
+      "path": "corpus/kreznak-signal.md",
+      "sha256": "4291a4530d98787995e93a378b8f68223f872b0c07a29b2b7329fa474055ad10"
+    },
+    {
+      "path": "corpus/plirnode-framework.md",
+      "sha256": "fe0aeff3298ff8087083496e0c183a8dcbdd9f10e5eaa1016ba38c5cf6e659d6"
+    },
+    {
+      "path": "corpus/querban-layer.md",
+      "sha256": "da351e33e1d0df839f4b45f51661b218a9dc008a5de272ac7f26d0d1df015ca4"
+    },
+    {
+      "path": "corpus/snorblath-protocol.md",
+      "sha256": "cc2b41183283fd395f66da552a328169f76dfd64ce8f7ba5529322e4c14aa058"
+    },
+    {
+      "path": "corpus/viznet-exchange.md",
+      "sha256": "63ab282d58b44d73af75108b1ffd3ea5aeb80b8b94d30ccc95ce17325f0d894d"
+    },
+    {
+      "path": "corpus/wexmar-session.md",
+      "sha256": "7ef2b91f19b647581ee706b81dac5ab9bbd0dbb3ab393929a95529ccb782c538"
+    },
+    {
+      "path": "corpus_manifest.json",
+      "sha256": "bae9bdfd09ba0aed4b13934a3498ae3f91dc5882f074e4c45322ca4b9776d7f4"
+    },
+    {
+      "path": "facts.json",
+      "sha256": "83910aad673d3fe70f3988f5ee363a6fe1d163eed6c7d8041812c129da21af16"
+    },
+    {
+      "path": "queries.json",
+      "sha256": "e756bd4e0b31428f0e63d12f545b67e3dd77b0489006cb6c22397909b5acf31e"
+    }
+  ],
+  "frozen_at": "2026-06-17T19:26:21.143Z",
+  "human_signoff": "cam — RSI Phase 3 (sonnet corpus / opus queries)",
+  "note": "First canonical frozen fixture: agent-authored, no API, anti-collusion clean. seed 31337, glorbulon-protocol domain, T1-T5 (30 queries)."
+}
