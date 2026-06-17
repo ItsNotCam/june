@@ -98,6 +98,18 @@ export class JudgeBatchExpiredError extends Error {
   }
 }
 
+/** Judge calibration gate failed — Cohen's κ vs the human gold set is below the threshold (Phase 5). Exit 3. */
+export class JudgeCalibrationError extends Error {
+  constructor(
+    message: string,
+    readonly cohens_kappa: number,
+    readonly min_kappa: number,
+  ) {
+    super(message);
+    this.name = "JudgeCalibrationError";
+  }
+}
+
 /** Budget cap exceeded — accumulated cost exceeds `config.cost.max_budget_usd`. Exit 3. */
 export class BudgetExceededError extends Error {
   constructor(

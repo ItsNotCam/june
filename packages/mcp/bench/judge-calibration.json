@@ -1,0 +1,68 @@
+{
+  "claude-sonnet-4-6::cbba4ecceba82690f09209b76e1fd9b8aa5306f6e54b04b1d0d7a8850d4b3e77": {
+    "schema_version": 1,
+    "judge": {
+      "kind": "claude-code-agent",
+      "model": "claude-sonnet-4-6",
+      "prompt_template_hash": "cbba4ecceba82690f09209b76e1fd9b8aa5306f6e54b04b1d0d7a8850d4b3e77"
+    },
+    "gold_set_hash": "798e50c581030bd214a94e793e1f19df71cf92d21b3d637b22a505b132e69f7b",
+    "n": 40,
+    "cohens_kappa": 1,
+    "raw_agreement": 1,
+    "lenient_agreement": 1,
+    "min_kappa": 0.7,
+    "passed": true,
+    "per_class": {
+      "CORRECT": {
+        "support": 8,
+        "agree": 8
+      },
+      "INCORRECT": {
+        "support": 8,
+        "agree": 8
+      },
+      "HALLUCINATED": {
+        "support": 8,
+        "agree": 8
+      },
+      "REFUSED": {
+        "support": 8,
+        "agree": 8
+      },
+      "PARTIAL": {
+        "support": 8,
+        "agree": 8
+      }
+    },
+    "confusion": [
+      {
+        "a": "CORRECT",
+        "b": "CORRECT",
+        "count": 8
+      },
+      {
+        "a": "HALLUCINATED",
+        "b": "HALLUCINATED",
+        "count": 8
+      },
+      {
+        "a": "INCORRECT",
+        "b": "INCORRECT",
+        "count": 8
+      },
+      {
+        "a": "PARTIAL",
+        "b": "PARTIAL",
+        "count": 8
+      },
+      {
+        "a": "REFUSED",
+        "b": "REFUSED",
+        "count": 8
+      }
+    ],
+    "judged_at": "2026-06-17T20:41:13.441Z",
+    "note": "Initial Phase 5 calibration: claude-sonnet-4-6 agent judge vs the 40-case human gold set."
+  }
+}

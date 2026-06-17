@@ -57,6 +57,10 @@ fixtures/
 # sets — re-include that one location (its `.lock` proves it never drifts).
 !packages/mcp/bench/fixtures/
 !packages/mcp/bench/fixtures/**
+# …and the committed judge test fixtures (grounding cases + the Phase-5 calibration
+# gold set + recorded verdicts) — test data, tracked despite the broad `fixtures/` rule.
+!packages/mcp/bench/__test__/judge/fixtures/
+!packages/mcp/bench/__test__/judge/fixtures/**
 
 # bench local state — runs, june scratch SQLite + Qdrant config, and the
 # LLM response cache all live under packages/mcp/bench/state/. The dir
@@ -74,6 +78,9 @@ packages/mcp/bench/state/scaffold/
 packages/mcp/bench/state/holdout-src/
 packages/mcp/bench/state/holdout-split/
 packages/mcp/bench/state/holdout-fixture/
+# Phase 5 judge-calibration build scratch (gold-merge, emitted tasks, agent verdicts).
+# The COMMITTED gold + recorded verdicts live under __test__/judge/fixtures/.
+packages/mcp/bench/state/calibration-build/
 
 # Claude
 .intermediary/

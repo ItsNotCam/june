@@ -17,12 +17,14 @@ import {
   runRunHoldout,
   runScoreHoldout,
 } from "./holdout";
+import { runValidateJudge } from "./validate-judge";
 import { runHealth } from "./health";
 import { logger } from "@/lib/logger";
 import {
   BudgetExceededError,
   IntegrityViolationError,
   JudgeBatchExpiredError,
+  JudgeCalibrationError,
   JudgeIntegrityError,
   LockContentionError,
   OperatorAbortError,
@@ -67,6 +69,7 @@ COMMANDS
   verify-holdout   re-check a frozen holdout against its lock
   run-holdout      run the sealed real-doc holdout (doc-level retrieval + reader)
   score-holdout    finalize an awaiting-verdicts holdout from external verdicts
+  validate-judge  calibrate the LLM judge vs a human gold set (Cohen's κ gate)
   health      provider + june + qdrant reachability probe
 
 See \`june-eval <command> --help\` for command-specific flags.
@@ -118,6 +121,8 @@ const dispatch = async (argv: readonly string[]): Promise<void> => {
       return runRunHoldout(rest);
     case "score-holdout":
       return runScoreHoldout(rest);
+    case "validate-judge":
+      return runValidateJudge(rest);
     case "health":
       return runHealth(rest);
     default:
@@ -132,6 +137,7 @@ const exitFor = (err: unknown): number => {
     err instanceof IntegrityViolationError ||
     err instanceof JudgeIntegrityError ||
     err instanceof JudgeBatchExpiredError ||
+    err instanceof JudgeCalibrationError ||
     err instanceof BudgetExceededError
   ) {
     return EXIT_CODE.INTEGRITY_OR_BUDGET;

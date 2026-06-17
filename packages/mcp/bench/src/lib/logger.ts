@@ -104,6 +104,10 @@ export type BenchLogFields = {
   answerable_recall_at_5?: number;
   reader_rag_correct_pct?: number;
   recall_at_5?: number;
+  // Judge calibration (Phase 5): validate-judge emit / score.
+  prompt_template_hash?: string;
+  cohens_kappa?: number;
+  passed?: boolean;
 };
 
 /**

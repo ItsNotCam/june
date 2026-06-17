@@ -7,6 +7,7 @@ import { QUERY_TIERS } from "@/types/query";
 import { NoiseFloorFileSchema, type NoiseFloorFile } from "@/types/noise-floor";
 import { readJson, fileExists } from "@/lib/artifacts";
 import { HOLDOUT_RESULTS_FILENAME } from "@/lib/holdout-paths";
+import { calibrationStatus } from "@/lib/calibration";
 import { UsageError, OperatorAbortError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { bootstrap, parseArgv, flagString } from "./shared";
@@ -223,6 +224,41 @@ const assertNotHoldout = async (run_dir: string, verb: string): Promise<void> =>
   }
 };
 
+/**
+ * Phase 5 licensing gate: a golden may only be pinned with a judge whose identity
+ * (model + prompt hash) has a PASSING Cohen's-κ calibration against the current
+ * human gold set. This is what makes the agent judge's verdicts trustworthy
+ * enough to define "expected results" — without it, the gate would bless a
+ * baseline produced by an uncalibrated judge. `external`/empty judge identities
+ * (a run still `awaiting_verdicts`) are caught earlier by `assertCompleted`.
+ */
+const assertJudgeCalibrated = async (
+  results: ResultsFile,
+  flags: Record<string, string | boolean>,
+): Promise<void> => {
+  const judge = results.manifest.roles.judge;
+  const status = await calibrationStatus(
+    { model: judge.model, prompt_template_hash: judge.prompt_template_hash },
+    {
+      ...(flagString(flags, "calibration-file") !== undefined
+        ? { registryPath: resolve(flagString(flags, "calibration-file")!) }
+        : {}),
+      ...(flagString(flags, "gold-set") !== undefined
+        ? { goldPath: resolve(flagString(flags, "gold-set")!) }
+        : {}),
+    },
+  );
+  if (!status.licensed) {
+    throw new UsageError(
+      `control-pin: judge "${judge.model}" is not licensed to certify a run — ${status.reason}. ` +
+        `Calibrate it first:\n` +
+        `  june-eval validate-judge emit  → judge the gold set with agents → \n` +
+        `  june-eval validate-judge score <verdicts.json>  (needs Cohen's κ ≥ threshold).\n` +
+        `Then re-pin. (Phase 5 judge-calibration gate.)`,
+    );
+  }
+};
+
 const assertControl = (results: ResultsFile, verb: string): void => {
   if (results.manifest.mode !== "control") {
     throw new UsageError(
@@ -323,6 +359,7 @@ export const runControlPin = async (argv: readonly string[]): Promise<void> => {
   )) as ResultsFile;
   assertControl(results, "control-pin");
   assertCompleted(results, "control-pin");
+  await assertJudgeCalibrated(results, flags);
 
   const { noise_floor, source } = await resolveNoiseFloor(flags, results.manifest.fixture_hash);
 
