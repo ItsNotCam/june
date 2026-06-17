@@ -209,7 +209,5 @@ Full rules: [.claude/rules/code-style.md](../rules/code-style.md),
 [.claude/rules/ui-style.md](../rules/ui-style.md), and
 [06 — Shared layer & conventions](./06-shared-and-conventions.md).
 
-The repo also runs an **authorship-tracking** system (a hook records Claude's
-per-file line contributions; commits are attributed accordingly) and a
-**reader-by-purpose** discipline for the bench. Both are documented in
-**[07 — Authorship & dev workflow](./07-authorship-and-workflow.md)**.
+The repo also follows a **reader-by-purpose** discipline for the bench, documented in
+**[07 — Dev workflow](./07-dev-workflow.md)**.

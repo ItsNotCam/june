@@ -23,7 +23,7 @@ aliases: [mcp-bench, june-eval]
 
 > ⚠️ **Bench is a gauge, not a goal.** The point is to optimize real RAG
 > comprehension, never the bench %. A change that helps the fast `iterate` reader but
-> regresses the `control` reader is overfit. See [07 — Dev workflow](./07-authorship-and-workflow.md).
+> regresses the `control` reader is overfit. See [07 — Dev workflow](./07-dev-workflow.md).
 
 ---
 

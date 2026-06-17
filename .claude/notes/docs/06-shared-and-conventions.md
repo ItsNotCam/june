@@ -145,5 +145,5 @@ inferred type in the same change. Schema and usage must never drift.
   `state/`, and `.mcp.json` (local paths/secrets).
 - **Lockfiles** — `bun.lock` is canonical (Bun is the runtime); a legacy `yarn.lock`
   lingers.
-- **`scripts/`** — the authorship + reader-mode tooling, documented in
-  [07 — Authorship & dev workflow](./07-authorship-and-workflow.md).
+- **`scripts/`** — the reader-mode tooling, documented in
+  [07 — Dev workflow](./07-dev-workflow.md).

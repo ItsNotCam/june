@@ -33,7 +33,7 @@ Start with the architecture overview, then dive into whichever subsystem you nee
 | 04 | **[Frontend](./04-frontend.md)** — `@june/next` | The Next.js 16 app: the **Test Dashboard** (live bench runs over SSE), the **Ingest UI** (upload → index via the NDJSON web bridge), the **Preview** showcase, the theme system, and the spawn-a-child-and-stream backend pattern. |
 | 05 | **[MCP Server](./05-mcp-server.md)** — `@june/mcp-server` | The MCP scaffold: working stdio tools (`hello-world`, `embed`), and the designed-but-unwired pipeline integration + HTTP transport. |
 | 06 | **[Shared Layer & Conventions](./06-shared-and-conventions.md)** — `@june/shared` | The `createEnv` / `createConfig` / `createLogger` factories every package extends, plus the repo-wide coding standards (Zod boundaries, no-`any`, concurrency rules, the parity rule). |
-| 07 | **[Authorship & Dev Workflow](./07-authorship-and-workflow.md)** | The authorship-tracking system (hook → JSONL → commit attribution), the conventional-commit workflow, the README-after-commit rule, and the bench reader-mode discipline. |
+| 07 | **[Dev Workflow](./07-dev-workflow.md)** | The conventional-commit workflow, the README-after-commit rule, and the bench reader-mode discipline. |
 | 08 | **[Planning, Research & Results](./08-planning-artifacts.md)** | An index of the specs, research briefs, diagnostic findings, and benchmark results under `.claude/` and the repo root — the *why* behind the code. |
 
 ---
@@ -83,8 +83,8 @@ Start with the architecture overview, then dive into whichever subsystem you nee
 - Conventions and the `lib/env.ts` / `lib/config.ts` / `lib/logger.ts` patterns live in
   [06 — Shared Layer & Conventions](./06-shared-and-conventions.md); the enforcing
   rules are in [`.claude/rules/`](../rules/).
-- Before committing, run `bash scripts/check-authorship.sh` and follow
-  [07 — Authorship & Dev Workflow](./07-authorship-and-workflow.md).
+- Commit conventions and the README-after-commit rule are in
+  [07 — Dev Workflow](./07-dev-workflow.md).
 - Running the bench? Declare your intent (`--mode iterate` vs `--mode control`) — see
   [03 §3](./03-bench-evaluation.md#3-reader-by-purpose-the-iterate--control-discipline).
   **Bench is a gauge, not a goal.**

@@ -80,11 +80,9 @@ The bottleneck diagnosis is corroborated by memory *[Reader is the T2 bottleneck
   0.38 → 1.00 after fixing three compounding bugs (parent/child chunk duplication;
   missing `query:` prefix on the asymmetric embedder; polluted contextual summaries
   echoing the prompt). The retrieval-quality turning point.
-- [`README.md`](../../README.md) — project overview + AI-usage/authorship disclosure.
+- [`README.md`](../../README.md) — project overview + AI-usage disclosure.
 - `.claude/synopsis.md` — full project synopsis (problem, solution, architecture, query
   modes, roadmap).
-- `.claude/assets/authorship-chart.svg` — file-ownership visualization (embedded in the
-  root README).
 
 ---
 
