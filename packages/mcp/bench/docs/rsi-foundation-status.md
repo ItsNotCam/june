@@ -12,10 +12,22 @@ build the optimizer). A hard constraint: **the bench makes no LLM API calls** �
 judge *tasks*, a Claude Code orchestrator's **Sonnet agents** judge out-of-process, and the
 bench scores the returned verdicts.
 
-Full context: [`rsi-foundation-plan.md`](./rsi-foundation-plan.md) (audit + research dossier +
-8-phase roadmap + critical files + verification). Per-phase history with commit hashes:
-[`.claude/diary/rsi-bench-foundation/`](../../../.claude/diary/rsi-bench-foundation/). Judging
-protocol: [`../JUDGE-RUNNER.md`](../JUDGE-RUNNER.md). Discipline: [`../CLAUDE.md`](../CLAUDE.md).
+**Full context lives in this `docs/` folder — read these to make the right Phase 2–7 calls:**
+- [`rsi-foundation-plan.md`](./rsi-foundation-plan.md) — the approved plan (8-phase roadmap,
+  critical files, verification, decisions).
+- [`rsi-research-dossier.md`](./rsi-research-dossier.md) — **the deep research that backs every
+  design choice**: RSI best practices (the evaluator IS the optimization pressure; Goodhart /
+  specification gaming), automated-testing methodology (golden/metamorphic/property tests,
+  statistical testing of non-deterministic systems), LLM-as-judge reliability (bias, Cohen's κ,
+  calibration), RAG-eval metrics (recall@k/MRR/nDCG, faithfulness, RAGAS/ARES/BEIR), and a
+  **Top-15 cross-cutting recommendations** list — all with cited sources/URLs.
+- [`bench-audit-findings.md`](./bench-audit-findings.md) — the full audit (eval-harness validity
+  + corpus/retriever), the reasoning behind each phase.
+- [`../JUDGE-RUNNER.md`](../JUDGE-RUNNER.md) — the orchestrator judging protocol.
+- [`../CLAUDE.md`](../CLAUDE.md) — reader-by-purpose discipline + Goodhart warnings.
+
+Per-phase history with commit hashes:
+[`.claude/diary/rsi-bench-foundation/`](../../../.claude/diary/rsi-bench-foundation/).
 
 ## Status
 
