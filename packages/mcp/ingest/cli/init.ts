@@ -1,9 +1,9 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
-import { createOllamaEmbedder } from "@/lib/embedder/ollama";
-import { logger } from "@/lib/logger";
-import { createQdrantStorage } from "@/lib/storage/qdrant";
-import { openSidecar } from "@/lib/storage/sqlite/migrate";
+import { getConfig } from "#internal/lib/config";
+import { createOllamaEmbedder } from "#internal/lib/embedder/ollama";
+import { logger } from "#internal/lib/logger";
+import { createQdrantStorage } from "#internal/lib/storage/qdrant";
+import { openSidecar } from "#internal/lib/storage/sqlite/migrate";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

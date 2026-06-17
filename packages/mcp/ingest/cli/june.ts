@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // author: Claude
-import { logger } from "@/lib/logger";
-import { installSignalHandlers } from "@/lib/shutdown";
+import { logger } from "#internal/lib/logger";
+import { installSignalHandlers } from "#internal/lib/shutdown";
 import { runBench } from "./bench";
 import { runHealth } from "./health";
 import { runIngest } from "./ingest";
@@ -131,4 +131,9 @@ const main = async (): Promise<void> => {
   process.exit(code);
 };
 
-void main();
+// Only auto-run when invoked as the entrypoint (the `june` bin). Guarding this
+// lets other packages import the public surface (which re-exports `runCli`)
+// without the CLI executing and calling process.exit on import.
+if (import.meta.main) {
+  void main();
+}

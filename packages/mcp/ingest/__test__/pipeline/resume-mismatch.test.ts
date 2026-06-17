@@ -23,6 +23,7 @@ const makeInMemoryVector = (): VectorStorage => {
   return {
     name: "memory",
     ensureCollections: async () => {},
+    search: async () => [],
     upsert: async (points) => {
       for (const p of points) {
         const m = pointsByCollection.get(p.collection) ?? new Map<string, VectorPoint>();

@@ -1,8 +1,8 @@
 // author: Claude
-import { buildDeps } from "@/pipeline/factory";
-import { resumeRun } from "@/pipeline/resume";
-import { SidecarLockHeldError } from "@/lib/errors";
-import { createProgressReporter, createSilentReporter } from "@/lib/progress";
+import { buildDeps } from "#internal/pipeline/factory";
+import { resumeRun } from "#internal/pipeline/resume";
+import { SidecarLockHeldError } from "#internal/lib/errors";
+import { createProgressReporter, createSilentReporter } from "#internal/lib/progress";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

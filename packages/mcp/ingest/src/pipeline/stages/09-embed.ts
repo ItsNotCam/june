@@ -1,11 +1,11 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
-import { bm25Vectorize, type SparseVector } from "@/lib/embedder/bm25";
-import { logger } from "@/lib/logger";
-import type { Embedder } from "@/lib/embedder/types";
-import type { SidecarStorage, Tx } from "@/lib/storage/types";
-import type { Document } from "@/types/document";
-import type { RunId } from "@/types/ids";
+import { getConfig } from "#internal/lib/config";
+import { bm25Vectorize, type SparseVector } from "#internal/lib/embedder/bm25";
+import { logger } from "#internal/lib/logger";
+import type { Embedder } from "#internal/lib/embedder/types";
+import type { SidecarStorage, Tx } from "#internal/lib/storage/types";
+import type { Document } from "#internal/types/document";
+import type { RunId } from "#internal/types/ids";
 import type { EmbedReadyChunk } from "./08-embed-text";
 
 /**

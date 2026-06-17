@@ -1,10 +1,10 @@
 // author: Claude
 import { fileURLToPath } from "node:url";
-import { buildDeps } from "@/pipeline/factory";
-import { SidecarLockHeldError } from "@/lib/errors";
-import { ingestPath } from "@/pipeline/ingest";
-import { purge } from "@/pipeline/purge";
-import { asDocId } from "@/types/ids";
+import { buildDeps } from "#internal/pipeline/factory";
+import { SidecarLockHeldError } from "#internal/lib/errors";
+import { ingestPath } from "#internal/pipeline/ingest";
+import { purge } from "#internal/pipeline/purge";
+import { asDocId } from "#internal/types/ids";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

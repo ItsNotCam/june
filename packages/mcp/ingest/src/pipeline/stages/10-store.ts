@@ -1,10 +1,10 @@
 // author: Claude
-import { chunkIdToQdrantPointId } from "@/lib/ids";
-import { logger } from "@/lib/logger";
-import type { SidecarStorage, Tx, VectorPoint, VectorStorage } from "@/lib/storage/types";
-import type { Chunk } from "@/types/chunk";
-import type { Document } from "@/types/document";
-import type { ChunkId, RunId, Version } from "@/types/ids";
+import { chunkIdToQdrantPointId } from "#internal/lib/ids";
+import { logger } from "#internal/lib/logger";
+import type { SidecarStorage, Tx, VectorPoint, VectorStorage } from "#internal/lib/storage/types";
+import type { Chunk } from "#internal/types/chunk";
+import type { Document } from "#internal/types/document";
+import type { ChunkId, RunId, Version } from "#internal/types/ids";
 import type { EmbeddedChunk } from "./09-embed";
 
 /**

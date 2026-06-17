@@ -1,5 +1,5 @@
 // author: Claude
-import { getConfig } from "@/lib/config";
+import { getConfig } from "#internal/lib/config";
 
 /**
  * Client-side BM25 sparse-vector generation ([§22.3](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#223-sparse-bm25-vector-client-side)).

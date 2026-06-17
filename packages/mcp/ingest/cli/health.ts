@@ -1,5 +1,5 @@
 // author: Claude
-import { health } from "@/pipeline/health";
+import { health } from "#internal/pipeline/health";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

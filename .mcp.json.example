@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "june": {
+      "command": "/home/cam/.bun/bin/bun",
+      "args": [
+        "run",
+        "/home/cam/june/.claude/worktrees/mcp/packages/mcp/server/src/index.ts"
+      ],
+      "env": {
+        "OLLAMA_URL": "http://localhost:11434",
+        "QDRANT_URL": "http://localhost:6333",
+        "OLLAMA_EMBED_MODEL": "qwen3-embedding:4b",
+        "OLLAMA_CLASSIFIER_MODEL": "qwen2.5-coder:7b",
+        "OLLAMA_SUMMARIZER_MODEL": "qwen2.5-coder:7b",
+        "CONFIG_PATH": "/home/cam/june/.claude/worktrees/mcp/packages/mcp/server/config.example.yaml",
+        "INGEST_CONFIG_PATH": "/home/cam/june/.claude/worktrees/mcp/packages/mcp/server/june-ingest.config.yaml"
+      }
+    }
+  }
+}

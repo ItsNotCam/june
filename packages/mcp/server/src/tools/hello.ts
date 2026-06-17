@@ -1,6 +1,6 @@
 // author: Cam
 import z from "zod";
-import type { McpTool } from "@/types";
+import type { McpTool } from "../types";
 
 const inputSchema = { name: z.string().describe("Your name") };
 

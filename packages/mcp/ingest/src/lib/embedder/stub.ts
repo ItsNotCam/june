@@ -30,4 +30,5 @@ export const createStubEmbedder = (dim: number = DEFAULT_DIM): Embedder => ({
   dim,
   max_input_chars: 30_000,
   embed: async (texts) => texts.map((t) => textToVector(t, dim)),
+  unload: async () => {},
 });

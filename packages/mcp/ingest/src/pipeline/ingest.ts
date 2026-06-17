@@ -3,11 +3,11 @@ import { readdir, stat } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ulid } from "ulid";
-import { logger } from "@/lib/logger";
-import { startHeartbeat } from "@/lib/lock";
-import { createSilentReporter, type ProgressReporter } from "@/lib/progress";
-import { isShutdownRequested } from "@/lib/shutdown";
-import { asRunId, asVersion } from "@/types/ids";
+import { logger } from "#internal/lib/logger";
+import { startHeartbeat } from "#internal/lib/lock";
+import { createSilentReporter, type ProgressReporter } from "#internal/lib/progress";
+import { isShutdownRequested } from "#internal/lib/shutdown";
+import { asRunId, asVersion } from "#internal/types/ids";
 import { runStage1, runStage1FromContent } from "./stages/01-discover";
 import { runStage2 } from "./stages/02-parse";
 import { runStage3 } from "./stages/03-chunk";
@@ -16,9 +16,9 @@ import { runStage8 } from "./stages/08-embed-text";
 import { runStage9 } from "./stages/09-embed";
 import { runStage10 } from "./stages/10-store";
 import type { Stage1Result } from "./stages/01-discover";
-import type { Document } from "@/types/document";
-import type { RunId, Version } from "@/types/ids";
-import type { IngestionRun } from "@/types/run";
+import type { Document } from "#internal/types/document";
+import type { RunId, Version } from "#internal/types/ids";
+import type { IngestionRun } from "#internal/types/run";
 import type { PipelineDeps } from "./factory";
 
 /**
@@ -417,6 +417,9 @@ export const ingestPath = async (opts: IngestOptions): Promise<IngestResult> => 
     heartbeat.stop();
     progress.close();
     await sidecar.releaseWriteLock(runId);
+    // Free the embed model's VRAM at the run boundary so a downstream reader
+    // (gemma) never contends with it. Best-effort — unload() never throws.
+    await opts.deps.embedder.unload();
   }
 };
 
@@ -541,5 +544,8 @@ export const ingestContent = async (
     heartbeat.stop();
     progress.close();
     await sidecar.releaseWriteLock(runId);
+    // Free the embed model's VRAM at the run boundary so a downstream reader
+    // (gemma) never contends with it. Best-effort — unload() never throws.
+    await opts.deps.embedder.unload();
   }
 };

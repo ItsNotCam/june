@@ -8,7 +8,7 @@
  * the branded ID constructors.
  */
 
-import type { ChunkId, RunId, SectionId } from "@/types/ids";
+import type { ChunkId, RunId, SectionId } from "#internal/types/ids";
 
 /**
  * Stage 2 encoding detection failed (BOM absent, UTF-8 strict decode threw,

@@ -1,6 +1,6 @@
 // author: Claude
-import { renderPrompt } from "@/lib/prompts";
-import type { DocumentOutline } from "@/schemas/classifier";
+import { renderPrompt } from "#internal/lib/prompts";
+import type { DocumentOutline } from "#internal/schemas/classifier";
 
 /**
  * Prompt builders for Stage 6 ([§19.2](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#192-prompt-template), Appendix C). Each thin wrapper

@@ -1,15 +1,15 @@
 // author: Claude
 import type { Root as MdastRoot } from "mdast";
-import { sectionize } from "@/lib/chunker/sectionize";
-import { chunkSection } from "@/lib/chunker/split";
-import { getConfig } from "@/lib/config";
-import { deriveChunkId, deriveContentHash } from "@/lib/ids";
-import { logger } from "@/lib/logger";
-import type { Chunk } from "@/types/chunk";
-import type { Document } from "@/types/document";
-import type { ChunkedDocument, ParsedDocument, UnclassifiedChunk } from "@/types/pipeline";
-import type { Section } from "@/types/section";
-import type { SidecarStorage, Tx } from "@/lib/storage/types";
+import { sectionize } from "#internal/lib/chunker/sectionize";
+import { chunkSection } from "#internal/lib/chunker/split";
+import { getConfig } from "#internal/lib/config";
+import { deriveChunkId, deriveContentHash } from "#internal/lib/ids";
+import { logger } from "#internal/lib/logger";
+import type { Chunk } from "#internal/types/chunk";
+import type { Document } from "#internal/types/document";
+import type { ChunkedDocument, ParsedDocument, UnclassifiedChunk } from "#internal/types/pipeline";
+import type { Section } from "#internal/types/section";
+import type { SidecarStorage, Tx } from "#internal/lib/storage/types";
 
 /**
  * Stage 3 — Structural Chunking ([§16](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#16-stage-3--structural-chunking)).

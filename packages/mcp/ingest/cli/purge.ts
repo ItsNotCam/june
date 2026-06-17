@@ -1,8 +1,8 @@
 // author: Claude
-import { buildDeps } from "@/pipeline/factory";
-import { purge } from "@/pipeline/purge";
-import { SidecarLockHeldError } from "@/lib/errors";
-import { asDocId } from "@/types/ids";
+import { buildDeps } from "#internal/pipeline/factory";
+import { purge } from "#internal/pipeline/purge";
+import { SidecarLockHeldError } from "#internal/lib/errors";
+import { asDocId } from "#internal/types/ids";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

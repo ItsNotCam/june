@@ -1,13 +1,13 @@
 // author: Claude
 import { Database } from "bun:sqlite";
 import { hostname } from "node:os";
-import { SidecarLockHeldError } from "@/lib/errors";
-import { logger } from "@/lib/logger";
-import { asChunkId, asDocId, asRunId, asSectionId, asVersion } from "@/types/ids";
-import type { Chunk } from "@/types/chunk";
-import type { Document } from "@/types/document";
-import type { Section } from "@/types/section";
-import type { ChunkStatus, DocumentStatus } from "@/types/vocab";
+import { SidecarLockHeldError } from "#internal/lib/errors";
+import { logger } from "#internal/lib/logger";
+import { asChunkId, asDocId, asRunId, asSectionId, asVersion } from "#internal/types/ids";
+import type { Chunk } from "#internal/types/chunk";
+import type { Document } from "#internal/types/document";
+import type { Section } from "#internal/types/section";
+import type { ChunkStatus, DocumentStatus } from "#internal/types/vocab";
 import type { SidecarStorage, Tx } from "../types";
 import { openSidecar } from "./migrate";
 

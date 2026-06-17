@@ -1,8 +1,8 @@
 // author: Claude
-import { loadConfig, getConfig } from "@/lib/config";
-import { getEnv } from "@/lib/env";
-import { setLogLevel, setPrettyMode } from "@/lib/logger";
-import { computeWhitelist, installOfflineGuard, verifyOffline } from "@/lib/offline-guard";
+import { loadConfig, getConfig } from "#internal/lib/config";
+import { getEnv } from "#internal/lib/env";
+import { setLogLevel, setPrettyMode } from "#internal/lib/logger";
+import { computeWhitelist, installOfflineGuard, verifyOffline } from "#internal/lib/offline-guard";
 
 /**
  * Common CLI flag parsing + startup. Every command calls `bootstrap(argv)`

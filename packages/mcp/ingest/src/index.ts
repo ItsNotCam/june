@@ -23,12 +23,12 @@ export type {
   SummarizerOutput,
   TypeSpecific,
   UnclassifiedChunk,
-} from "@/types";
+} from "#internal/types/index";
 
 // Branded IDs + constructors
-export { InvalidIdError } from "@/types";
-export type { ChunkId, DocId, RunId, SectionId, Version } from "@/types";
-export { asChunkId, asDocId, asRunId, asSectionId, asVersion } from "@/types";
+export { InvalidIdError } from "#internal/types/index";
+export type { ChunkId, DocId, RunId, SectionId, Version } from "#internal/types/index";
+export { asChunkId, asDocId, asRunId, asSectionId, asVersion } from "#internal/types/index";
 
 // Vocabularies
 export {
@@ -55,7 +55,7 @@ export {
   TAGS_DEFAULT,
   TEMPORAL_VALUES,
   TRUST_TIER_VALUES,
-} from "@/types";
+} from "#internal/types/index";
 export type {
   AnswerShape,
   Audience,
@@ -76,7 +76,7 @@ export type {
   SourceType,
   Stability,
   TemporalScope,
-} from "@/types";
+} from "#internal/types/index";
 
 // Schemas
 export {
@@ -90,7 +90,7 @@ export {
   type DocumentOutline,
   type Frontmatter,
   type SectionJson,
-} from "@/schemas";
+} from "#internal/schemas/index";
 
 // Errors (callers `instanceof`-check)
 export {
@@ -106,14 +106,14 @@ export {
   PromptTemplateError,
   QdrantWriteError,
   SidecarLockHeldError,
-} from "@/lib/errors";
+} from "#internal/lib/errors";
 
 // Canonical error_type vocabulary ([§25.6](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#256-error-type-vocabulary))
-export { ERROR_TYPE_VALUES, isErrorType, type ErrorType } from "@/lib/error-types";
+export { ERROR_TYPE_VALUES, isErrorType, type ErrorType } from "#internal/lib/error-types";
 
 // Config + env (singletons; callers that need to read go through these)
-export { getEnv, type Env } from "@/lib/env";
-export { getConfig, loadConfig, type Config } from "@/lib/config";
+export { getEnv, type Env } from "#internal/lib/env";
+export { getConfig, loadConfig, type Config } from "#internal/lib/config";
 
 // Storage — types are exported so consumers can build their own adapters
 export type {
@@ -121,12 +121,19 @@ export type {
   StorageInterface,
   Tx,
   VectorPoint,
+  VectorSearchHit,
+  VectorSearchQuery,
   VectorStorage,
-} from "@/lib/storage/types";
-export { createQdrantStorage, baseCollectionName } from "@/lib/storage/qdrant";
+} from "#internal/lib/storage/types";
+export { createQdrantStorage, baseCollectionName } from "#internal/lib/storage/qdrant";
+
+// Retrieval — the system-of-record query API (hybrid dense + BM25 → RRF)
+export { query, type QueryDeps, type QueryOptions } from "#internal/retriever/query";
+export { reciprocalRankFusion, type FusedHit } from "#internal/retriever/rrf";
+export type { RankSource, RetrievedChunk } from "#internal/types/retrieval";
 
 // Offline guard
-export { computeWhitelist, installOfflineGuard, verifyOffline } from "@/lib/offline-guard";
+export { computeWhitelist, installOfflineGuard, verifyOffline } from "#internal/lib/offline-guard";
 
 // Graceful shutdown ([§24.5](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#245-graceful-shutdown-per-i8) / I8)
 export {
@@ -134,7 +141,7 @@ export {
   isShutdownRequested,
   requestShutdown,
   signalReceived,
-} from "@/lib/shutdown";
+} from "#internal/lib/shutdown";
 
 // Progress reporter ([§27.4](../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#274-progress-output))
 export {
@@ -142,10 +149,10 @@ export {
   createSilentReporter,
   type ProgressReporter,
   type Stage as ProgressStage,
-} from "@/lib/progress";
+} from "#internal/lib/progress";
 
 // Logger type (value is module-scoped; callers inside the package import it directly)
-export type { LogFields, Logger } from "@/lib/logger";
+export type { LogFields, Logger } from "#internal/lib/logger";
 
 // Programmatic CLI entry point — same argv interface as the `june` binary
 export { runCli } from "../cli/june";
@@ -158,14 +165,14 @@ export {
   deriveContentHashBytes,
   deriveDocId,
   deriveSectionId,
-} from "@/lib/ids";
+} from "#internal/lib/ids";
 
 // Embedder interface (implementation factories land in Part III; v1 ships Ollama only)
-export type { Embedder } from "@/lib/embedder/types";
-export { createOllamaEmbedder } from "@/lib/embedder/ollama";
+export type { Embedder } from "#internal/lib/embedder/types";
+export { createOllamaEmbedder } from "#internal/lib/embedder/ollama";
 
 // Health probe
-export { health, type HealthReport } from "@/pipeline/health";
+export { health, type HealthReport } from "#internal/pipeline/health";
 
 // Pipeline entry points
 export {
@@ -174,20 +181,20 @@ export {
   type IngestOptions,
   type IngestContentOptions,
   type IngestResult,
-} from "@/pipeline/ingest";
-export { resumeRun, type ResumeOptions, type ResumeResult } from "@/pipeline/resume";
-export { reconcile, type ReconcileOptions, type ReconcileResult } from "@/pipeline/reconcile";
-export { reembed, type ReembedOptions, type ReembedResult } from "@/pipeline/reembed";
-export { purge, type PurgeOptions, type PurgeResult } from "@/pipeline/purge";
-export { buildDeps, type PipelineDeps, type PipelineOptions } from "@/pipeline/factory";
+} from "#internal/pipeline/ingest";
+export { resumeRun, type ResumeOptions, type ResumeResult } from "#internal/pipeline/resume";
+export { reconcile, type ReconcileOptions, type ReconcileResult } from "#internal/pipeline/reconcile";
+export { reembed, type ReembedOptions, type ReembedResult } from "#internal/pipeline/reembed";
+export { purge, type PurgeOptions, type PurgeResult } from "#internal/pipeline/purge";
+export { buildDeps, type PipelineDeps, type PipelineOptions } from "#internal/pipeline/factory";
 
 // SQLite sidecar factory (Qdrant factory already exported above)
-export { createSqliteSidecar } from "@/lib/storage/sqlite";
+export { createSqliteSidecar } from "#internal/lib/storage/sqlite/index";
 
 // Summarizer + embedder factories (Ollama prod, stub for tests)
-export { createOllamaSummarizer } from "@/lib/summarizer/ollama";
-export { createStubSummarizer } from "@/lib/summarizer/stub";
-export { createStubEmbedder } from "@/lib/embedder/stub";
+export { createOllamaSummarizer } from "#internal/lib/summarizer/ollama";
+export { createStubSummarizer } from "#internal/lib/summarizer/stub";
+export { createStubEmbedder } from "#internal/lib/embedder/stub";
 
 // Interfaces
-export type { Summarizer, SummarizerInput } from "@/lib/summarizer/types";
+export type { Summarizer, SummarizerInput } from "#internal/lib/summarizer/types";

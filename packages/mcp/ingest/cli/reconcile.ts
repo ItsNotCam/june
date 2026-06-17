@@ -1,7 +1,7 @@
 // author: Claude
-import { buildDeps } from "@/pipeline/factory";
-import { reconcile } from "@/pipeline/reconcile";
-import { SidecarLockHeldError } from "@/lib/errors";
+import { buildDeps } from "#internal/pipeline/factory";
+import { reconcile } from "#internal/pipeline/reconcile";
+import { SidecarLockHeldError } from "#internal/lib/errors";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

@@ -1,8 +1,8 @@
 // author: Claude
 import type { Root as MdastRoot, Heading } from "mdast";
-import { deriveContentHash, deriveSectionId } from "@/lib/ids";
-import type { DocId, Version } from "@/types/ids";
-import type { Section } from "@/types/section";
+import { deriveContentHash, deriveSectionId } from "#internal/lib/ids";
+import type { DocId, Version } from "#internal/types/ids";
+import type { Section } from "#internal/types/section";
 
 /**
  * Heading-aware sectioning ([§16.1](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#161-heading-based-sectioning-3a)). Walks the mdast root's direct children

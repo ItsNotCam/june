@@ -3,6 +3,11 @@
   "compilerOptions": {
     "types": ["bun"],
     "paths": {
+      // `#internal/*` is the package-scoped subpath alias used by src/ + cli/ —
+      // it resolves via package.json "imports" at runtime (Bun) AND for tsc, so
+      // the package is importable in-process by other workspace packages.
+      // `@/*` remains for __test__/ (tests run in-package, never consumed elsewhere).
+      "#internal/*": ["./src/*"],
       "@/*": ["./src/*"]
     }
   },

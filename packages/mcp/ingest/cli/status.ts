@@ -1,7 +1,7 @@
 // author: Claude
 import { Database } from "bun:sqlite";
-import { getConfig, loadConfig } from "@/lib/config";
-import { getEnv } from "@/lib/env";
+import { getConfig, loadConfig } from "#internal/lib/config";
+import { getEnv } from "#internal/lib/env";
 import { bootstrap, parseCommonFlags } from "./shared";
 
 /**

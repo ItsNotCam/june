@@ -1,0 +1,19 @@
+# @june/mcp-ingest config used by the MCP server (via INGEST_CONFIG_PATH).
+# Pins the SQLite sidecar to a stable absolute path so it doesn't depend on the
+# server's launch cwd.
+sidecar:
+  path: /home/cam/june/.claude/worktrees/mcp/packages/mcp/server/.june.db
+
+summarizer:
+  implementation: ollama
+
+embedding:
+  # Qwen3-Embedding-4B is natively 2560-dim (matryoshka). Truncate to 1024 for
+  # compact, fast Qdrant search — Qwen3 MRL is trained for clean truncation.
+  matryoshka_dim: 1024
+
+retrieval:
+  # Qwen3-Embedding wants an instruction on the QUERY side only (documents are
+  # embedded raw). june prepends this to the query before dense embedding; the
+  # newline before "Query:" is required by the Qwen3 prompt format.
+  query_prefix: "Instruct: Given a question, retrieve passages from the knowledge base that answer it\nQuery: "

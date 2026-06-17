@@ -33,6 +33,15 @@ embedding:
 bm25:
   stopwords: []                  # empty = rely on Qdrant IDF modifier
 
+retrieval:                       # hybrid query() / MCP search tunables
+  default_k: 5                   # chunks returned when caller omits k
+  fetch_multiplier: 2            # per-modality candidate depth = k * this, pre-fusion
+  dense_weight: 1                # RRF weight for the dense (embedding) modality
+  bm25_weight: 1                 # RRF weight for the sparse (keyword) modality
+  rank_constant: 60              # RRF damping constant (literature default)
+  query_prefix: "query: "        # asymmetric query-side prefix; "" disables
+  collections: [internal, external]  # which aliases query() searches
+
 classifier:
   implementation: ollama         # ollama | stub | mock
   tag_extensions: []             # allowed-list extension beyond TAGS_DEFAULT

@@ -3,7 +3,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmFromMarkdown } from "mdast-util-gfm";
 import { gfm } from "micromark-extension-gfm";
 import type { Root as MdastRoot } from "mdast";
-import { ParseError } from "@/lib/errors";
+import { ParseError } from "#internal/lib/errors";
 
 /**
  * Parse a UTF-8 markdown string to a CommonMark + GFM mdast tree ([§15.3](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#153-mdast-parsing)).

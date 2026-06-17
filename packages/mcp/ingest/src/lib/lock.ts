@@ -1,5 +1,5 @@
 // author: Claude
-import type { RunId } from "@/types/ids";
+import type { RunId } from "#internal/types/ids";
 import type { SidecarStorage } from "./storage/types";
 
 /**
