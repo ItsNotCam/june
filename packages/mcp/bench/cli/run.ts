@@ -9,13 +9,14 @@ import type { IngestManifestFile } from "@/types/ingest";
 import type { GroundTruthFile } from "@/types/ground-truth";
 import type { RetrievalResultsFile } from "@/types/retrieval";
 import type { ReaderAnswersFile, BaselineAnswersFile } from "@/types/reader";
-import type { JudgeResultsFile } from "@/types/judge";
+import type { JudgeResultsFile, VerdictRecord } from "@/types/judge";
+import { BASELINE_QUERY_PREFIX } from "@/types/judge";
 import type { ResultsFile, RunManifest, RunStatus } from "@/types/results";
 import { runStage4 } from "@/stages/04-ingest";
 import { runStage5 } from "@/stages/05-resolve";
 import { runStage6 } from "@/stages/06-retrieval";
 import { runStage7 } from "@/stages/07-reader";
-import { runStage8 } from "@/stages/08-judge";
+import { runStage8, buildJudgeTasks } from "@/stages/08-judge";
 import { runStage9 } from "@/stages/09-score";
 import { createStopgapRetriever } from "@/retriever/stopgap";
 import { createMultiHopRetriever } from "@/retriever/multi-hop";
@@ -29,6 +30,7 @@ import { logger } from "@/lib/logger";
 import { getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 import { readJson, writeJsonAtomic, fileExists, sha256Hex } from "@/lib/artifacts";
+import { promptTemplateHash } from "@/lib/prompts";
 import { newRunId } from "@/lib/ids";
 import {
   createNdjsonReporter,
@@ -525,6 +527,108 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   stageProgress({ quiet, json_log, stage_num: 7, stage_name: "reader evaluation", duration_ms: Date.now() - t7 });
   events.stageEnd(7, "reader evaluation", Date.now() - t7);
 
+  // The judge prompt hash is stamped into the manifest (and judge_tasks.json) so
+  // the regression gate can refuse to compare verdicts produced under a
+  // different judge prompt (the cross-judge guard).
+  const judgePromptHash = await promptTemplateHash("judge");
+
+  // --- No-API judge path (default) -----------------------------------------
+  // The bench emits judge_tasks.json and HALTS at `awaiting_verdicts`. The
+  // Claude Code RSI orchestrator judges those tasks with its own Sonnet agents
+  // (no API key) and `june-eval score` finalizes the run. Retrieval metrics are
+  // already final; only verdict-derived metrics are pending. See JUDGE-RUNNER.md.
+  if (judge_provider_name === "external") {
+    const t8 = Date.now();
+    events.stageStart(8, "emit judge tasks");
+    const judgeTasksPath = join(run_dir, "judge_tasks.json");
+    if (!(reuse_artifacts && (await fileExists(judgeTasksPath)))) {
+      await buildJudgeTasks({
+        facts,
+        queries,
+        reader,
+        baseline,
+        run_id,
+        scratch_path: ingest.scratch_path,
+        out_path: judgeTasksPath,
+      });
+    }
+    stageProgress({ quiet, json_log, stage_num: 8, stage_name: "emit judge tasks", duration_ms: Date.now() - t8 });
+    events.stageEnd(8, "emit judge tasks", Date.now() - t8);
+
+    const t9 = Date.now();
+    events.stageStart(9, "scoring (partial)");
+    const manifest = buildManifest({
+      facts,
+      fixture_hash,
+      run_id,
+      started_at,
+      ingest,
+      retriever_config_snapshot: retriever.config_snapshot,
+      budget_cap_usd: cfg.cost.max_budget_usd,
+      baseline_enabled,
+      mode: run_mode,
+      reader_provider: reader_provider_name,
+      reader_model,
+      judge_provider: "external",
+      judge_model: cfg.roles.judge.model,
+      judge_prompt_hash: judgePromptHash,
+    });
+    // Partial scoring: every answer is UNJUDGED until the external judge runs, so
+    // retrieval metrics (recall@k, MRR) are computed now and correctness is
+    // explicitly pending (integrity.unjudged_pct = 100%). No judge LLM is called.
+    const pendingVerdicts: VerdictRecord[] = [
+      ...reader.answers.map((a) => ({
+        query_id: a.query_id,
+        verdict: "UNJUDGED" as const,
+        rationale: "",
+        unjudged_reason: "awaiting external judge",
+      })),
+      ...(baseline?.answers ?? []).map((a) => ({
+        query_id: `${BASELINE_QUERY_PREFIX}${a.query_id}`,
+        verdict: "UNJUDGED" as const,
+        rationale: "",
+        unjudged_reason: "awaiting external judge",
+      })),
+    ];
+    await runStage9({
+      facts,
+      queries,
+      ground_truth,
+      retrieval,
+      reader,
+      baseline,
+      judge: {
+        fixture_id: facts.fixture_id,
+        judge: { provider: "deepseek", model: "", batch_api: false },
+        verdicts: pendingVerdicts,
+      },
+      manifest,
+      run_status: "awaiting_verdicts",
+      budget,
+      leakage_warning_count: 0,
+      results_path: resultsPath,
+      summary_path: summaryPath,
+    });
+    stageProgress({ quiet, json_log, stage_num: 9, stage_name: "scoring (partial)", duration_ms: Date.now() - t9 });
+    events.stageEnd(9, "scoring (partial)", Date.now() - t9);
+    events.runComplete({ run_id, run_dir, cost_usd: budget.total() });
+
+    logger.info("run.awaiting_verdicts", {
+      fixture_id: facts.fixture_id,
+      run_id,
+      run_dir,
+      judge_tasks_path: judgeTasksPath,
+    });
+    process.stderr.write(
+      `\nRun reached AWAITING VERDICTS: ${run_dir}\n` +
+        `Retrieval metrics are final; correctness is pending an external judge (no API calls).\n\n` +
+        `Next:\n` +
+        `  1. Judge ${judgeTasksPath} with the orchestrator's Sonnet agents (see JUDGE-RUNNER.md).\n` +
+        `  2. june-eval score ${run_dir} --verdicts <verdicts.json>\n`,
+    );
+    return;
+  }
+
   // Stage 8 — judging.
   const t8 = Date.now();
   events.stageStart(8, judge_stage_label);
@@ -598,6 +702,9 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     mode: run_mode,
     reader_provider: reader_provider_name,
     reader_model,
+    judge_provider: judge_provider_name,
+    judge_model,
+    judge_prompt_hash: judgePromptHash,
   });
   await runStage9({
     facts,
@@ -673,7 +780,7 @@ const parseReaderProvider = (input: string | undefined): ReaderProvider | undefi
   return input as ReaderProvider;
 };
 
-const JUDGE_PROVIDERS = ["anthropic-batch", "deepseek"] as const;
+const JUDGE_PROVIDERS = ["external", "anthropic-batch", "deepseek"] as const;
 type JudgeProvider = (typeof JUDGE_PROVIDERS)[number];
 
 /**
@@ -1009,6 +1116,10 @@ const buildManifest = (args: {
   mode: RunMode;
   reader_provider: "ollama" | "anthropic" | "openai" | "deepseek";
   reader_model: string;
+  /** Judge identity (cross-judge guard keys). `external` for the no-API path. */
+  judge_provider: string;
+  judge_model: string;
+  judge_prompt_hash: string;
 }): RunManifest => {
   const cfg = getConfig();
   return {
@@ -1036,8 +1147,9 @@ const buildManifest = (args: {
         temperature: cfg.roles.reader.temperature,
       },
       judge: {
-        provider: "anthropic-batch",
-        model: cfg.roles.judge.model,
+        provider: args.judge_provider,
+        model: args.judge_model,
+        prompt_template_hash: args.judge_prompt_hash,
       },
       baseline: args.baseline_enabled
         ? {
@@ -1107,7 +1219,7 @@ const writeStubResults = async (args: {
         corpus_author: { provider: "", model: "" },
         query_author: { provider: "", model: "" },
         reader: { provider: "", model: "", temperature: 0 },
-        judge: { provider: "anthropic-batch", model: "" },
+        judge: { provider: "", model: "", prompt_template_hash: "" },
         baseline: null,
       },
       june: {
@@ -1229,11 +1341,12 @@ FLAGS
   --reader-provider <p>    override roles.reader.provider (ollama|anthropic|openai|deepseek).
                            A run with --reader-* and no --mode is a freeform run.
   --reader-model <m>       override roles.reader.model.
-  --judge-provider <p>     override roles.judge.provider (anthropic-batch|deepseek).
-                           deepseek = sync deepseek-v4-pro (certification judge of
-                           record, config default); anthropic-batch = legacy Sonnet
-                           batch (selectable, needs Anthropic credits).
-  --judge-model <m>        override roles.judge.model.
+  --judge-provider <p>     override roles.judge.provider (external|anthropic-batch|deepseek).
+                           external (default) = NO API: emit judge_tasks.json and halt
+                           at awaiting_verdicts; the Claude Code orchestrator's Sonnet
+                           agents judge, then \`june-eval score\` finalizes (JUDGE-RUNNER.md).
+                           deepseek / anthropic-batch = legacy in-bench judge (needs API keys).
+  --judge-model <m>        override roles.judge.model (in-bench judge paths only).
   --baseline               force the no-RAG baseline pass on (overrides config).
   --no-baseline            force the no-RAG baseline pass off (overrides config).
 

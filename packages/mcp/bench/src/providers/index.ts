@@ -3,6 +3,7 @@ import type { BatchLlmProvider, LlmProvider } from "./types";
 import { createOllamaProvider } from "./ollama";
 import { createAnthropicProvider } from "./anthropic";
 import { createAnthropicBatchProvider } from "./anthropic-batch";
+import { createDeepseekProvider } from "./deepseek";
 import { createOpenAIProvider } from "./openai";
 import { withProviderCache, withBatchProviderCache } from "./cache";
 import { getEnv } from "@/lib/env";
@@ -11,6 +12,7 @@ export type ProviderRegistry = {
   ollama: LlmProvider;
   anthropic: LlmProvider;
   openai: LlmProvider | null;
+  deepseek: LlmProvider | null;
   "anthropic-batch": BatchLlmProvider;
 };
 
@@ -32,6 +34,9 @@ export const buildProviders = (): ProviderRegistry => {
     anthropic: createAnthropicProvider(env.ANTHROPIC_API_KEY),
     openai: env.OPENAI_API_KEY
       ? createOpenAIProvider(env.OPENAI_API_KEY)
+      : null,
+    deepseek: env.DEEPSEEK_API_KEY
+      ? createDeepseekProvider(env.DEEPSEEK_API_KEY)
       : null,
     "anthropic-batch": createAnthropicBatchProvider(env.ANTHROPIC_API_KEY),
   };
@@ -58,6 +63,9 @@ export const wrapRegistryWithCache = (
     openai: registry.openai
       ? withProviderCache(registry.openai, cache_root)
       : null,
+    deepseek: registry.deepseek
+      ? withProviderCache(registry.deepseek, cache_root)
+      : null,
     "anthropic-batch": withBatchProviderCache(
       registry["anthropic-batch"],
       cache_root,
@@ -71,7 +79,7 @@ export const wrapRegistryWithCache = (
  */
 export const resolveSyncProvider = (
   registry: ProviderRegistry,
-  name: "ollama" | "anthropic" | "openai",
+  name: "ollama" | "anthropic" | "openai" | "deepseek",
 ): LlmProvider => {
   if (name === "openai") {
     if (!registry.openai) {
@@ -80,6 +88,14 @@ export const resolveSyncProvider = (
       );
     }
     return registry.openai;
+  }
+  if (name === "deepseek") {
+    if (!registry.deepseek) {
+      throw new Error(
+        "Role is configured for deepseek but DEEPSEEK_API_KEY is not set",
+      );
+    }
+    return registry.deepseek;
   }
   return registry[name];
 };

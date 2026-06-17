@@ -28,6 +28,8 @@ const RawTestEnvSchema = z.object({
   TEST_RUNS_DIR: z.string().min(1).optional(),
   /** Path to the editable run-config YAML the /test UI reads + writes. */
   TEST_CONFIG_PATH: z.string().min(1).optional(),
+  /** Ollama server URL — used by /test/api/ollama-models to auto-detect models. */
+  OLLAMA_URL: z.string().url().optional(),
 });
 
 /** Resolved, ready-to-spawn configuration. */
@@ -42,6 +44,8 @@ export type TestConfig = {
   readonly runsDir: string;
   /** Path to the editable run-config YAML. */
   readonly configPath: string;
+  /** Ollama server URL for model auto-detection (undefined when unset). */
+  readonly ollamaUrl: string | undefined;
 };
 
 const DEFAULT_RUNNER = "bun";
@@ -74,6 +78,7 @@ export const getTestConfig = (): TestConfig => {
     configPath: raw.TEST_CONFIG_PATH
       ? resolve(raw.TEST_CONFIG_PATH)
       : resolve(cwd, "test-run.config.yaml"),
+    ollamaUrl: raw.OLLAMA_URL,
   };
   return cached;
 };

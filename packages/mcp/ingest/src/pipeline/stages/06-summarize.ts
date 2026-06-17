@@ -1,6 +1,7 @@
 // author: Claude
 import { getConfig } from "#internal/lib/config";
 import { logger } from "#internal/lib/logger";
+import { mapConcurrent } from "#internal/lib/concurrency";
 import { approximateTokens } from "#internal/lib/tokenize";
 import type { Summarizer } from "#internal/lib/summarizer/types";
 import type { SidecarStorage, Tx } from "#internal/lib/storage/types";
@@ -94,62 +95,78 @@ export const runStage6 = async (input: Stage6Input): Promise<Stage6Result> => {
   }
 
   const byId = sectionIndex(input.sections);
-  const out: SummarizedChunk[] = [];
 
-  for (let i = 0; i < input.chunks.length; i++) {
-    const c = input.chunks[i]!;
-    const parentSection = byId.get(c.section_id as string);
-    const containing = isLongDoc
-      ? (parentSection?.content ?? c.content)
-      : input.body;
-    logger.debug("chunk_summarize_start", {
-      chunk_id: c.chunk_id as string,
-      status: `${i + 1}/${input.chunks.length}`,
-    });
-    try {
-      const result = await input.summarizer.summarizeChunk({
-        chunk_id: c.chunk_id,
-        chunk_content: c.content,
-        document_title: c.document_title,
-        heading_path: c.heading_path,
-        containing_text: containing,
-        outline,
-      });
-      await input.sidecar.setChunkSummary(
-        input.tx,
-        c.chunk_id,
-        result.contextual_summary,
-      );
-      logger.debug("chunk_summarized", { chunk_id: c.chunk_id as string });
-      out.push({ ...c, contextual_summary: result.contextual_summary });
-    } catch (err) {
-      // [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds): summarizer failure → deterministic heading-path blurb.
-      // Advance the chunk so the pipeline isn't blocked by a flaky impl.
-      const message = err instanceof Error ? err.message : String(err);
-      logger.warn("summarizer_fallback", {
-        event: "summarizer_fallback",
+  // Phase 1 — generate summaries. The per-chunk calls are independent LLM
+  // round-trips, so run them with bounded concurrency rather than serially;
+  // a serial loop leaves the summarizer idle between every request. No sidecar
+  // writes happen here — the shared `tx` is single-threaded and is only touched
+  // in the serial Phase 2 below.
+  type ChunkOutcome = {
+    readonly chunk: UnclassifiedChunk;
+    readonly summary: string;
+    readonly fallback_error: string | undefined;
+  };
+
+  const outcomes = await mapConcurrent(
+    input.chunks,
+    cfg.summarizer.concurrency,
+    async (c, i): Promise<ChunkOutcome> => {
+      const parentSection = byId.get(c.section_id as string);
+      const containing = isLongDoc
+        ? (parentSection?.content ?? c.content)
+        : input.body;
+      logger.debug("chunk_summarize_start", {
         chunk_id: c.chunk_id as string,
-        error_type: "summarizer_unreachable",
-        error_message: message.slice(0, 200),
+        status: `${i + 1}/${input.chunks.length}`,
       });
+      try {
+        const result = await input.summarizer.summarizeChunk({
+          chunk_id: c.chunk_id,
+          chunk_content: c.content,
+          document_title: c.document_title,
+          heading_path: c.heading_path,
+          containing_text: containing,
+          outline,
+        });
+        logger.debug("chunk_summarized", { chunk_id: c.chunk_id as string });
+        return { chunk: c, summary: result.contextual_summary, fallback_error: undefined };
+      } catch (err) {
+        // [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds): summarizer failure → deterministic heading-path blurb.
+        // Advance the chunk so the pipeline isn't blocked by a flaky impl.
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warn("summarizer_fallback", {
+          event: "summarizer_fallback",
+          chunk_id: c.chunk_id as string,
+          error_type: "summarizer_unreachable",
+          error_message: message.slice(0, 200),
+        });
+        const fallback = buildFallbackSummary(
+          c.document_title,
+          c.heading_path,
+          c.content,
+        );
+        return { chunk: c, summary: fallback, fallback_error: message.slice(0, 200) };
+      }
+    },
+  );
+
+  // Phase 2 — persist serially on the shared `tx`, preserving input order.
+  const out: SummarizedChunk[] = [];
+  for (const o of outcomes) {
+    if (o.fallback_error !== undefined) {
       await input.sidecar.recordError({
         run_id: input.runId,
-        doc_id: c.doc_id,
-        version: c.version,
-        chunk_id: c.chunk_id,
+        doc_id: o.chunk.doc_id,
+        version: o.chunk.version,
+        chunk_id: o.chunk.chunk_id,
         stage: "6",
         error_type: "summarizer_unreachable",
-        error_message: message.slice(0, 200),
+        error_message: o.fallback_error,
         occurred_at: new Date().toISOString(),
       });
-      const fallback = buildFallbackSummary(
-        c.document_title,
-        c.heading_path,
-        c.content,
-      );
-      await input.sidecar.setChunkSummary(input.tx, c.chunk_id, fallback);
-      out.push({ ...c, contextual_summary: fallback });
     }
+    await input.sidecar.setChunkSummary(input.tx, o.chunk.chunk_id, o.summary);
+    out.push({ ...o.chunk, contextual_summary: o.summary });
   }
 
   // Document-level status fires once every chunk has advanced.

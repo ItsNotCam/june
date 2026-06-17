@@ -1,14 +1,17 @@
 "use client";
 // author: Claude
 /**
- * Client coordinator for the `/test` page: the live runner on top, the run
- * history below. A status change in the live run bumps `refreshKey` so the
- * history refetches (new run appears as running; finished run shows its result).
+ * Client coordinator for the `/test` page: the live runner, config panel, and a
+ * results-over-time chart stacked in the main column, with run history beside
+ * them on wide screens and below on narrow ones. A status change in the live run
+ * bumps `refreshKey` so the history and chart refetch (new run appears as
+ * running; finished run shows its result).
  */
 import { useCallback, useState } from "react";
 import { TestRunner } from "./TestRunner";
 import { RunHistory } from "./RunHistory";
 import { ConfigPanel } from "./ConfigPanel";
+import { ResultsChart } from "./ResultsChart";
 import type { RunSnapshot } from "@/lib/test/events";
 
 export function TestDashboard() {
@@ -20,10 +23,15 @@ export function TestDashboard() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-8">
-      <ConfigPanel disabled={isRunning} />
-      <TestRunner onStatusChange={onStatusChange} />
-      <RunHistory refreshKey={refreshKey} />
+    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+      <div className="flex flex-1 flex-col gap-8 min-w-0">
+        <TestRunner onStatusChange={onStatusChange} />
+        <ConfigPanel disabled={isRunning} />
+        <ResultsChart refreshKey={refreshKey} />
+      </div>
+      <div className="w-full lg:w-1/2 lg:shrink-0">
+        <RunHistory refreshKey={refreshKey} />
+      </div>
     </div>
   );
 }

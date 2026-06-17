@@ -1,7 +1,7 @@
 // author: Claude
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/shadcn/badge";
+import { Button } from "@/components/shadcn/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/shadcn/card";
 import { PreviewCharts } from "./_components/PreviewCharts";
 import { PreviewForm } from "./_components/PreviewForm";
 import { PreviewSidebar } from "./_components/PreviewSidebar";

@@ -4,6 +4,10 @@ import { createOllamaEmbedder } from "#internal/lib/embedder/ollama";
 import { createQdrantStorage } from "#internal/lib/storage/qdrant";
 import { createSqliteSidecar } from "#internal/lib/storage/sqlite/index";
 import { createOllamaSummarizer } from "#internal/lib/summarizer/ollama";
+import {
+  createAnthropicSummarizer,
+  createDeepseekSummarizer,
+} from "#internal/lib/summarizer/anthropic-compat";
 import { createStubSummarizer } from "#internal/lib/summarizer/stub";
 import type { Embedder } from "#internal/lib/embedder/types";
 import type { SidecarStorage, StorageInterface, VectorStorage } from "#internal/lib/storage/types";
@@ -28,8 +32,17 @@ export type PipelineOptions = Partial<PipelineDeps>;
 const buildSummarizer = (override: Summarizer | undefined): Summarizer => {
   if (override) return override;
   const mode = getConfig().summarizer.implementation;
-  if (mode === "stub" || mode === "mock") return createStubSummarizer();
-  return createOllamaSummarizer();
+  switch (mode) {
+    case "stub":
+    case "mock":
+      return createStubSummarizer();
+    case "deepseek":
+      return createDeepseekSummarizer();
+    case "anthropic":
+      return createAnthropicSummarizer();
+    case "ollama":
+      return createOllamaSummarizer();
+  }
 };
 
 const buildEmbedder = async (override: Embedder | undefined): Promise<Embedder> => {

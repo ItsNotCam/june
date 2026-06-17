@@ -62,8 +62,13 @@ classifier:
     tags: []
 
 summarizer:
-  implementation: ollama         # ollama | stub | mock
+  implementation: ollama         # ollama | deepseek | anthropic | stub | mock
   long_doc_threshold_tokens: 6000
+  concurrency: 4                  # independent per-chunk LLM calls run in parallel
+  # ollama_model: gemma4:26b          # used when implementation: ollama; defaults to OLLAMA_SUMMARIZER_MODEL env
+  deepseek_model: deepseek-v4-flash    # used when implementation: deepseek (needs DEEPSEEK_API_KEY)
+  anthropic_model: claude-haiku-4-5    # used when implementation: anthropic (needs ANTHROPIC_API_KEY)
+  api_max_tokens: 1024                 # output cap for hosted backends
 
 ollama:
   embed_timeout_ms: 60000

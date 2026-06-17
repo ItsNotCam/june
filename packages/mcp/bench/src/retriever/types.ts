@@ -19,4 +19,24 @@ export type Retriever = {
   retrieve: (queryText: string, k: number) => Promise<RetrievalResult[]>;
 };
 
+/**
+ * A relevance scorer for second-pass reranking — the provider-agnostic seam.
+ *
+ * `score` takes the query and a list of candidate chunk texts and returns one
+ * relevance score per candidate, **aligned to input order** (higher = more
+ * relevant). The reranking decorator (`createRerankingRetriever`) is the only
+ * caller; it depends on this interface, never on a concrete backend, so a local
+ * cross-encoder, a hosted rerank API, or an LLM-listwise scorer all drop in here
+ * unchanged.
+ *
+ * Implementations MUST be deterministic — the reranker A/B holds no noise floor
+ * otherwise (the bench's recall@1/MRR comparison assumes a fixed mapping from
+ * candidate set to ranking). A local cross-encoder at inference is deterministic
+ * by construction; an LLM scorer would need temperature 0 + caching to qualify.
+ */
+export type Scorer = {
+  name: string;
+  score: (query: string, candidates: string[]) => Promise<number[]>;
+};
+
 export type { RetrievalResult };

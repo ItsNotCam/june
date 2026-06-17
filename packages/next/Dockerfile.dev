@@ -1,9 +1,13 @@
 FROM oven/bun:1
 WORKDIR /app
 
-# Copy workspace manifests so dep install is cached independently of source changes
+# Copy workspace manifests so dep install is cached independently of source changes.
+# next depends on @june/mcp-ingest, which depends on @june/shared — Bun needs every
+# referenced workspace member's package.json present to resolve `workspace:*` deps.
 COPY package.json bun.lock ./
 COPY packages/next/package.json ./packages/next/
+COPY packages/mcp/ingest/package.json ./packages/mcp/ingest/
+COPY packages/shared/package.json ./packages/shared/
 
 RUN bun install
 

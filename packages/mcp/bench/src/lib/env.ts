@@ -23,6 +23,9 @@ const EnvSchema = BaseEnvSchema.extend({
   QDRANT_URL: z.string().url(),
   JUNE_BIN: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1).optional(),
+  // DEEPSEEK_API_KEY — optional; required only when a role is configured for
+  // deepseek (checked post-config-load, like openai).
+  DEEPSEEK_API_KEY: z.string().min(1).optional(),
   QDRANT_API_KEY: z.string().min(1).optional(),
   BENCH_SCRATCH_ROOT: z.string().min(1).optional(),
 });

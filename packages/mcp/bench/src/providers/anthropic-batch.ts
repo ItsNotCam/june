@@ -1,6 +1,5 @@
 // author: Claude
 import Anthropic from "@anthropic-ai/sdk";
-import type { APIError } from "@anthropic-ai/sdk";
 import type {
   BatchLlmProvider,
   BatchPollStatus,
@@ -8,7 +7,15 @@ import type {
   BatchSubmitRequest,
 } from "./types";
 import { withRateLimitRetry } from "./retry";
+import {
+  extractTextFromContent,
+  isAnthropicRateLimited,
+  safeText,
+} from "./shared";
 import { costFor, rateFor } from "@/lib/cost";
+
+/** Anthropic Batch API version header sent with the raw results fetch. */
+const ANTHROPIC_API_VERSION = "2023-06-01";
 
 /**
  * Anthropic Batch API provider (§24, §26).
@@ -77,7 +84,7 @@ export const createAnthropicBatchProvider = (
     const res = await fetch(resultsUrl, {
       headers: {
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": ANTHROPIC_API_VERSION,
       },
     });
     if (!res.ok) {
@@ -86,12 +93,10 @@ export const createAnthropicBatchProvider = (
       );
     }
     const body = await res.text();
-    const lines = body.split("\n").filter((l) => l.trim().length > 0);
-    const out: BatchResult[] = [];
-    for (const line of lines) {
-      out.push(parseBatchResultLine(line));
-    }
-    return out;
+    return body
+      .split("\n")
+      .filter((l) => l.trim().length > 0)
+      .map(parseBatchResultLine);
   };
 
   return { name: "anthropic-batch", submit, poll, retrieve };
@@ -114,7 +119,7 @@ const parseBatchResultLine = (line: string): BatchResult => {
     completion_tokens: null,
   };
   if (result.type === "succeeded") {
-    const text = extractText(result.message?.content);
+    const text = extractTextFromContent(result.message?.content);
     const prompt_tokens = result.message?.usage?.input_tokens ?? null;
     const completion_tokens = result.message?.usage?.output_tokens ?? null;
     const model = result.message?.model ?? "unknown";
@@ -164,34 +169,4 @@ type BatchLine = {
     | { type: "errored"; error?: { message?: string } }
     | { type: "canceled" }
     | { type: "expired" };
-};
-
-const extractText = (content: unknown): string => {
-  if (!Array.isArray(content)) return "";
-  let out = "";
-  for (const block of content as Array<{ type: string; text?: string }>) {
-    if (block.type === "text" && typeof block.text === "string") {
-      out += block.text;
-    }
-  }
-  return out;
-};
-
-const isAnthropicRateLimited = (err: unknown): boolean => {
-  const apiErr = err as APIError;
-  return (
-    apiErr?.status === 429 ||
-    apiErr?.status === 529 ||
-    (typeof apiErr?.error === "object" &&
-      apiErr?.error !== null &&
-      (apiErr.error as { type?: string }).type === "rate_limit_error")
-  );
-};
-
-const safeText = async (res: Response): Promise<string> => {
-  try {
-    return await res.text();
-  } catch {
-    return "";
-  }
 };

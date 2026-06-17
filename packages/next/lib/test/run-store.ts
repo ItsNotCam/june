@@ -8,7 +8,7 @@
  * module turns that directory into a list item and a detail object — it never
  * writes anything.
  */
-import { readdir, readFile, stat } from "fs/promises";
+import { readdir, readFile, rm, stat } from "fs/promises";
 import { join } from "path";
 import { z } from "zod";
 import { getTestConfig } from "./env";
@@ -54,6 +54,13 @@ const ResultsSummarySchema = z.object({
 /** A run reduced to "in progress in this server" / on-disk terminal / interrupted / empty. */
 export type DiskRunStatus = "running" | "completed" | "aborted" | "incomplete" | "empty";
 
+/** Headline quality metrics distilled from results.json (all 0–1 point estimates). */
+export type RunMetrics = {
+  readerCorrectPct?: number;
+  recallAt5?: number;
+  mrr?: number;
+};
+
 export type RunListItem = {
   runId: string;
   status: DiskRunStatus;
@@ -65,6 +72,8 @@ export type RunListItem = {
   costUsd?: number;
   stagesComplete: number;
   totalStages: number;
+  /** Present once stage 9 (scoring) has produced results.json. */
+  metrics?: RunMetrics;
 };
 
 export type RunStageState = {
@@ -75,14 +84,22 @@ export type RunStageState = {
 
 export type RunDetail = RunListItem & {
   stages: RunStageState[];
-  metrics?: {
-    readerCorrectPct?: number;
-    recallAt5?: number;
-    mrr?: number;
-  };
   summaryMd?: string;
   events?: TestEvent[];
   stderr?: string;
+};
+
+/** Distills the macro point-estimates out of a parsed results.json, if present. */
+const extractMetrics = (
+  results: z.infer<typeof ResultsSummarySchema> | undefined,
+): RunMetrics | undefined => {
+  const macro = results?.overall?.macro;
+  if (!macro) return undefined;
+  return {
+    readerCorrectPct: macro.reader_correct_pct?.point,
+    recallAt5: macro.recall_at_5?.point,
+    mrr: macro.mrr?.point,
+  };
 };
 
 const fileExists = async (path: string): Promise<boolean> => {
@@ -94,7 +111,7 @@ const fileExists = async (path: string): Promise<boolean> => {
   }
 };
 
-const readJsonLoose = async (path: string): Promise<unknown | undefined> => {
+const readJsonLoose = async (path: string): Promise<unknown> => {
   try {
     return JSON.parse(await readFile(path, "utf-8")) as unknown;
   } catch {
@@ -131,6 +148,7 @@ const buildListItem = async (runId: string, dir: string): Promise<RunListItem> =
     costUsd: results?.cost_usd?.total,
     stagesComplete,
     totalStages: STAGE_ARTIFACTS.length,
+    metrics: extractMetrics(results),
   };
 };
 
@@ -173,17 +191,6 @@ export const getRunDetail = async (runId: string): Promise<RunDetail | undefined
     })),
   );
 
-  const rawResults = await readJsonLoose(join(dir, "results.json"));
-  const parsed = rawResults ? ResultsSummarySchema.safeParse(rawResults) : undefined;
-  const macro = parsed?.success ? parsed.data.overall?.macro : undefined;
-  const metrics = macro
-    ? {
-        readerCorrectPct: macro.reader_correct_pct?.point,
-        recallAt5: macro.recall_at_5?.point,
-        mrr: macro.mrr?.point,
-      }
-    : undefined;
-
   const summaryMd = (await fileExists(join(dir, "summary.md")))
     ? await readFile(join(dir, "summary.md"), "utf-8")
     : undefined;
@@ -194,7 +201,23 @@ export const getRunDetail = async (runId: string): Promise<RunDetail | undefined
     ? (await readFile(join(dir, "progress.stderr.log"), "utf-8")).slice(-STDERR_TAIL)
     : undefined;
 
-  return { ...item, stages, metrics, summaryMd, events, stderr };
+  return { ...item, stages, summaryMd, events, stderr };
+};
+
+/**
+ * Permanently deletes a run's directory and everything under it.
+ *
+ * Returns `false` when the id is malformed or the run-dir does not exist (so the
+ * caller can answer 404), `true` after a successful removal. Rejects ids
+ * containing path separators to prevent traversal outside the runs directory.
+ */
+export const deleteRun = async (runId: string): Promise<boolean> => {
+  if (!RUN_ID_RE.test(runId)) return false;
+  const { runsDir } = getTestConfig();
+  const dir = join(runsDir, runId);
+  if (!(await fileExists(dir))) return false;
+  await rm(dir, { recursive: true, force: true });
+  return true;
 };
 
 const readEventLog = async (path: string): Promise<TestEvent[] | undefined> => {

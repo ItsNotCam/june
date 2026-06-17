@@ -5,6 +5,11 @@ import type {
   LlmProvider,
 } from "./types";
 import { withRateLimitRetry } from "./retry";
+import {
+  HTTP_SERVICE_UNAVAILABLE,
+  HTTP_TOO_MANY_REQUESTS,
+  safeText,
+} from "./shared";
 import { costFor, ollamaEnergyCost, rateFor } from "@/lib/cost";
 
 /**
@@ -123,15 +128,10 @@ class OllamaHttpError extends Error {
 
 const isOllamaRateLimited = (err: unknown): boolean => {
   if (!(err instanceof OllamaHttpError)) return false;
-  return err.status === 429 || err.status === 503;
-};
-
-const safeText = async (res: Response): Promise<string> => {
-  try {
-    return await res.text();
-  } catch {
-    return "";
-  }
+  return (
+    err.status === HTTP_TOO_MANY_REQUESTS ||
+    err.status === HTTP_SERVICE_UNAVAILABLE
+  );
 };
 
 type OllamaChatResponse = {

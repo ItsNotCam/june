@@ -1,8 +1,8 @@
 // author: Claude
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/shadcn/badge";
+import { Button } from "@/components/shadcn/button";
 import { cn } from "@/lib/ui/utils";
 import type { IngestStage } from "@/lib/ingest-events";
 
@@ -96,20 +96,16 @@ export function IngestTable({ rows, expandedId, onToggle, onWipe, onRemove }: In
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
-            const expanded = row.id === expandedId;
-            return (
-              <FragmentRows
-                key={row.id}
-                row={row}
-                expanded={expanded}
-                onToggle={onToggle}
-                onWipe={onWipe}
-                onRemove={onRemove}
-                formatBytes={formatBytes}
-              />
-            );
-          })}
+          {rows.map((row) => (
+            <FragmentRows
+              key={row.id}
+              row={row}
+              expanded={row.id === expandedId}
+              onToggle={onToggle}
+              onWipe={onWipe}
+              onRemove={onRemove}
+            />
+          ))}
         </tbody>
       </table>
     </div>
@@ -122,14 +118,12 @@ function FragmentRows({
   onToggle,
   onWipe,
   onRemove,
-  formatBytes: fmt,
 }: {
   row: IngestRow;
   expanded: boolean;
   onToggle: (id: string) => void;
   onWipe: (row: IngestRow) => void;
   onRemove: (row: IngestRow) => void;
-  formatBytes: (bytes: number | undefined) => string;
 }) {
   const size = row.byteLength ?? row.file?.size;
   return (
@@ -147,7 +141,7 @@ function FragmentRows({
           {row.name}
         </td>
         <td className="text-muted-foreground px-4 py-3 text-right font-mono text-xs">
-          {fmt(size)}
+          {formatBytes(size)}
         </td>
         <td className="px-4 py-3">
           <StatusBadge status={row.status} />

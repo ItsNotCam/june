@@ -40,6 +40,32 @@ export const chunksForDoc = (db: Database, doc_id: string): JuneChunkRow[] => {
   return stmt.all(doc_id);
 };
 
+/**
+ * Renders the given chunks as `<chunk id="…">raw_content</chunk>` blocks in the
+ * order requested, joined by blank lines. Missing chunk_ids are skipped.
+ *
+ * Shared by Stage 7 (reader context) and Stage 8 (grounding-aware judge): both
+ * need the exact same passage text the reader saw, fetched by `chunk_id` from
+ * `chunks.raw_content`. Keeping one renderer guarantees the judge grounds its
+ * verdict against byte-identical context.
+ */
+export const renderChunksById = (
+  db: Database,
+  chunkIds: readonly string[],
+): string => {
+  if (chunkIds.length === 0) return "";
+  const stmt = db.query<{ chunk_id: string; raw_content: string }, [string]>(
+    `SELECT chunk_id, raw_content FROM chunks WHERE chunk_id = ?`,
+  );
+  const parts: string[] = [];
+  for (const id of chunkIds) {
+    const row = stmt.get(id);
+    if (!row) continue;
+    parts.push(`<chunk id="${row.chunk_id}">\n${row.raw_content}\n</chunk>`);
+  }
+  return parts.join("\n\n");
+};
+
 /** Returns the single newest `ingestion_runs` row by `started_at`. */
 export const latestIngestionRun = (
   db: Database,

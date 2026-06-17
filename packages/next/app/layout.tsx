@@ -18,13 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${poppins.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full flex" suppressHydrationWarning>
+      <body className="h-full flex overflow-hidden" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem themes={["light", "dark"]} scriptProps={{ suppressHydrationWarning: true }}>
           <div className="fixed top-3 right-3 z-50">
             <ThemeToggleClient />
           </div>
           <SideNav />
-          <main className="flex flex-1 flex-col min-w-0">{children}</main>
+          <main className="flex flex-1 flex-col min-w-0 overflow-y-auto">{children}</main>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,13 @@
 // author: Claude
 import type { Verdict } from "./verdict";
 
+/**
+ * Namespacing prefix applied to baseline-answer `query_id`s so the judge can
+ * grade reader and baseline streams in a single batch and Stage 9 can split
+ * them back apart. Stage 8 prepends it; Stage 9 strips it.
+ */
+export const BASELINE_QUERY_PREFIX = "baseline_";
+
 /** Per-query verdict recorded in `judge_results.json` (§22). */
 export type VerdictRecord = {
   query_id: string;

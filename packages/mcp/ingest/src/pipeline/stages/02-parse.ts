@@ -107,7 +107,7 @@ export const runStage2 = async (input: Stage2Input): Promise<Stage2Result> => {
     return { kind: "failed", error_type: "encoding_undetectable", error_message: message };
   }
 
-  const { frontmatter: fmBlock, body, bodyOffset } = splitFrontmatter(normalized);
+  const { frontmatter: fmBlock, body } = splitFrontmatter(normalized);
 
   const frontmatter = parseFrontmatterBlock(fmBlock, async () => {
     await input.sidecar.recordError({
@@ -199,16 +199,16 @@ export const runStage2 = async (input: Stage2Input): Promise<Stage2Result> => {
     "parsed",
   );
 
+  // `raw_normalized` is the body only (no frontmatter prefix) — Stage 3 chunks
+  // the body and all offsets index into `body`.
   return {
     kind: "parsed",
     parsed: {
       document: mergedDocument,
       ast,
-      raw_normalized: bodyOffset === 0 ? body : body,
+      raw_normalized: body,
     },
   };
-  // Note: we don't need the frontmatter prefix in `raw_normalized` — Stage 3
-  // chunks the body only; offsets index into `body`.
 };
 
 const titleCaseFromFilename = (source_uri: string): string => {

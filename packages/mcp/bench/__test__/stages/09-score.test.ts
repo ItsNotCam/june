@@ -102,11 +102,12 @@ describe("Stage 9 — tier-dispatched scoring", () => {
       schema_version: 1,
       started_at: "",
       completed_at: "",
+      mode: "control",
       roles: {
         corpus_author: { provider: "anthropic", model: "sonnet" },
         query_author: { provider: "openai", model: "gpt" },
         reader: { provider: "ollama", model: "qwen", temperature: 0 },
-        judge: { provider: "anthropic-batch", model: "sonnet" },
+        judge: { provider: "anthropic-batch", model: "sonnet", prompt_template_hash: "h" },
         baseline: null,
       },
       june: { ingest_run_id: "ir", schema_version: 1, embedding_model: "m", embedding_model_version: "" },

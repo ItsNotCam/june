@@ -63,15 +63,21 @@ export const reciprocalRankFusion = (args: {
     .sort((a, b) => b.score - a.score)
     .slice(0, k);
 
-  return ordered.map((row) => {
-    const rank_source: RankSource =
-      row.dense_rank !== null && row.bm25_rank !== null
-        ? "fused"
-        : row.dense_rank !== null
-          ? "dense"
-          : "bm25";
-    return { chunk_id: row.chunk_id, score: row.score, rank_source };
-  });
+  return ordered.map((row) => ({
+    chunk_id: row.chunk_id,
+    score: row.score,
+    rank_source: rankSourceFor(row.dense_rank, row.bm25_rank),
+  }));
+};
+
+/** Tags a fused row by which modalities contributed a rank to it. */
+const rankSourceFor = (
+  denseRank: number | null,
+  bm25Rank: number | null,
+): RankSource => {
+  if (denseRank !== null && bm25Rank !== null) return "fused";
+  if (denseRank !== null) return "dense";
+  return "bm25";
 };
 
 /**

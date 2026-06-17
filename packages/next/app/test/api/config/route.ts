@@ -13,8 +13,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<Response> {
-  const config = await loadTestConfig();
-  return Response.json({ config });
+  try {
+    const config = await loadTestConfig();
+    return Response.json({ config });
+  } catch (err) {
+    // Surface the reason (e.g. a missing TEST_FIXTURE_DIR env) instead of a
+    // bare 500 the UI can only render as "HTTP 500".
+    const message = err instanceof Error ? err.message : "Failed to load config";
+    return Response.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PUT(request: Request): Promise<Response> {

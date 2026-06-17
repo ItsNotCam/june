@@ -92,8 +92,25 @@ export const ConfigSchema = z
       .prefault({}),
     summarizer: z
       .object({
-        implementation: z.enum(["ollama", "stub", "mock"]).default("ollama"),
+        // Backend for Stage 6. `ollama` runs locally; `deepseek` / `anthropic`
+        // call hosted Anthropic-Messages APIs (keys in env). `stub`/`mock` are
+        // test backends.
+        implementation: z
+          .enum(["ollama", "deepseek", "anthropic", "stub", "mock"])
+          .default("ollama"),
         long_doc_threshold_tokens: z.number().int().positive().default(6000),
+        // Per-chunk contextual-summary calls are independent LLM requests;
+        // run up to this many in flight. Bounded so a single ingest can't
+        // overwhelm the Ollama box (respect its OLLAMA_NUM_PARALLEL).
+        concurrency: z.number().int().positive().default(4),
+        // Ollama summarizer model. Optional — falls back to the
+        // OLLAMA_SUMMARIZER_MODEL env var when unset (config wins when set).
+        ollama_model: z.string().min(1).optional(),
+        // Hosted-backend model ids (only used when implementation matches).
+        deepseek_model: z.string().min(1).default("deepseek-v4-flash"),
+        anthropic_model: z.string().min(1).default("claude-haiku-4-5"),
+        // Output cap for hosted backends — summaries are short.
+        api_max_tokens: z.number().int().positive().default(1024),
       })
       .prefault({}),
     ollama: z

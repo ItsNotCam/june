@@ -13,6 +13,9 @@ import { bootstrap, parseArgv } from "./shared";
  * enough to run the bench; any failure exits 3 and prints the first failed
  * check.
  */
+/** A health ping only needs a token or two back to prove the role responds. */
+const HEALTH_PING_MAX_TOKENS = 4;
+
 export const runHealth = async (argv: readonly string[]): Promise<void> => {
   const { positionals, flags } = parseArgv(argv);
   if (positionals.includes("--help")) {
@@ -33,20 +36,21 @@ export const runHealth = async (argv: readonly string[]): Promise<void> => {
   // Probe the configured sync roles with a tiny cheap call.
   const roles: Array<{
     name: string;
-    provider: "ollama" | "anthropic" | "openai";
+    provider: "ollama" | "anthropic" | "openai" | "deepseek";
     model: string;
   }> = [
     { name: "corpus_author", ...pickRole(cfg, "corpus_author") },
     { name: "query_author", ...pickRole(cfg, "query_author") },
     { name: "reader", ...pickRole(cfg, "reader") },
   ];
+  const providerByName = {
+    openai: providers.openai,
+    deepseek: providers.deepseek,
+    anthropic: providers.anthropic,
+    ollama: providers.ollama,
+  };
   for (const role of roles) {
-    const provider =
-      role.provider === "openai"
-        ? providers.openai
-        : role.provider === "anthropic"
-          ? providers.anthropic
-          : providers.ollama;
+    const provider = providerByName[role.provider];
     if (!provider) {
       results.push({
         check: `role ${role.name} (${role.provider})`,
@@ -59,7 +63,7 @@ export const runHealth = async (argv: readonly string[]): Promise<void> => {
       await provider.call({
         model: role.model,
         messages: [{ role: "user", content: "ping" }],
-        max_tokens: 4,
+        max_tokens: HEALTH_PING_MAX_TOKENS,
         temperature: 0,
       });
       results.push({ check: `role ${role.name}`, ok: true, detail: `${role.provider}/${role.model}` });
@@ -91,7 +95,7 @@ export const runHealth = async (argv: readonly string[]): Promise<void> => {
 const pickRole = (
   cfg: ReturnType<typeof getConfig>,
   name: "corpus_author" | "query_author" | "reader",
-): { provider: "ollama" | "anthropic" | "openai"; model: string } => {
+): { provider: "ollama" | "anthropic" | "openai" | "deepseek"; model: string } => {
   const role = cfg.roles[name];
   return { provider: role.provider, model: role.model };
 };

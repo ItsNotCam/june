@@ -6,6 +6,49 @@ This package is two things at once: it **houses the retrieval pipeline**
 (`src/stages/`, the synthetic-corpus RAG-quality benchmark). Read the section
 below before changing either half.
 
+## Reader-by-purpose — flash iterates, gemma4:26b is the bar (FOREGONE CONCLUSION)
+
+june is BYO-AI with a **24GB-VRAM floor**; **`gemma4:26b` (local Ollama) is the
+reference reader that defines "expected results."** It's slow, so day-to-day iteration
+uses hosted **`deepseek-v4-flash`** as a fast scratchpad. These never blur. Every
+`june-eval run` **must declare intent** (enforced — a run with no intent hard-errors):
+
+- **`--mode iterate`** → reader = `deepseek-v4-flash`. The scratchpad. **Directional
+  signal ONLY — flash numbers are NEVER "expected results."** Use this for fast loops.
+- **`--mode control`** → reader = `gemma4:26b` (Ollama @ `OLLAMA_URL`, the home host
+  `https://ollama.your-lan.example:443`). **The bar.** The only runs that certify quality.
+- explicit `--reader-provider/--reader-model` → `freeform` (e.g. a model bake-off).
+  Never a baseline, never a control. (Mutually exclusive with `--mode`.)
+
+**You do not ask which to use — you know:** *iterating → `--mode iterate`; benchmarking /
+certifying / "is this actually good?" → `--mode control`.* The contract is committed in
+`src/lib/modes.ts` (mode FORCES the reader; you cannot run `control` on the wrong model).
+A PreToolUse hook also blocks any `june-eval run` missing intent.
+
+**Logical (not literal) model differences — the discipline that makes this work:** flash
+and gemma fail on *different* queries, so:
+- A flash delta is a **hypothesis**; the gemma `control` run is the **verdict**. Never
+  assume they're equal. A change that helps flash but regresses gemma is **overfit → reject**.
+- Track progress by **failure class** (`relation-direction`, `over-refusal`,
+  `multi-hop-composition`, `retrieval-miss`, `paraphrase-miss`), not raw query IDs or raw %.
+- Reader/prompt changes must be **model-generic comprehension principles**, never
+  flash-specific tells — that's what makes them transfer (and keeps BYO honest).
+- Cadence is **batched at milestones**: iterate freely on flash, then gate a batch on
+  gemma with `june-eval control-check <run_dir>` (fails if any tier regresses past the
+  golden noise floor). Pin/raise the bar with `control-pin`. Golden = `golden.json`.
+  Log flash-predicted vs gemma-actual per-class deltas in `transfer-log.md`.
+
+The judge is **pinned identical across modes** — `--mode` swaps ONLY the reader, so the
+reader is the sole variable.
+
+**Certification judge of record: `deepseek-v4-pro`** (the sync `deepseek` provider). It
+mirrors the older Sonnet batch judge closely (screening agreement κ ≈ 0.894) and is now the
+committed default in `config.yaml` — certify with it from now on. The `anthropic-batch`
+(Sonnet) judge remains selectable via `--judge-provider` but is no longer the bar, and it
+requires Anthropic credits the Sonnet path currently lacks. Whatever judge a golden was
+pinned with, gate that fixture's later control runs with the **same** judge — never
+control-check across judges.
+
 ## `src/retriever/stopgap.ts` is a STOPGAP — not the real retriever
 
 `stopgap.ts` talks to Qdrant directly **only because june does not yet expose a

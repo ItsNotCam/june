@@ -136,15 +136,11 @@ const verifyCorpusHashes = async (manifest: CorpusManifest): Promise<void> => {
 };
 
 /**
- * Builds a minimal YAML mcp config pointing the sidecar SQLite at the bench's
- * scratch directory. Every other mcp field is absent — mcp falls back to its
- * shipped defaults (including `bm25.stopwords: []` which the bench's BM25
- * mirrors).
- */
-/**
  * Builds the scratch mcp `config.yaml`. Starts from any operator-supplied ingest
  * overrides (chunk/embedding/summarizer/…) and forces `sidecar.path` to the
  * bench's scratch SQLite — the path is bench-owned and must never be overridden.
+ * Every unset field falls back to mcp's shipped defaults (including
+ * `bm25.stopwords: []`, which the bench's BM25 mirrors).
  */
 const buildTempMcpConfig = (
   sqlitePath: string,

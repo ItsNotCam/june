@@ -9,11 +9,14 @@ import type {
   JudgeResultsFile,
   VerdictRecord,
 } from "@/types/judge";
+import { BASELINE_QUERY_PREFIX } from "@/types/judge";
+import type { JudgeTask, JudgeTasksFile } from "@/types/judge-tasks";
 import type { BatchLlmProvider, LlmProvider } from "@/providers/types";
 import type { Judge, JudgeRequest } from "@/judge/types";
 import { createLlmJudge } from "@/judge/llm-judge";
 import { createSyncLlmJudge } from "@/judge/sync-llm-judge";
 import { writeJsonAtomic } from "@/lib/artifacts";
+import { promptTemplateHash } from "@/lib/prompts";
 import { JudgeIntegrityError } from "@/lib/errors";
 import { getConfig } from "@/lib/config";
 import { logger } from "@/lib/logger";
@@ -163,7 +166,7 @@ export const runStage8 = async (args: {
     verdicts: [
       ...readerVerdicts,
       ...baselineOutcomes.map((o) => ({
-        query_id: `baseline_${o.query_id}`,
+        query_id: `${BASELINE_QUERY_PREFIX}${o.query_id}`,
         verdict: o.verdict,
         rationale: o.rationale,
         unjudged_reason: o.unjudged_reason,
@@ -192,6 +195,74 @@ export const runStage8 = async (args: {
     );
   }
 
+  return file;
+};
+
+/**
+ * Stage 8 (external judge path) — emit `judge_tasks.json`, call NO LLM.
+ *
+ * The no-API architecture: instead of judging in-process, the bench writes a
+ * self-contained task per reader answer (+ per baseline answer) and halts. The
+ * Claude Code RSI orchestrator's Sonnet sub-agents grade these and write
+ * `verdicts.json`, which `june-eval score` then ingests. Reuses the same
+ * `buildRequests` (so the task's `retrieved_context` is byte-identical to what
+ * the in-bench judge would have seen) and stamps the judge prompt's hash so the
+ * regression gate can refuse cross-prompt comparisons. Baseline tasks carry the
+ * `BASELINE_QUERY_PREFIX` so Stage 9 splits the streams.
+ */
+export const buildJudgeTasks = async (args: {
+  facts: FactsFile;
+  queries: QueriesFile;
+  reader: ReaderAnswersFile;
+  baseline: BaselineAnswersFile | null;
+  run_id: string;
+  /** Scratch dir holding june.db — chunk text is hydrated from it for grounding. */
+  scratch_path: string;
+  out_path: string;
+}): Promise<JudgeTasksFile> => {
+  const factById = new Map(args.facts.facts.map((f) => [f.id, f]));
+  const queryById = new Map(args.queries.queries.map((q) => [q.id, q]));
+
+  const db = openJuneDatabase(join(args.scratch_path, "june.db"));
+  let tasks: JudgeTask[];
+  try {
+    const readerTasks = buildRequests(
+      args.reader.answers,
+      queryById,
+      factById,
+      db,
+    ).map((r): JudgeTask => ({ ...r, is_baseline: false }));
+    const baselineTasks = args.baseline
+      ? buildRequests(args.baseline.answers, queryById, factById, db).map(
+          (r): JudgeTask => ({
+            ...r,
+            query_id: `${BASELINE_QUERY_PREFIX}${r.query_id}`,
+            is_baseline: true,
+          }),
+        )
+      : [];
+    tasks = [...readerTasks, ...baselineTasks];
+  } finally {
+    db.close();
+  }
+
+  const file: JudgeTasksFile = {
+    fixture_id: args.facts.fixture_id,
+    run_id: args.run_id,
+    schema_version: 1,
+    prompt_template: "judge",
+    prompt_template_hash: await promptTemplateHash("judge"),
+    tasks,
+  };
+  await writeJsonAtomic(args.out_path, file);
+
+  logger.info("stage.8.tasks_emitted", {
+    fixture_id: args.facts.fixture_id,
+    run_id: args.run_id,
+    reader_tasks: args.reader.answers.length,
+    baseline_tasks: args.baseline?.answers.length ?? 0,
+    out_path: args.out_path,
+  });
   return file;
 };
 

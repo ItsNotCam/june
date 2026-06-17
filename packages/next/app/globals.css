@@ -245,13 +245,13 @@
     --foreground-faint:    #5a5248;
 
     /* primary — muted green for dark bg */
-    --primary:              #4a7550;
-    --primary-hover:        #5a8a5a;
-    --primary-foreground:   #e8f0e8;
+    --primary:              #4c4a75;
+    --primary-hover:        #5a5e8a;
+    --primary-foreground:   #e8e9f0;
 
     /* accent */
-    --accent:               #1e2a1e;
-    --accent-foreground:    #4a7550;
+    --accent:               #1e1f2a;
+    --accent-foreground:    #4c4a75;
 
     /* secondary */
     --secondary:              #2d2824;
@@ -265,13 +265,13 @@
     --border:               #3a342e;
     --border-subtle:        #322c27;
     --input:                #3a342e;
-    --ring:                 #4a7550;
+    --ring:                 #4c4a75;
 
     /* semantic status */
     --destructive:              #c97060;
     --destructive-foreground:   #f5f0e8;
-    --success:                  #4a7550;
-    --success-foreground:       #e8f0e8;
+    --success:                  #4c4a75;
+    --success-foreground:       #e8e9f0;
     --warning:                  #d8b08a;
     --warning-foreground:       #1c1917;
 
@@ -284,17 +284,17 @@
     /* sidebar */
     --sidebar:                          #231f1b;
     --sidebar-foreground:               #f5f0e8;
-    --sidebar-primary:                  #4a7550;
-    --sidebar-primary-foreground:       #e8f0e8;
+    --sidebar-primary:                  #4c4a75;
+    --sidebar-primary-foreground:       #e8e9f0;
     --sidebar-accent:                   #2d2824;
     --sidebar-accent-foreground:        #f5f0e8;
     --sidebar-border:                   #3a342e;
-    --sidebar-ring:                     #4a7550;
+    --sidebar-ring:                     #4c4a75;
 
     /* chart palette — darkened green for dark bg */
-    --chart-1:   #4a7550;
-    --chart-2:   #5a8a5a;
-    --chart-3:   #a8c4a8;
+    --chart-1:   #4c4a75;
+    --chart-2:   #5a5e8a;
+    --chart-3:   #a8aac4;
     --chart-4:   #d8b08a;
     --chart-5:   #a88a6a;
   }
@@ -324,4 +324,11 @@
   button, [role="button"] {
     cursor: pointer;
   }
+}
+
+/* Indeterminate progress: a sliver sweeps across the track for stages that
+   report elapsed time but no done/total count (e.g. the ingest subprocess). */
+@keyframes progress-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }

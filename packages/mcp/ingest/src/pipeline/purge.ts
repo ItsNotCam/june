@@ -52,12 +52,11 @@ export const purge = async (opts: PurgeOptions): Promise<PurgeResult> => {
 
     for (const v of toPurge) {
       const chunks = await sidecar.getChunksForDoc(v.doc_id, v.version);
-      for (const coll of ["internal", "external"] as const) {
-        if (chunks.length === 0) continue;
-        await vector.deletePointsByChunkIds(
-          coll,
-          chunks.map((c) => c.chunk_id),
-        );
+      if (chunks.length > 0) {
+        const chunkIds = chunks.map((c) => c.chunk_id);
+        for (const coll of ["internal", "external"] as const) {
+          await vector.deletePointsByChunkIds(coll, chunkIds);
+        }
       }
       await sidecar.recordReconcileEvent({
         run_id: runId,

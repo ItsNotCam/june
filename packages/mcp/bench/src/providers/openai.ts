@@ -6,6 +6,7 @@ import type {
   LlmProvider,
 } from "./types";
 import { withRateLimitRetry } from "./retry";
+import { HTTP_TOO_MANY_REQUESTS } from "./shared";
 import { costFor, rateFor } from "@/lib/cost";
 
 /**
@@ -70,6 +71,10 @@ export const createOpenAIProvider = (apiKey: string): LlmProvider => {
 };
 
 const isOpenAIRateLimited = (err: unknown): boolean => {
+  if (typeof err !== "object" || err === null) return false;
   const apiErr = err as { status?: number; code?: string };
-  return apiErr?.status === 429 || apiErr?.code === "rate_limit_exceeded";
+  return (
+    apiErr.status === HTTP_TOO_MANY_REQUESTS ||
+    apiErr.code === "rate_limit_exceeded"
+  );
 };

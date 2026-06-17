@@ -35,9 +35,13 @@ const ReaderRoleSchema = SyncRoleSchema.extend({
 });
 
 const JudgeRoleSchema = z.object({
-  // anthropic-batch → Sonnet via the Batch API (system-of-record).
-  // deepseek → sync deepseek-v4-pro via concurrent calls (no batch API).
-  provider: z.enum(["anthropic-batch", "deepseek"]),
+  // external  → the bench emits judge_tasks.json and calls NO LLM; the Claude
+  //             Code RSI orchestrator's Sonnet agents judge out-of-process.
+  //             This is the no-API default (see JUDGE-RUNNER.md). model /
+  //             max_tokens / temperature / concurrency are unused on this path.
+  // anthropic-batch → Sonnet via the Batch API (legacy in-bench judge).
+  // deepseek  → sync deepseek-v4-pro via concurrent calls (legacy in-bench judge).
+  provider: z.enum(["external", "anthropic-batch", "deepseek"]).default("external"),
   model: z.string().min(1),
   max_tokens: z.number().int().positive(),
   temperature: z.literal(0),

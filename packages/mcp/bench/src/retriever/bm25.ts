@@ -21,11 +21,15 @@ const MAX_TOKEN_CHARS = 100;
 
 const TOKEN_SPLIT_RE = /[\s\p{P}\p{S}]+/u;
 
+// FNV-1a 32-bit hash parameters — the standard offset basis and prime.
+const FNV1A_OFFSET_BASIS = 0x811c9dc5;
+const FNV1A_PRIME = 0x01000193;
+
 const fnv1a32 = (s: string): number => {
-  let h = 0x811c9dc5 >>> 0;
+  let h = FNV1A_OFFSET_BASIS >>> 0;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
+    h = Math.imul(h, FNV1A_PRIME) >>> 0;
   }
   return h;
 };

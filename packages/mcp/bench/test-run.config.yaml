@@ -1,0 +1,22 @@
+ingest:
+  chunk:
+    target_tokens: 500
+    min_tokens: 100
+    max_tokens: 1000
+    overlap_pct: 0.15
+  embedding:
+    batch_size: 32
+    matryoshka_dim: null
+    max_input_chars: 30000
+  summarizer:
+    provider: ollama
+    model: gemma4:26b
+    long_doc_threshold_tokens: 6000
+run:
+  sample_ratio: 1
+  cache: true
+  baseline: false
+  reader_concurrency: 6
+  reader:
+    provider: deepseek
+    model: deepseek-v4-flash

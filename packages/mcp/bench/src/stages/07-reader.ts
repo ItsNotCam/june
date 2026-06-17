@@ -9,7 +9,7 @@ import type {
   ReaderAnswersFile,
 } from "@/types/reader";
 import type { LlmProvider } from "@/providers/types";
-import { openJuneDatabase } from "@/lib/sqlite";
+import { openJuneDatabase, renderChunksById } from "@/lib/sqlite";
 import { writeJsonAtomic } from "@/lib/artifacts";
 import { renderPrompt } from "@/lib/prompts";
 import { mapConcurrent } from "@/lib/concurrency";
@@ -71,7 +71,7 @@ export const runStage7 = async (args: {
         const chunkIds = (retrievedRecord?.retrieved ?? [])
           .slice(0, topK)
           .map((r) => r.chunk_id);
-        const rendered = renderChunks(db, chunkIds);
+        const rendered = renderChunksById(db, chunkIds);
         const prompt = await renderPrompt("reader", {
           chunks_rendered_as_chunk_tags: rendered,
           query_text: q.text,
@@ -188,23 +188,4 @@ const callReader = async (args: {
     prompt_tokens: res.prompt_tokens,
     completion_tokens: res.completion_tokens,
   };
-};
-
-const renderChunks = (
-  db: import("bun:sqlite").Database,
-  chunkIds: readonly string[],
-): string => {
-  if (chunkIds.length === 0) return "";
-  const stmt = db.query<{ chunk_id: string; raw_content: string }, [string]>(
-    `SELECT chunk_id, raw_content FROM chunks WHERE chunk_id = ?`,
-  );
-  const parts: string[] = [];
-  for (const id of chunkIds) {
-    const row = stmt.get(id);
-    if (!row) continue;
-    parts.push(
-      `<chunk id="${row.chunk_id}">\n${row.raw_content}\n</chunk>`,
-    );
-  }
-  return parts.join("\n\n");
 };

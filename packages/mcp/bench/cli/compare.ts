@@ -6,7 +6,8 @@ import type {
   PerQueryRecord,
   ResultsFile,
 } from "@/types/results";
-import type { QueryTier } from "@/types/query";
+import { QUERY_TIERS } from "@/types/query";
+import { isVerdictCorrectForTier } from "@/types/verdict";
 import { readJson } from "@/lib/artifacts";
 import { UsageError, OperatorAbortError } from "@/lib/errors";
 import { bootstrap, flagBool, parseArgv } from "./shared";
@@ -51,6 +52,22 @@ const manifestDifferences = (a: ResultsFile, b: ResultsFile): string[] => {
   if (a.manifest.fixture_hash !== b.manifest.fixture_hash) {
     out.push(`fixture_hash: ${a.manifest.fixture_hash} ≠ ${b.manifest.fixture_hash}`);
   }
+  // Cross-mode / cross-reader diffs are the loudest hazard: a flash `iterate`
+  // run's numbers are NOT comparable to a gemma `control` run's. Flag explicitly
+  // (the generic "roles differ" below also catches reader changes, but this is
+  // unmissable). See src/lib/modes.ts.
+  if (a.manifest.mode !== b.manifest.mode) {
+    out.push(
+      `mode: ${a.manifest.mode} ≠ ${b.manifest.mode} — directional vs authoritative numbers are NOT comparable`,
+    );
+  } else if (
+    a.manifest.roles.reader.provider !== b.manifest.roles.reader.provider ||
+    a.manifest.roles.reader.model !== b.manifest.roles.reader.model
+  ) {
+    out.push(
+      `reader: ${a.manifest.roles.reader.model} ≠ ${b.manifest.roles.reader.model}`,
+    );
+  }
   if (JSON.stringify(a.manifest.roles) !== JSON.stringify(b.manifest.roles)) {
     out.push("roles differ");
   }
@@ -62,8 +79,6 @@ const manifestDifferences = (a: ResultsFile, b: ResultsFile): string[] => {
   }
   return out;
 };
-
-const TIERS: readonly QueryTier[] = ["T1", "T2", "T3", "T4", "T5"];
 
 const renderCompare = (
   a: ResultsFile,
@@ -85,7 +100,7 @@ const renderCompare = (
 
 const deltaTable = (a: ResultsFile, b: ResultsFile): string => {
   let out = `## Per-tier delta\n\n| Tier | Metric | A | B | CI overlap? |\n|---|---|---|---|---|\n`;
-  for (const tier of TIERS) {
+  for (const tier of QUERY_TIERS) {
     const ta = a.per_tier[tier];
     const tb = b.per_tier[tier];
     out += row(tier, "Recall@5", ta.recall_at_5, tb.recall_at_5);
@@ -115,7 +130,11 @@ const perQueryFlips = (
   for (const bb of b) {
     const aa = aById.get(bb.query_id);
     if (!aa) continue;
-    if (aa.verdict !== bb.verdict && (isCorrect(aa) !== isCorrect(bb))) {
+    if (
+      aa.verdict !== bb.verdict &&
+      isVerdictCorrectForTier(aa.tier, aa.verdict) !==
+        isVerdictCorrectForTier(bb.tier, bb.verdict)
+    ) {
       count++;
       out += `- **${bb.query_id}** (${bb.tier}): ${aa.verdict} → ${bb.verdict}\n`;
       out += `  - Query: ${bb.query_text}\n`;
@@ -126,10 +145,6 @@ const perQueryFlips = (
   if (count === 0) out += `_No correctness flips between the two runs._\n`;
   return out;
 };
-
-const isCorrect = (r: PerQueryRecord): boolean =>
-  (r.tier === "T5" && r.verdict === "REFUSED") ||
-  (r.tier !== "T5" && r.verdict === "CORRECT");
 
 const COMPARE_HELP = `june-eval compare — diff two runs.
 

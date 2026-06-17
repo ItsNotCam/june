@@ -37,9 +37,9 @@ try {
 const server = new McpServer(config.mcp_server);
 
 // generic register function to register a new tool
-const register = <T extends ZodRawShape>(tool: McpTool<T>) => {
+const register = <T extends ZodRawShape>(tool: McpTool<T>): void => {
 	server.registerTool(tool.name, tool.tool_definition, tool.function);
-}
+};
 
 // register the tools
 register(createHelloTool());

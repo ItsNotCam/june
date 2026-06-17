@@ -76,6 +76,17 @@ export type BenchLogFields = {
   key?: string;
   cache_root?: string;
   missing?: number;
+  // Externalized-judge path (no-API): task emission, verdict scoring.
+  reader_tasks?: number;
+  baseline_tasks?: number;
+  out_path?: string;
+  judge_tasks_path?: string;
+  judge_model?: string;
+  verdicts?: number;
+  reader_correct_pct?: number;
+  run_stamped?: string;
+  verdicts_used?: string;
+  note?: string;
 };
 
 /**

@@ -1,7 +1,7 @@
 // author: Claude
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/shadcn/button";
 
 /** Fake form section for the preview page — client component so onSubmit is valid. */
 export function PreviewForm() {

@@ -15,7 +15,7 @@ Given a fictional-domain fixture (facts + corpus + queries), the bench:
 2. Resolves every planted fact to an ingested chunk (two-tier: substring, then doc-scoped embedding).
 3. Evaluates retrieval: Recall@{1,3,5,10} and MRR per query, dispatched on tier.
 4. Evaluates the reader: feeds top-K chunks + the question to the SUT model.
-5. Judges reader answers with the selected judge — sync `deepseek-v4-pro` (default) or Sonnet via the Anthropic Batch API.
+5. **Externalizes judging (no API calls, default).** Emits a self-contained `judge_tasks.json` and halts at `awaiting_verdicts` — the Claude Code RSI orchestrator's Sonnet agents grade the tasks and write `verdicts.json` (see [`JUDGE-RUNNER.md`](JUDGE-RUNNER.md)); `june-eval score` then finalizes. Legacy in-bench judges (sync `deepseek-v4-pro` or Sonnet via the Anthropic Batch API) stay selectable with `--judge-provider`.
 6. Aggregates into per-tier + overall metrics with bootstrap CIs, emits `results.json` + `summary.md`.
 
 Optional sibling pass: no-RAG Opus baseline for the headline "does RAG beat Opus" answer.
@@ -74,6 +74,7 @@ june-eval run <fixture_dir> (--mode iterate | --mode control |
                             [--quiet] [--log-json] [--progress-ndjson]
                             [--ingest-config <path>] [--reader-concurrency <n>]
                             [--baseline | --no-baseline]
+june-eval score <run_dir> --verdicts <verdicts.json>
 june-eval report <run_dir>
 june-eval compare <run_dir_a> <run_dir_b> [--force]
 june-eval control-pin <run_dir> [--noise-floor <0..1>]
@@ -108,12 +109,21 @@ corresponding config values; `--reader-provider`/`--reader-model` and
 ingest` (`sidecar.path` stays bench-owned and cannot be overridden). The `/test`
 web UI in `packages/next` uses these to apply an operator-edited config to a run.
 
-**Judge selection.** The judge (the gauge) runs as one of two providers:
-`deepseek` (the default — sync `deepseek-v4-pro` over concurrent calls; ~7×
-cheaper, validated to mirror Sonnet at κ=0.894) or `anthropic-batch` (Sonnet via
-the Batch API — keep this as system-of-record for final/published runs). deepseek
-has no Batch API, so the sync path has no checkpoint/resume — `--cache` covers
-re-runs instead. Both run at `temperature: 0`.
+**Judge selection.** The judge defaults to **`external`** — **no API calls.** The
+bench emits `judge_tasks.json` and halts at `awaiting_verdicts`; the Claude Code
+RSI orchestrator's Sonnet agents grade the tasks (each self-contained, with the
+retrieved context pre-rendered) and write `verdicts.json`, then `june-eval score
+<run_dir> --verdicts <file>` overlays them and finalizes the run. See
+[`JUDGE-RUNNER.md`](JUDGE-RUNNER.md). This makes a `--mode control` run fully
+local: local Qdrant retrieval + local gemma reader + pure-math scoring, with the
+only LLM judgment happening out-of-process under the Claude Code subscription.
+
+The legacy in-bench judges stay selectable with `--judge-provider`: `deepseek`
+(sync `deepseek-v4-pro`, validated to mirror Sonnet at κ=0.894) or
+`anthropic-batch` (Sonnet via the Batch API — system-of-record for published
+runs). Both in-bench paths run at `temperature: 0` and require API keys; the
+verdicts' judge identity (model + prompt hash) is recorded so the regression gate
+can refuse to compare across judges.
 
 ### Reader-by-purpose — flash iterates, gemma4:26b is the bar
 

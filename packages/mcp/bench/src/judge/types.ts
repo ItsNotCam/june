@@ -16,6 +16,14 @@ export type JudgeRequest = {
   expected_facts: Array<{ surface_hint: string }>;
   reader_answer: string;
   tier: QueryTier;
+  /**
+   * The retrieved chunk text the reader saw, rendered as `<chunk>` blocks
+   * (empty string for the no-RAG baseline pass). The judge grounds its verdict
+   * against this so it can tell apart grounded elaboration (CORRECT) from
+   * fabrication (HALLUCINATED) — detail beyond the one-line `surface_hint` is
+   * not automatically a hallucination when the context supports it.
+   */
+  retrieved_context: string;
 };
 
 /** Per-query output from the judge — one verdict per request. */

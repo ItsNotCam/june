@@ -28,7 +28,8 @@ export type ReembedResult = {
   readonly run_id: RunId;
 };
 
-const RE_EMBED_SUFFIX_PREFIX = "rembed_";
+/** Chunks per embed batch during re-embed — bounds memory and provider fan-out. */
+const RE_EMBED_BATCH_SIZE = 32;
 
 export const reembed = async (opts: ReembedOptions): Promise<ReembedResult> => {
   const sidecar = opts.deps.storage.sidecar;
@@ -53,24 +54,16 @@ export const reembed = async (opts: ReembedOptions): Promise<ReembedResult> => {
 
   try {
     for (const alias of opts.collections) {
-      // Create + size new collection.
-      const suffix = `${RE_EMBED_SUFFIX_PREFIX}${Date.now()}`;
-      const newCollection = `${alias}_${suffix}`;
+      // ensureCollections creates the aliased base collection at the new
+      // dimension; for v1 the re-embed path upserts via the existing alias.
+      // A dedicated swap target ("createNamedCollection") is a future phase.
       await vector.ensureCollections(embedder.dim);
-      // ensureCollections creates the aliased base collection; we still need
-      // a fresh target to swap to. The factory doesn't expose a
-      // "createNamedCollection" yet — for v1, the re-embed path upserts via
-      // the existing alias (which already has new-dim collection from
-      // ensureCollections). Aliased swap is a future-phase concern.
-      // NOTE: simplified path; preserves the public contract.
-      void newCollection;
 
       const latest = await sidecar.listLatestDocuments();
       for (const doc of latest) {
         const chunks = await sidecar.getChunksForDoc(doc.doc_id, doc.version);
-        const batchSize = 32;
-        for (let i = 0; i < chunks.length; i += batchSize) {
-          const slice = chunks.slice(i, i + batchSize);
+        for (let i = 0; i < chunks.length; i += RE_EMBED_BATCH_SIZE) {
+          const slice = chunks.slice(i, i + RE_EMBED_BATCH_SIZE);
           const texts = slice.map((c) => c.content);
           const vectors = await embedder.embed(texts);
           const points: VectorPoint[] = slice.map((c, idx) => {

@@ -20,6 +20,10 @@ const EnvSchema = BaseEnvSchema.extend({
   OLLAMA_CLASSIFIER_MODEL: z.string().min(1),
   OLLAMA_SUMMARIZER_MODEL: z.string().min(1),
   QDRANT_API_KEY: z.string().min(1).optional(),
+  // Hosted summarizer backends — required only when the matching
+  // `config.summarizer.implementation` is selected (enforced at construction).
+  DEEPSEEK_API_KEY: z.string().min(1).optional(),
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

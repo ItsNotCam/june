@@ -2,7 +2,7 @@
 // author: Claude
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
-import { getConfig, loadConfig } from "@/lib/config";
+import { loadConfig } from "@/lib/config";
 import { bindingFor } from "@/pipeline/stages/01-discover";
 import { getEnv } from "@/lib/env";
 import { logger, setLogLevel } from "@/lib/logger";
@@ -263,8 +263,7 @@ const main = async (): Promise<void> => {
   );
 
   // Only close after we've written the report.
-  const closeResult = (getConfig() as object, void sidecar.close());
-  void closeResult;
+  await sidecar.close();
 };
 
 await main();

@@ -18,6 +18,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.60.0",
     "@june/shared": "workspace:*",
     "@qdrant/js-client-rest": "^1.17.0",
     "mdast-util-from-markdown": "^2.0.2",

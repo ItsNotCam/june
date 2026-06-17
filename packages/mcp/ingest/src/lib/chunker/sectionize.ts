@@ -133,9 +133,7 @@ export const sectionize = (
     firstHeadingSeen = true;
     closeTo(node.depth, start);
     emitParentIntroIfNeeded(start);
-    const path = stack
-      .map((e) => e.headingPath[e.headingPath.length - 1]!)
-      .filter((e) => e !== undefined);
+    const path = stack.map((e) => e.headingPath[e.headingPath.length - 1]!);
     const newPath = [...path, headingText(node)];
     stack.push({
       depth: node.depth,

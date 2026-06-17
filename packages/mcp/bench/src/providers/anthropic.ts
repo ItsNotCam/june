@@ -1,12 +1,16 @@
 // author: Claude
 import Anthropic from "@anthropic-ai/sdk";
-import type { APIError } from "@anthropic-ai/sdk";
 import type {
   LlmCallRequest,
   LlmCallResponse,
   LlmProvider,
 } from "./types";
 import { withRateLimitRetry } from "./retry";
+import {
+  composeAnthropicSystem,
+  extractTextFromContent,
+  isAnthropicRateLimited,
+} from "./shared";
 import { costFor, rateFor } from "@/lib/cost";
 
 /**
@@ -36,21 +40,12 @@ export const createAnthropicProvider = (apiKey: string): LlmProvider => {
             content: m.content,
           }));
 
-        // Anthropic Messages has no native JSON mode and Claude 4.x rejects
-        // assistant-prefill, so when callers ask for JSON we steer via the
-        // system prompt instead. The bench's `extractJson` already handles
-        // prose-wrapped JSON via a balanced-brace walker.
         const systemFromMessages = req.messages.find((m) => m.role === "system")?.content;
         const baseSystem = req.system ?? systemFromMessages;
-        const jsonSystem =
-          req.response_format === "json"
-            ? "Respond with a single JSON object and nothing else. No prose, no Markdown fences, no explanatory text before or after."
-            : null;
-        const system = jsonSystem
-          ? baseSystem
-            ? `${baseSystem}\n\n${jsonSystem}`
-            : jsonSystem
-          : baseSystem;
+        const system = composeAnthropicSystem(
+          baseSystem,
+          req.response_format === "json",
+        );
 
         const res = await client.messages.create({
           model: req.model,
@@ -79,34 +74,4 @@ export const createAnthropicProvider = (apiKey: string): LlmProvider => {
   };
 
   return { name: "anthropic", call };
-};
-
-const isAnthropicRateLimited = (err: unknown): boolean => {
-  const apiErr = err as APIError;
-  return (
-    apiErr?.status === 429 ||
-    apiErr?.status === 529 ||
-    (typeof apiErr?.error === "object" &&
-      apiErr?.error !== null &&
-      (apiErr.error as { type?: string }).type === "rate_limit_error")
-  );
-};
-
-type ContentBlock = { type: string; text?: string };
-
-/**
- * Extracts the concatenated `text` across all `{type: "text"}` blocks in the
- * Messages API response. v1 only asks for text blocks, but the type guard
- * keeps us safe if Anthropic ever returns a `thinking` block alongside —
- * we ignore non-text blocks rather than including them in the response.
- */
-const extractTextFromContent = (content: unknown): string => {
-  if (!Array.isArray(content)) return "";
-  let out = "";
-  for (const block of content as ContentBlock[]) {
-    if (block.type === "text" && typeof block.text === "string") {
-      out += block.text;
-    }
-  }
-  return out;
 };

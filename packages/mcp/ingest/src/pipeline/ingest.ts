@@ -84,22 +84,17 @@ const runStagesAfterDiscover = async (
   },
 ): Promise<"processed" | "skipped" | "errored"> => {
   const { deps, progress } = opts;
-  const { sidecar, vector, summarizer, embedder } = {
-    sidecar: deps.storage.sidecar,
-    vector: deps.storage.vector,
-    summarizer: deps.summarizer,
-    embedder: deps.embedder,
-  };
+  const sidecar = deps.storage.sidecar;
+  const vector = deps.storage.vector;
+  const summarizer = deps.summarizer;
+  const embedder = deps.embedder;
 
   if (stage1.kind === "unchanged") return "skipped";
   if (stage1.kind === "skipped_too_large") return "skipped";
 
+  // Remaining kinds (ingest / resume / resurrection) all carry rawBytes.
   const document: Document = stage1.document;
-  const rawBytes =
-    stage1.kind === "resume" || stage1.kind === "ingest" || stage1.kind === "resurrection"
-      ? stage1.rawBytes
-      : undefined;
-  if (!rawBytes) return "skipped";
+  const rawBytes = stage1.rawBytes;
 
   // Capture the prior version before we touch status in Stage 2+.
   const allVersions = await sidecar.listVersionsForDoc(document.doc_id);

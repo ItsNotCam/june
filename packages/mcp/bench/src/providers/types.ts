@@ -44,7 +44,7 @@ export type LlmCallResponse = {
  * sync providers serve roles 1/2/3; the Batch provider serves role 4.
  */
 export type LlmProvider = {
-  name: "ollama" | "anthropic" | "openai";
+  name: "ollama" | "anthropic" | "openai" | "deepseek";
   call: (req: LlmCallRequest) => Promise<LlmCallResponse>;
 };
 

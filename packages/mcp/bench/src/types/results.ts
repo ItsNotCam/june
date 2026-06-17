@@ -1,6 +1,7 @@
 // author: Claude
 import type { QueryTier } from "./query";
 import type { Verdict } from "./verdict";
+import type { RunMode } from "@/lib/modes";
 
 /**
  * A metric reported with its bootstrap 95% CI and provenance trail (§30).
@@ -77,11 +78,25 @@ export type RunManifest = {
   schema_version: 1;
   started_at: string;
   completed_at: string;
+  /**
+   * Run intent (the reader-by-purpose contract). `control` runs (gemma4:26b)
+   * are the only authoritative "expected results"; `iterate` (flash) is
+   * directional scratchpad signal; `freeform` is an ad-hoc reader. See
+   * `src/lib/modes.ts`.
+   */
+  mode: RunMode;
   roles: {
     corpus_author: { provider: string; model: string };
     query_author: { provider: string; model: string };
     reader: { provider: string; model: string; temperature: number };
-    judge: { provider: "anthropic-batch"; model: string };
+    /**
+     * Judge identity. `provider` is `external` for the no-API path (Claude Code
+     * agents), or `anthropic-batch`/`deepseek` for the legacy in-bench judge.
+     * `model` + `prompt_template_hash` are the cross-judge guard's keys — the
+     * regression gate refuses to compare verdicts produced under a different
+     * judge model or judge prompt.
+     */
+    judge: { provider: string; model: string; prompt_template_hash: string };
     baseline: { provider: string; model: string; temperature: number } | null;
   };
   june: {
@@ -105,6 +120,12 @@ export type RunManifest = {
  */
 export type RunStatus =
   | "completed"
+  /**
+   * The no-API judge path halted after emitting `judge_tasks.json`: retrieval
+   * metrics are final, verdict-derived metrics are pending an external judge.
+   * `june-eval score --verdicts` finalizes the run to `completed`.
+   */
+  | "awaiting_verdicts"
   | "aborted_integrity_resolution"
   | "aborted_integrity_judge"
   | "aborted_budget"

@@ -6,6 +6,7 @@
  * the summary.md report, and the saved event log + stderr when present.
  */
 import { useEffect, useState } from "react";
+import { Markdown } from "@/components/shadcn/markdown";
 import type { RunDetail as RunDetailData } from "@/lib/test/run-store";
 import type { TestEvent } from "@/lib/test/events";
 
@@ -58,30 +59,47 @@ export function RunDetail({ runId }: { runId: string }) {
 
   return (
     <div className="flex flex-col gap-4 text-sm">
-      {/* Stage timeline */}
-      <div className="flex flex-wrap gap-1.5">
-        {detail.stages.map((s) => (
-          <span
-            key={s.num}
-            className={`rounded-md px-2 py-0.5 text-xs ${
-              s.done ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-            }`}
-            title={s.done ? "complete" : "not reached"}
-          >
-            {s.num}. {s.name}
-          </span>
-        ))}
-      </div>
-
-      {/* Metrics */}
-      {detail.metrics ? (
-        <div className="text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 text-xs tabular-nums">
-          <span>reader correct: {pct(detail.metrics.readerCorrectPct)}</span>
-          <span>recall@5: {pct(detail.metrics.recallAt5)}</span>
-          <span>MRR: {num(detail.metrics.mrr)}</span>
-          {detail.costUsd !== undefined ? <span>cost: ${detail.costUsd.toFixed(4)}</span> : null}
+      {/* Stage timeline (left) + metrics (right) */}
+      <div className="flex items-start gap-4">
+        <div className="flex flex-1 flex-wrap content-start gap-1.5">
+          {detail.stages.map((s) => (
+            <span
+              key={s.num}
+              className={`rounded-md px-2 py-0.5 text-xs ${
+                s.done ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+              }`}
+              title={s.done ? "complete" : "not reached"}
+            >
+              {s.num}. {s.name}
+            </span>
+          ))}
         </div>
-      ) : null}
+
+        {detail.metrics ? (
+          <table className="w-1/2 shrink-0 text-xs">
+            <tbody className="divide-border divide-y">
+            <tr title="Share of questions the reader answered correctly from the retrieved sources.">
+              <td className="text-muted-foreground py-1.5 pr-4">answers correct</td>
+              <td className="py-1.5 text-right font-medium tabular-nums">{pct(detail.metrics.readerCorrectPct)}</td>
+            </tr>
+            <tr title="How often the correct source was among the top 5 retrieved results.">
+              <td className="text-muted-foreground py-1.5 pr-4">correct source in top 5</td>
+              <td className="py-1.5 text-right font-medium tabular-nums">{pct(detail.metrics.recallAt5)}</td>
+            </tr>
+            <tr title="How high the correct source ranks on average. 1.0 = always first; 0.5 ≈ second; lower = buried further down.">
+              <td className="text-muted-foreground py-1.5 pr-4">avg ranking of correct source</td>
+              <td className="py-1.5 text-right font-medium tabular-nums">{num(detail.metrics.mrr)}</td>
+            </tr>
+            {detail.costUsd !== undefined ? (
+              <tr>
+                <td className="text-muted-foreground py-1.5 pr-4">cost</td>
+                <td className="py-1.5 text-right font-medium tabular-nums">${detail.costUsd.toFixed(4)}</td>
+              </tr>
+            ) : null}
+          </tbody>
+          </table>
+        ) : null}
+      </div>
 
       {/* Saved log + stderr (collapsible) */}
       {detail.events || detail.stderr ? (
@@ -117,9 +135,9 @@ export function RunDetail({ runId }: { runId: string }) {
           <summary className="text-primary cursor-pointer text-xs hover:underline">
             Summary report
           </summary>
-          <pre className="bg-muted text-foreground mt-2 max-h-96 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap">
-            {detail.summaryMd}
-          </pre>
+          <div className="bg-muted text-foreground mt-2 max-h-96 overflow-auto rounded-md p-3 text-xs">
+            <Markdown>{detail.summaryMd}</Markdown>
+          </div>
         </details>
       ) : (
         <p className="text-muted-foreground text-xs">No summary.md (run did not reach scoring).</p>

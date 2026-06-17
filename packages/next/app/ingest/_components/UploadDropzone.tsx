@@ -2,7 +2,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/shadcn/button";
 import { cn } from "@/lib/ui/utils";
 
 type UploadDropzoneProps = {

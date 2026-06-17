@@ -2,6 +2,9 @@
 import { ProviderRateLimitExhausted } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
+/** Exponential backoff schedule (ms) — five attempts total before exhaustion. */
+const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 16000];
+
 /**
  * Shared rate-limit retry helper (§27).
  *
@@ -19,17 +22,15 @@ export const withRateLimitRetry = async <T>(args: {
   isRateLimited: (err: unknown) => boolean;
 }): Promise<T> => {
   const { provider, run, isRateLimited } = args;
-  const delays = [1000, 2000, 4000, 8000, 16000];
+  const delays = RETRY_DELAYS_MS;
 
   for (let attempt = 0; attempt <= delays.length; attempt++) {
     try {
       return await run();
     } catch (err) {
-      if (!isRateLimited(err) || attempt === delays.length) {
-        if (isRateLimited(err)) {
-          throw new ProviderRateLimitExhausted(provider);
-        }
-        throw err;
+      if (!isRateLimited(err)) throw err;
+      if (attempt === delays.length) {
+        throw new ProviderRateLimitExhausted(provider);
       }
       const delay = delays[attempt]!;
       const fields = {

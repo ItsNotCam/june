@@ -2,24 +2,18 @@
 import { z } from "zod";
 import { getConfig } from "#internal/lib/config";
 import { getEnv } from "#internal/lib/env";
-import {
-  OllamaModelNotFoundError,
-  OllamaTimeoutError,
-} from "#internal/lib/errors";
+import { OllamaModelNotFoundError, OllamaTimeoutError } from "#internal/lib/errors";
 import { logger } from "#internal/lib/logger";
 import { sleepWithJitter } from "#internal/lib/retry";
-import { DocumentOutlineSchema, type DocumentOutline } from "#internal/schemas/classifier";
-import {
-  buildFitsPrompt,
-  buildLongDocChunkPrompt,
-  buildLongDocOutlinePrompt,
-} from "./prompt";
-import type { Summarizer, SummarizerInput } from "./types";
+import { createSummarizerFromGenerate } from "./core";
+import type { Summarizer } from "./types";
 
 /**
- * Ollama-backed summarizer ([§19](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#19-stage-6--contextual-summary-generation)). Same retry behavior as the classifier;
- * length / format validation per [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds) with a deterministic heading-path
- * fallback.
+ * Ollama transport for the Stage 6 summarizer ([§19](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#19-stage-6--contextual-summary-generation)). All
+ * orchestration / validation / fallback lives in `./core`; this module only
+ * owns the `/api/generate` call, its retry, and **deterministic decoding**
+ * (`temperature: 0` + fixed `seed`) — Stage 6 is the sole source of ingest
+ * non-determinism, so pinning it makes the whole pipeline reproducible.
  */
 
 const GenerateResponseSchema = z.object({
@@ -28,17 +22,11 @@ const GenerateResponseSchema = z.object({
 });
 
 /**
- * The summarizer is instructed to emit `{"summary": "..."}` under Ollama's
- * `format: "json"` mode. The structural constraint is what stops the
- * historical failure mode where the model echoed prompt instructions instead
- * of summarizing — echoes can't satisfy this shape.
+ * Fixed seed for the summarizer. Combined with `temperature: 0` it makes Ollama
+ * decode greedily and reproducibly, so re-ingesting a corpus yields byte-identical
+ * contextual summaries (and therefore identical embeddings / retrieval).
  */
-const ChunkSummaryJsonSchema = z.object({
-  summary: z.string(),
-});
-
-const MIN_SUMMARY_CHARS = 50;
-const MAX_SUMMARY_CHARS = 1200;
+const SUMMARIZER_SEED = 42;
 
 const postWithTimeout = async (
   url: string,
@@ -73,7 +61,14 @@ const generate = async (
 ): Promise<string> => {
   const res = await postWithTimeout(
     `${url}/api/generate`,
-    { model, prompt, stream: false, ...(jsonMode ? { format: "json" } : {}) },
+    {
+      model,
+      prompt,
+      stream: false,
+      // Deterministic decoding — see SUMMARIZER_SEED.
+      options: { temperature: 0, seed: SUMMARIZER_SEED },
+      ...(jsonMode ? { format: "json" } : {}),
+    },
     timeoutMs,
   );
   if (res.status === 404) throw new OllamaModelNotFoundError(model);
@@ -84,31 +79,14 @@ const generate = async (
   return parsed.data.response.trim();
 };
 
-const validSummary = (s: string): boolean => {
-  const trimmed = s.trim();
-  if (trimmed.length < MIN_SUMMARY_CHARS) return false;
-  if (trimmed.length > MAX_SUMMARY_CHARS) return false;
-  // Reject JSON-looking, code-fenced, or heading-heavy outputs ([§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds)).
-  if (/^[\[{]/.test(trimmed)) return false;
-  if (/^```/.test(trimmed)) return false;
-  if (/^#+\s/m.test(trimmed)) return false;
-  return true;
-};
-
-const fallbackSummary = (input: SummarizerInput): string => {
-  const path = input.heading_path.join(" > ");
-  const firstSentence = input.chunk_content
-    .trim()
-    .split(/[.!?]\s/)[0]
-    ?.slice(0, 160) ?? "";
-  return `This excerpt is from the section '${path}' of ${input.document_title}, covering ${firstSentence}.`;
-};
-
-const MAX_DOC_INPUT_CHARS = 60_000;
-
+/**
+ * Ollama-backed summarizer. Builds a deterministic `generate` closure (with the
+ * classifier-style retry) and delegates all shared behaviour to the core.
+ */
 export const createOllamaSummarizer = (): Summarizer => {
   const env = getEnv();
-  const model = env.OLLAMA_SUMMARIZER_MODEL;
+  // Config wins when set; OLLAMA_SUMMARIZER_MODEL env is the fallback.
+  const model = getConfig().summarizer.ollama_model ?? env.OLLAMA_SUMMARIZER_MODEL;
   const state = { firstCallDone: false };
 
   const timeoutFor = (): number => {
@@ -148,98 +126,11 @@ export const createOllamaSummarizer = (): Summarizer => {
       : new Error(`summarizer exhausted retries`);
   };
 
-  /**
-   * Extracts the summary string from Ollama's JSON-mode output.
-   * Returns null when the response is not valid JSON or doesn't match
-   * the {"summary": string} shape — caller treats null as a validation
-   * failure and either retries or falls back.
-   */
-  const extractSummary = (raw: string): string | null => {
-    let json: unknown;
-    try {
-      json = JSON.parse(raw);
-    } catch {
-      return null;
-    }
-    const parsed = ChunkSummaryJsonSchema.safeParse(json);
-    if (!parsed.success) return null;
-    return parsed.data.summary.trim();
-  };
-
-  const summarizeChunk: Summarizer["summarizeChunk"] = async (input) => {
-    const prompt =
-      input.outline !== undefined
-        ? await buildLongDocChunkPrompt({
-            outline: input.outline,
-            local_section: input.containing_text,
-            chunk_content: input.chunk_content,
-          })
-        : await buildFitsPrompt({
-            document_body: input.containing_text,
-            chunk_content: input.chunk_content,
-          });
-    try {
-      const raw = await retryLoop("chunk", () =>
-        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), true),
-      );
-      const summary = extractSummary(raw);
-      if (summary !== null && validSummary(summary)) {
-        return {
-          chunk_id: input.chunk_id,
-          contextual_summary: summary,
-          used_long_doc_path: input.outline !== undefined,
-        };
-      }
-      // One retry with the same prompt — JSON-mode output varies between
-      // attempts, so a re-roll often succeeds even with no prompt changes.
-      const retryRaw = await retryLoop("chunk-strict", () =>
-        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), true),
-      );
-      const retrySummary = extractSummary(retryRaw);
-      if (retrySummary !== null && validSummary(retrySummary)) {
-        return {
-          chunk_id: input.chunk_id,
-          contextual_summary: retrySummary,
-          used_long_doc_path: input.outline !== undefined,
-        };
-      }
-    } catch (err) {
-      logger.warn("summarizer_failure", {
-        event: "summarizer_failure",
-        chunk_id: input.chunk_id as string,
-        error_type: err instanceof Error ? err.name : "unknown",
-      });
-    }
-    return {
-      chunk_id: input.chunk_id,
-      contextual_summary: fallbackSummary(input),
-      used_long_doc_path: input.outline !== undefined,
-    };
-  };
-
-  const summarizeDocument: Summarizer["summarizeDocument"] = async (input) => {
-    const truncated = input.document_body.slice(0, MAX_DOC_INPUT_CHARS);
-    const prompt = await buildLongDocOutlinePrompt({ document_body_truncated: truncated });
-    const raw = await retryLoop("outline", () =>
-      generate(env.OLLAMA_URL, model, prompt, timeoutFor(), true),
-    );
-    try {
-      const json = JSON.parse(raw);
-      return DocumentOutlineSchema.parse(json);
-    } catch {
-      // Graceful fallback: one-line outline derived from the title.
-      return {
-        title: input.document_title,
-        purpose: "Outline generation failed; using title-only fallback.",
-        sections: [{ heading_path: [input.document_title], one_line: "document" }],
-      } as DocumentOutline;
-    }
-  };
-
-  return {
+  return createSummarizerFromGenerate({
     name: model,
-    version: "unknown",
-    summarizeChunk,
-    summarizeDocument,
-  };
+    generate: (prompt, jsonMode) =>
+      retryLoop("generate", () =>
+        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), jsonMode),
+      ),
+  });
 };

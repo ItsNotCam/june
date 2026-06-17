@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/shadcn/button";
 
 const THEMES = ["light", "dark"] as const;
 type Theme = (typeof THEMES)[number];

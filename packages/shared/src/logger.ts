@@ -17,11 +17,11 @@ import type { LogLevel } from "./types.ts";
 
 export type LogFieldsBase = Record<string, unknown>;
 
+/** The four winston levels this logger surfaces — single source for the Logger shape and the emit factory. */
+type EmitLevel = "debug" | "info" | "warn" | "error";
+
 export type Logger<F extends LogFieldsBase = LogFieldsBase> = {
-  debug: (event: string, fields?: F) => void;
-  info: (event: string, fields?: F) => void;
-  warn: (event: string, fields?: F) => void;
-  error: (event: string, fields?: F) => void;
+  [L in EmitLevel]: (event: string, fields?: F) => void;
 };
 
 export type LoggerHandle<F extends LogFieldsBase = LogFieldsBase> = {
@@ -98,7 +98,7 @@ export const createLogger = <F extends LogFieldsBase = LogFieldsBase>(
   };
 
   const emit =
-    (level: "debug" | "info" | "warn" | "error") =>
+    (level: EmitLevel) =>
     (event: string, fields?: F): void => {
       getWinston()[level](event, fields ?? {});
     };

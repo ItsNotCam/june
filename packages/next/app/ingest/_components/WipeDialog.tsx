@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/shadcn/button";
 
 type WipeDialogProps = {
   open: boolean;

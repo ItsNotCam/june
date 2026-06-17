@@ -158,13 +158,12 @@ export const deriveRunArgs = (config: TestRunConfig): { flags: string[]; ingestY
     long_doc_threshold_tokens: s.long_doc_threshold_tokens,
   };
   if (s.model) {
-    const field =
-      s.provider === "ollama"
-        ? "ollama_model"
-        : s.provider === "anthropic"
-          ? "anthropic_model"
-          : "deepseek_model";
-    summarizer[field] = s.model;
+    const MODEL_FIELD: Record<typeof s.provider, string> = {
+      ollama: "ollama_model",
+      anthropic: "anthropic_model",
+      deepseek: "deepseek_model",
+    };
+    summarizer[MODEL_FIELD[s.provider]] = s.model;
   }
   const ingestForYaml = {
     chunk: ingest.chunk,

@@ -49,6 +49,7 @@ describe("LLMJudge — UNJUDGED on malformed output (L14)", () => {
         expected_facts: [],
         reader_answer: "a",
         tier: "T1",
+        retrieved_context: "",
       },
     ]);
     expect(out[0]!.verdict).toBe("CORRECT");
@@ -78,6 +79,7 @@ describe("LLMJudge — UNJUDGED on malformed output (L14)", () => {
         expected_facts: [],
         reader_answer: "a",
         tier: "T1",
+        retrieved_context: "",
       },
     ]);
     expect(out[0]!.verdict).toBe("UNJUDGED");
@@ -107,6 +109,7 @@ describe("LLMJudge — UNJUDGED on malformed output (L14)", () => {
         expected_facts: [],
         reader_answer: "a",
         tier: "T1",
+        retrieved_context: "",
       },
     ]);
     expect(out[0]!.verdict).toBe("UNJUDGED");
@@ -136,6 +139,7 @@ describe("LLMJudge — UNJUDGED on malformed output (L14)", () => {
         expected_facts: [],
         reader_answer: "a",
         tier: "T1",
+        retrieved_context: "",
       },
     ]);
     expect(out[0]!.verdict).toBe("PARTIAL");

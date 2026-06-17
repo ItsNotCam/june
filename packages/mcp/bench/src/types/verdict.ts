@@ -19,3 +19,16 @@ export type Verdict =
   | "REFUSED"
   | "HALLUCINATED"
   | "UNJUDGED";
+
+/**
+ * The single tier-dispatched correctness rule (§23): a T5 answer is correct
+ * when it `REFUSED` (no fact exists), and a T1–T4 answer is correct when it is
+ * `CORRECT`. Centralized so scoring and `compare` can never drift apart.
+ */
+export const isVerdictCorrectForTier = (
+  tier: string,
+  verdict: Verdict | null,
+): boolean => {
+  if (tier === "T5") return verdict === "REFUSED";
+  return verdict === "CORRECT";
+};

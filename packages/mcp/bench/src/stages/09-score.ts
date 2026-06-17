@@ -10,8 +10,9 @@ import type {
   BaselineAnswersFile,
   ReaderAnswersFile,
 } from "@/types/reader";
-import type { JudgeResultsFile } from "@/types/judge";
+import type { JudgeResultsFile, VerdictRecord } from "@/types/judge";
 import { BASELINE_QUERY_PREFIX } from "@/types/judge";
+import type { JudgeProvenance } from "@/types/judge-tasks";
 import type { Verdict } from "@/types/verdict";
 import { isVerdictCorrectForTier } from "@/types/verdict";
 import type {
@@ -317,6 +318,86 @@ const microOverall = (
     recall_at_5: recall(5),
     recall_at_10: recall(10),
     mrr,
+  };
+};
+
+/**
+ * Finalizes an `awaiting_verdicts` run from externally-produced verdicts
+ * (the `june-eval score` path, no-API architecture).
+ *
+ * Overlays `verdicts` onto the partial run's OWN per-query records and
+ * re-aggregates — operating on the partial's query set (not the fixture's) so a
+ * sampled run finalizes against exactly the queries it ran. Retrieval metrics
+ * (recall@k, MRR) are deterministic and untouched; only verdict-derived numbers
+ * change. The judge provenance is written into `manifest.roles.judge` — its
+ * `model` + `prompt_template_hash` are the cross-judge guard's keys.
+ */
+export const rescoreWithVerdicts = (args: {
+  partial: ResultsFile;
+  verdicts: readonly VerdictRecord[];
+  judge: JudgeProvenance;
+  run_status: RunStatus;
+  completed_at: string;
+}): ResultsFile => {
+  const { partial } = args;
+  const readerVerdict = new Map(
+    args.verdicts
+      .filter((v) => !v.query_id.startsWith(BASELINE_QUERY_PREFIX))
+      .map((v) => [v.query_id, v]),
+  );
+  const baselineVerdict = new Map(
+    args.verdicts
+      .filter((v) => v.query_id.startsWith(BASELINE_QUERY_PREFIX))
+      .map((v) => [v.query_id.slice(BASELINE_QUERY_PREFIX.length), v]),
+  );
+
+  const per_query: PerQueryRecord[] = partial.per_query.map((r) => {
+    const v = readerVerdict.get(r.query_id);
+    const bv = baselineVerdict.get(r.query_id);
+    return {
+      ...r,
+      verdict: v?.verdict ?? "UNJUDGED",
+      rationale: v?.rationale ?? "",
+      baseline_verdict: r.baseline_answer !== null ? (bv?.verdict ?? "UNJUDGED") : null,
+    };
+  });
+
+  const perTier = {} as Record<QueryTier, TierAggregates>;
+  for (const tier of TIERS) {
+    perTier[tier] = aggregateTier(
+      tier,
+      per_query.filter((r) => r.tier === tier),
+      partial.manifest.run_id,
+    );
+  }
+  const overall = {
+    macro: macroOverall(perTier),
+    micro: microOverall(per_query, partial.manifest.run_id),
+  };
+
+  const unjudged = per_query.filter((r) => r.verdict === "UNJUDGED").length;
+  const unjudged_pct = per_query.length === 0 ? 0 : unjudged / per_query.length;
+
+  return {
+    ...partial,
+    run_status: args.run_status,
+    completed_at: args.completed_at,
+    manifest: {
+      ...partial.manifest,
+      completed_at: args.completed_at,
+      roles: {
+        ...partial.manifest.roles,
+        judge: {
+          provider: args.judge.kind,
+          model: args.judge.model,
+          prompt_template_hash: args.judge.prompt_template_hash,
+        },
+      },
+    },
+    per_query,
+    per_tier: perTier,
+    overall,
+    integrity: { ...partial.integrity, unjudged_pct },
   };
 };
 

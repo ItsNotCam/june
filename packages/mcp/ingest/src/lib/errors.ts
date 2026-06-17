@@ -171,3 +171,21 @@ export class PromptTemplateError extends Error {
     this.name = "PromptTemplateError";
   }
 }
+
+/**
+ * A hosted summarizer backend (`deepseek` / `anthropic`) was selected via
+ * `config.summarizer.implementation` but its API key env var is absent.
+ * Thrown at summarizer construction so the run fails loudly at startup rather
+ * than mid-ingest.
+ */
+export class MissingSummarizerApiKeyError extends Error {
+  constructor(
+    readonly backend: string,
+    readonly env_var: string,
+  ) {
+    super(
+      `Summarizer backend '${backend}' requires ${env_var}, but it is not set`,
+    );
+    this.name = "MissingSummarizerApiKeyError";
+  }
+}

@@ -33,11 +33,11 @@ import {
  * count, so implementations with extra reserved values still pass.
  */
 
-const eqSet = <T extends string>(
-  actual: ReadonlyArray<T>,
+const eqSet = (
+  actual: ReadonlyArray<string>,
   expected: ReadonlyArray<string>,
 ): void => {
-  expect(new Set(actual)).toEqual(new Set(expected));
+  expect(new Set<string>(actual)).toEqual(new Set<string>(expected));
   expect(actual.length).toBe(expected.length);
 };
 

@@ -10,9 +10,9 @@
  * the first `running` snapshot) so it can only fire once per run.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/shadcn/button";
+import { Badge } from "@/components/shadcn/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/shadcn/card";
 import type { RunMessage, RunSnapshot, StageState } from "@/lib/test/events";
 
 const STATUS_LABEL: Record<RunSnapshot["status"], string> = {
@@ -30,18 +30,22 @@ const formatMs = (ms: number): string => {
   return `${m}m${s.toString().padStart(2, "0")}s`;
 };
 
-const stageBadgeVariant = (
-  status: StageState["status"],
-): React.ComponentProps<typeof Badge>["variant"] =>
-  status === "done" ? "default" : status === "running" ? "secondary" : "outline";
+const STAGE_BADGE_VARIANT: Record<
+  StageState["status"],
+  React.ComponentProps<typeof Badge>["variant"]
+> = {
+  done: "default",
+  running: "secondary",
+  pending: "outline",
+};
 
 function StageRow({ stage }: { stage: StageState }) {
   const hasTotal = stage.total !== undefined && stage.total > 0;
-  const percent = hasTotal
-    ? Math.round(((stage.done ?? 0) / stage.total!) * 100)
-    : stage.status === "done"
-      ? 100
-      : 0;
+  const stagePercent = (): number => {
+    if (hasTotal) return Math.round(((stage.done ?? 0) / stage.total!) * 100);
+    return stage.status === "done" ? 100 : 0;
+  };
+  const percent = stagePercent();
   const indeterminate = stage.status === "running" && !hasTotal;
 
   return (
@@ -51,7 +55,7 @@ function StageRow({ stage }: { stage: StageState }) {
           <span className="text-foreground">
             {stage.num}. {stage.name}
           </span>
-          <Badge variant={stageBadgeVariant(stage.status)}>{stage.status}</Badge>
+          <Badge variant={STAGE_BADGE_VARIANT[stage.status]}>{stage.status}</Badge>
         </div>
         <span className="text-muted-foreground text-xs tabular-nums">
           {hasTotal ? `${stage.done ?? 0}/${stage.total}` : ""}
@@ -60,10 +64,14 @@ function StageRow({ stage }: { stage: StageState }) {
         </span>
       </div>
       <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
-        <div
-          className={`bg-primary h-full rounded-full transition-[width] duration-300 ${indeterminate ? "animate-pulse" : ""}`}
-          style={{ width: indeterminate ? "100%" : `${percent}%` }}
-        />
+        {indeterminate ? (
+          <div className="bg-primary h-full w-1/3 rounded-full animate-[progress-indeterminate_1.1s_ease-in-out_infinite]" />
+        ) : (
+          <div
+            className="bg-primary h-full rounded-full transition-[width] duration-300"
+            style={{ width: `${percent}%` }}
+          />
+        )}
       </div>
     </div>
   );

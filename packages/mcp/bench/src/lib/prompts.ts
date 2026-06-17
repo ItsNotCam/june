@@ -2,6 +2,7 @@
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { PromptTemplateError } from "@/lib/errors";
+import { sha256Hex } from "@/lib/artifacts";
 
 /**
  * Reads a prompt template from `packages/mcp/bench/prompts/<name>.md` and
@@ -32,6 +33,26 @@ export const renderPrompt = async (
   }
   return rendered;
 };
+
+/**
+ * Reads a prompt template's raw text (no `{{var}}` substitution).
+ *
+ * Used when the bench needs the verbatim template — e.g. shipping the judge
+ * prompt to an external judge runner, or hashing it for drift detection.
+ */
+export const loadPromptTemplate = async (name: string): Promise<string> =>
+  readFile(join(PROMPTS_DIR, `${name}.md`), "utf-8");
+
+/**
+ * SHA-256 (hex) of a prompt template's raw bytes.
+ *
+ * Stamped into `judge_tasks.json` / `verdicts.json` / the run manifest so a
+ * change to `prompts/judge.md` is detectable: the regression gate refuses to
+ * compare verdicts produced under a different judge prompt (the cross-judge
+ * guard), and calibration can pin the prompt a κ was measured against.
+ */
+export const promptTemplateHash = async (name: string): Promise<string> =>
+  sha256Hex(await loadPromptTemplate(name));
 
 /**
  * Absolute path to `packages/mcp/bench/prompts/`.

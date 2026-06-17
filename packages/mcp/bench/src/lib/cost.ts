@@ -45,10 +45,12 @@ const OLLAMA_RATE: ModelRate = { input_per_m: 0, output_per_m: 0 };
  * silently computing `cost = 0`.
  */
 export const rateFor = (
-  provider: "ollama" | "anthropic" | "anthropic-batch" | "openai" | "deepseek",
+  provider: "ollama" | "anthropic" | "anthropic-batch" | "openai" | "deepseek" | "external",
   model: string,
 ): ModelRate => {
-  if (provider === "ollama") return OLLAMA_RATE;
+  // `external` = the no-API judge path (Claude Code subscription agents): no
+  // per-token charge accrues to the bench, same as local Ollama.
+  if (provider === "ollama" || provider === "external") return OLLAMA_RATE;
   const rate = SYNC_RATES[model];
   if (!rate) {
     // Use a sentinel so `cost_usd` is clearly wrong rather than masked as zero.
@@ -259,7 +261,12 @@ export const buildCostPreview = (args: {
   const jdOut = (jd.output_per_query ?? 0) * jdCount;
   rows.push({
     role: "role_4",
-    label: cfg.roles.judge.provider === "anthropic-batch" ? "judge (batch)" : "judge (sync)",
+    label:
+      cfg.roles.judge.provider === "anthropic-batch"
+        ? "judge (batch)"
+        : cfg.roles.judge.provider === "external"
+          ? "judge (external, $0)"
+          : "judge (sync)",
     provider: cfg.roles.judge.provider,
     model: cfg.roles.judge.model,
     estimated_input_tokens: jdIn,
