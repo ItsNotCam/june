@@ -69,6 +69,11 @@ packages/mcp/bench/state/cache/llm/
 !packages/mcp/bench/state/cache/.gitkeep
 packages/mcp/bench/state/fixtures/
 packages/mcp/bench/state/scaffold/
+# Phase 4 holdout build scratch — the raw llms-full.txt source (3MB+), the split
+# corpus, and the pre-freeze fixture. The FROZEN holdout lives under fixtures/.
+packages/mcp/bench/state/holdout-src/
+packages/mcp/bench/state/holdout-split/
+packages/mcp/bench/state/holdout-fixture/
 
 # Claude
 .intermediary/

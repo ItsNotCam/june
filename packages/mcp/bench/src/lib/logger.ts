@@ -98,6 +98,12 @@ export type BenchLogFields = {
   deterministic?: boolean;
   existing?: string;
   current?: string;
+  // Real-doc holdout (Phase 4): holdout-split / assemble / freeze / run / score.
+  holdout_id?: string;
+  holdout_hash?: string;
+  answerable_recall_at_5?: number;
+  reader_rag_correct_pct?: number;
+  recall_at_5?: number;
 };
 
 /**

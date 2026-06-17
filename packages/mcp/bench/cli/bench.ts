@@ -9,6 +9,14 @@ import { runControlPin, runControlCheck } from "./control";
 import { runMeasureNoiseFloor, runMeasureConsistency } from "./measure";
 import { runFreeze, runVerifyFixture } from "./freeze";
 import { runScaffold, runAssemble } from "./author";
+import {
+  runHoldoutSplit,
+  runHoldoutAssemble,
+  runFreezeHoldout,
+  runVerifyHoldout,
+  runRunHoldout,
+  runScoreHoldout,
+} from "./holdout";
 import { runHealth } from "./health";
 import { logger } from "@/lib/logger";
 import {
@@ -53,6 +61,12 @@ COMMANDS
   assemble      validate agent-authored drafts into a fixture (no API)
   freeze        commit a fixture as an immutable, hash-locked artifact
   verify-fixture  re-check a frozen fixture against its lock
+  holdout-split    slice a real docs file into a holdout corpus + labeling plan (no API)
+  holdout-assemble validate agent labels into a holdout fixture (no API)
+  freeze-holdout   commit a holdout as an immutable, SEALED, hash-locked artifact
+  verify-holdout   re-check a frozen holdout against its lock
+  run-holdout      run the sealed real-doc holdout (doc-level retrieval + reader)
+  score-holdout    finalize an awaiting-verdicts holdout from external verdicts
   health      provider + june + qdrant reachability probe
 
 See \`june-eval <command> --help\` for command-specific flags.
@@ -92,6 +106,18 @@ const dispatch = async (argv: readonly string[]): Promise<void> => {
       return runScaffold(rest);
     case "assemble":
       return runAssemble(rest);
+    case "holdout-split":
+      return runHoldoutSplit(rest);
+    case "holdout-assemble":
+      return runHoldoutAssemble(rest);
+    case "freeze-holdout":
+      return runFreezeHoldout(rest);
+    case "verify-holdout":
+      return runVerifyHoldout(rest);
+    case "run-holdout":
+      return runRunHoldout(rest);
+    case "score-holdout":
+      return runScoreHoldout(rest);
     case "health":
       return runHealth(rest);
     default:

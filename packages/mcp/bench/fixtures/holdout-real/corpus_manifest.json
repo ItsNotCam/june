@@ -1,0 +1,181 @@
+{
+  "fixture_id": "holdout-bcb2fa425fab",
+  "schema_version": 1,
+  "documents": [
+    {
+      "filename": "app-getting-started.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started.md",
+      "document_title": "Getting Started",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "49563cba257cb1731488a7e45d7d6fc6169af99c68f904b6bb8995351ebfa9f2"
+    },
+    {
+      "filename": "app-getting-started-installation.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-installation.md",
+      "document_title": "Installation",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "b7ad7f1938d92b5a44c48b115d2565f6ccdf0778215128e202b866b82f4574ce"
+    },
+    {
+      "filename": "app-getting-started-project-structure.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-project-structure.md",
+      "document_title": "Project Structure",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "6c29f5a161b0f67c34244907267d815e69cdfa0fe060045e78abe132808b7695"
+    },
+    {
+      "filename": "app-getting-started-layouts-and-pages.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-layouts-and-pages.md",
+      "document_title": "Layouts and Pages",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "2844c7450c0dc02da3db382d8ceeb0d532f9d97ba90eac1f517ff48fe2a89b3d"
+    },
+    {
+      "filename": "app-getting-started-linking-and-navigating.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-linking-and-navigating.md",
+      "document_title": "Linking and Navigating",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "a1a5e8995f06ea5986b4c1662e9b68500fc143a0278cf4ddb5f0909c8ce1860e"
+    },
+    {
+      "filename": "app-getting-started-server-and-client-components.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-server-and-client-components.md",
+      "document_title": "Server and Client Components",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "4bbbd06eb516b128fd29043931cd21f8c79f16b1f50c0042634e68996d7e21b6"
+    },
+    {
+      "filename": "app-getting-started-fetching-data.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-fetching-data.md",
+      "document_title": "Fetching Data",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "b4b9820656d7dc089a92d60b07031cc39f359d76436482bb21e297c011afdf98"
+    },
+    {
+      "filename": "app-getting-started-mutating-data.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-mutating-data.md",
+      "document_title": "Mutating Data",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "d4214d3889bea18ebbd33fe21db82ebfef2871cc22db01c9bf497be640f8fe63"
+    },
+    {
+      "filename": "app-getting-started-caching.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-caching.md",
+      "document_title": "Caching",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "0a2ff9918622c4f75c1aca5cdca6f388ae0ed4aead0653350a2eb860dea19e43"
+    },
+    {
+      "filename": "app-getting-started-revalidating.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-revalidating.md",
+      "document_title": "Revalidating",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "80cf5021b5d55765a74c953285f9e570eee98a8db15be59b9e8225db96a3d73b"
+    },
+    {
+      "filename": "app-getting-started-error-handling.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-error-handling.md",
+      "document_title": "Error Handling",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "559ed59498f59d90f215ce5d1df961a022054475ae60e3798ca2547dff15b325"
+    },
+    {
+      "filename": "app-getting-started-css.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-css.md",
+      "document_title": "CSS",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "188d1febf75556b1de1d6dced6b7727de12e06dbb1586adfeb338e09790c6ae7"
+    },
+    {
+      "filename": "app-getting-started-images.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-images.md",
+      "document_title": "Image Optimization",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "5858b75ffa6bd33339f00848548fcc235360cbb8eeec2f29144ad28e0c0612a0"
+    },
+    {
+      "filename": "app-getting-started-fonts.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-fonts.md",
+      "document_title": "Font Optimization",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "42910f53dca77de6cec3d57c0f10355559a9effba0d9ae2891969507bcfb5b50"
+    },
+    {
+      "filename": "app-getting-started-metadata-and-og-images.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-metadata-and-og-images.md",
+      "document_title": "Metadata and OG images",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "900a80a1dd16838e908b6b115624f365e597b45289f9b41ec60a33d67a45b640"
+    },
+    {
+      "filename": "app-getting-started-route-handlers.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-route-handlers.md",
+      "document_title": "Route Handlers",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "37dd20d0f9630df081614ec7e19df340f5adb34841011b1be404cc132d50508c"
+    },
+    {
+      "filename": "app-getting-started-proxy.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-proxy.md",
+      "document_title": "Proxy",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "3a20d70b1c101bbaec7024f8bf55a3ad21552b55e43acd04aed48434ba5cad8f"
+    },
+    {
+      "filename": "app-getting-started-deploying.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-deploying.md",
+      "document_title": "Deploying",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "13057b7329914090c98273eaa2b4c6a81e56a8bd3f871b22da7919e9e422bba1"
+    },
+    {
+      "filename": "app-getting-started-upgrading.md",
+      "absolute_path": "/home/cam/june/packages/mcp/bench/fixtures/holdout-real/corpus/app-getting-started-upgrading.md",
+      "document_title": "Upgrading",
+      "planted_fact_ids": [],
+      "validator_attempts": 1,
+      "validator_status": "pass",
+      "content_hash": "d3575c38deb70ba26c17c1a2c47b3a80562a0e21077dcaf143b8c866bac9c1d6"
+    }
+  ],
+  "corpus_author": {
+    "provider": "real",
+    "model": "nextjs-docs"
+  }
+}

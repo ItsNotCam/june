@@ -1,0 +1,466 @@
+{
+  "holdout_id": "holdout-bcb2fa425fab",
+  "schema_version": 1,
+  "label_author": {
+    "provider": "claude-code-agent",
+    "model": "claude-opus-4-8"
+  },
+  "queries": [
+    {
+      "id": "q-0001",
+      "text": "How do I create a brand-new Next.js app and get it running on my machine?",
+      "expected_doc_filenames": [
+        "app-getting-started-installation.md"
+      ],
+      "gold_answer": "Run the create-next-app CLI (e.g. `npx create-next-app@latest my-app --yes`, or the pnpm/yarn/bun equivalent), then `cd my-app` and start the dev server with `npm run dev`, and visit http://localhost:3000.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/installation"
+      ]
+    },
+    {
+      "id": "q-0002",
+      "text": "What's the minimum Node.js version Next.js needs, and which operating systems are supported?",
+      "expected_doc_filenames": [
+        "app-getting-started-installation.md"
+      ],
+      "gold_answer": "Next.js requires a minimum Node.js version of 20.9, and supports macOS, Windows (including WSL), and Linux.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/installation"
+      ]
+    },
+    {
+      "id": "q-0003",
+      "text": "I'd rather set the project up by hand instead of using the CLI — which packages do I install and what's the bare minimum app structure?",
+      "expected_doc_filenames": [
+        "app-getting-started-installation.md"
+      ],
+      "gold_answer": "Install `next`, `react`, and `react-dom` (e.g. `npm i next@latest react@latest react-dom@latest`), add the dev/build/start scripts to package.json, then create an `app` folder containing a required root `layout.tsx` (with `<html>` and `<body>` tags) and a `page.tsx` home page.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/installation"
+      ]
+    },
+    {
+      "id": "q-0004",
+      "text": "What does wrapping a folder name in parentheses like (marketing) do to the URL?",
+      "expected_doc_filenames": [
+        "app-getting-started-project-structure.md"
+      ],
+      "gold_answer": "Wrapping a folder in parentheses creates a route group, which is for organizational purposes only and is omitted from the route's URL path, so `app/(marketing)/page.tsx` still resolves to `/`.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/project-structure"
+      ]
+    },
+    {
+      "id": "q-0005",
+      "text": "How can I keep some files in my app directory from becoming routes?",
+      "expected_doc_filenames": [
+        "app-getting-started-project-structure.md"
+      ],
+      "gold_answer": "Prefix the folder name with an underscore to make it a private folder (e.g. `_components`); this opts the folder and all its subfolders out of the routing system. Note that regular files can also be safely colocated in `app` since a route isn't public until a `page.js` or `route.js` is added.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/project-structure"
+      ]
+    },
+    {
+      "id": "q-0006",
+      "text": "What's the difference between a page and a layout, and does a layout re-render when you navigate?",
+      "expected_doc_filenames": [
+        "app-getting-started-layouts-and-pages.md"
+      ],
+      "gold_answer": "A page is UI rendered on a specific route (created by default-exporting a React component from a `page` file), while a layout is UI shared between multiple pages (created from a `layout` file that accepts a `children` prop). On navigation, layouts preserve state, remain interactive, and do not re-render.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/layouts-and-pages"
+      ]
+    },
+    {
+      "id": "q-0007",
+      "text": "How do I read query string parameters in a server component page, and what's the tradeoff?",
+      "expected_doc_filenames": [
+        "app-getting-started-layouts-and-pages.md"
+      ],
+      "gold_answer": "In a Server Component page you access query parameters via the `searchParams` prop, which is a Promise you await (e.g. `(await searchParams).filters`). Using `searchParams` opts the page into dynamic rendering because it requires an incoming request to read the parameters.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/layouts-and-pages"
+      ]
+    },
+    {
+      "id": "q-0008",
+      "text": "What background knowledge does the Next.js documentation assume I already have before starting?",
+      "expected_doc_filenames": [
+        "app-getting-started.md"
+      ],
+      "gold_answer": "The documentation assumes some familiarity with web development — specifically being comfortable with HTML, CSS, JavaScript, and React.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started"
+      ]
+    },
+    {
+      "id": "q-0009",
+      "text": "How does prefetching behave differently for static versus dynamic routes in Next.js?",
+      "expected_doc_filenames": [
+        "app-getting-started-linking-and-navigating.md"
+      ],
+      "gold_answer": "For a static route the full route is prefetched, while for a dynamic route prefetching is skipped, or the route is only partially prefetched if a loading.tsx file is present. This avoids unnecessary server work for routes users may never visit.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/linking-and-navigating"
+      ]
+    },
+    {
+      "id": "q-0010",
+      "text": "What's the recommended way to give users immediate feedback during a navigation on a slow connection?",
+      "expected_doc_filenames": [
+        "app-getting-started-linking-and-navigating.md"
+      ],
+      "gold_answer": "Use the useLinkStatus hook from next/link, which exposes a pending boolean, to show immediate visual feedback while the client-side transition is in progress. You can also debounce the hint with an animation delay so it only appears if navigation takes longer than the delay.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/linking-and-navigating"
+      ]
+    },
+    {
+      "id": "q-0011",
+      "text": "When should I reach for a Client Component instead of a Server Component?",
+      "expected_doc_filenames": [
+        "app-getting-started-server-and-client-components.md"
+      ],
+      "gold_answer": "Use Client Components when you need state and event handlers (like onClick or onChange), lifecycle logic such as useEffect, browser-only APIs like localStorage or window, or custom hooks. Server Components are better for fetching data close to the source, using secrets safely, and reducing client JavaScript.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+      ]
+    },
+    {
+      "id": "q-0012",
+      "text": "What does adding the 'use client' directive to a file actually do to its imports?",
+      "expected_doc_filenames": [
+        "app-getting-started-server-and-client-components.md"
+      ],
+      "gold_answer": "The 'use client' directive declares a boundary between the Server and Client module graphs. Once a file is marked with it, all of its imports and the components it directly renders are included in the client bundle, so you don't need to add the directive to every child component. It does not apply to Server Components passed in as children or other props.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+      ]
+    },
+    {
+      "id": "q-0013",
+      "text": "How do I run two data fetches at the same time in a Server Component instead of one after the other?",
+      "expected_doc_filenames": [
+        "app-getting-started-fetching-data.md"
+      ],
+      "gold_answer": "Initiate the requests by calling fetch (without awaiting each one immediately) so they start at the same time, then await them together with Promise.all. Requests begin as soon as fetch is called. Note that if one request fails, Promise.all fails entirely, so you can use Promise.allSettled to handle partial failures.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/fetching-data"
+      ]
+    },
+    {
+      "id": "q-0014",
+      "text": "Are identical fetch requests in a React component tree deduplicated by default in Next.js?",
+      "expected_doc_filenames": [
+        "app-getting-started-fetching-data.md"
+      ],
+      "gold_answer": "Yes. Identical fetch requests in a React component tree are memoized by default, so you can fetch data in the component that needs it instead of drilling props. Note that fetch requests are not cached by default and will block rendering until complete unless you use the use cache directive or wrap the component in Suspense.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/fetching-data"
+      ]
+    },
+    {
+      "id": "q-0015",
+      "text": "Which directive marks a function as a Server Action, and what are the rules for where it can be placed?",
+      "expected_doc_filenames": [
+        "app-getting-started-mutating-data.md"
+      ],
+      "gold_answer": "The 'use server' directive defines a Server Function. You can place it at the top of an asynchronous function to mark just that function, or at the top of a separate file to mark all of that file's exports. Server Functions must be asynchronous because they are called from the client over a network request.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/mutating-data"
+      ]
+    },
+    {
+      "id": "q-0016",
+      "text": "After mutating data in a Server Action, how do I refresh the page versus revalidate cached data?",
+      "expected_doc_filenames": [
+        "app-getting-started-mutating-data.md"
+      ],
+      "gold_answer": "Call refresh() from next/cache to refresh the client router and update the UI, but note it does not revalidate tagged data. To revalidate cached data, use revalidatePath or revalidateTag (or updateTag/revalidateTag for tagged data) within the Server Function instead.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/mutating-data"
+      ]
+    },
+    {
+      "id": "q-0017",
+      "text": "How do I turn on Cache Components in my Next.js project?",
+      "expected_doc_filenames": [
+        "app-getting-started-caching.md"
+      ],
+      "gold_answer": "Add the `cacheComponents: true` option to your Next.js config file (e.g. `next.config.ts`), setting it inside the exported `NextConfig` object.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/caching"
+      ]
+    },
+    {
+      "id": "q-0018",
+      "text": "If a component needs fresh data on every request instead of being cached, what's the recommended way to render it?",
+      "expected_doc_filenames": [
+        "app-getting-started-caching.md"
+      ],
+      "gold_answer": "Don't use `\"use cache\"`; instead wrap the component in React's `<Suspense>` with a fallback UI. React renders the fallback first (included in the static shell) and streams in the resolved content at request time once the async work completes.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/caching"
+      ]
+    },
+    {
+      "id": "q-0019",
+      "text": "What's the difference between updateTag and revalidateTag for invalidating cached data?",
+      "expected_doc_filenames": [
+        "app-getting-started-revalidating.md"
+      ],
+      "gold_answer": "`updateTag` immediately expires the cache for read-your-own-writes scenarios and can only be used in Server Actions, while `revalidateTag` uses stale-while-revalidate semantics (serving stale content while fresh content loads in the background) and can be used in both Server Actions and Route Handlers.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/revalidating"
+      ]
+    },
+    {
+      "id": "q-0020",
+      "text": "Which function should I call to invalidate every cached entry for a specific route path when I don't know its tags?",
+      "expected_doc_filenames": [
+        "app-getting-started-revalidating.md"
+      ],
+      "gold_answer": "Use `revalidatePath`, passing the route path (e.g. `revalidatePath('/profile')`); it invalidates all cached data for that path, though tag-based revalidation is preferred when possible because it's more precise.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/revalidating"
+      ]
+    },
+    {
+      "id": "q-0021",
+      "text": "How do I create an error boundary for a route segment in the App Router?",
+      "expected_doc_filenames": [
+        "app-getting-started-error-handling.md"
+      ],
+      "gold_answer": "Add an `error.js` (or `error.tsx`) file inside the route segment and export a React component as the default. It must be a Client Component (`'use client'`) and receives `error` and `unstable_retry` props to display a fallback UI and attempt recovery.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/error-handling"
+      ]
+    },
+    {
+      "id": "q-0022",
+      "text": "What's the right way to handle expected errors, like form validation failures, from a Server Function?",
+      "expected_doc_filenames": [
+        "app-getting-started-error-handling.md"
+      ],
+      "gold_answer": "Model expected errors as return values rather than throwing them, and use the `useActionState` hook to read the returned `state` and display the error message. Avoid `try`/`catch` and throwing for these expected errors.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/error-handling"
+      ]
+    },
+    {
+      "id": "q-0023",
+      "text": "How do I set up Tailwind CSS in a Next.js app?",
+      "expected_doc_filenames": [
+        "app-getting-started-css.md"
+      ],
+      "gold_answer": "Install `tailwindcss` and `@tailwindcss/postcss` as dev dependencies, add the `@tailwindcss/postcss` plugin to your `postcss.config.mjs`, import Tailwind with `@import 'tailwindcss';` in your global CSS file, then import that CSS file in your root layout.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/css"
+      ]
+    },
+    {
+      "id": "q-0024",
+      "text": "Does the order I import CSS files in actually affect the final stylesheet order?",
+      "expected_doc_filenames": [
+        "app-getting-started-css.md"
+      ],
+      "gold_answer": "Yes. Next.js chunks/merges stylesheets in production, and the order of your CSS depends on the order you import styles in your code — for example, `base-button.module.css` is ordered before `page.module.css` because `<BaseButton>` is imported before `page.module.css`.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/css"
+      ]
+    },
+    {
+      "id": "q-0025",
+      "text": "When using a remote image URL with next/image, why do I have to specify width and height manually, and how do I allow the remote host?",
+      "expected_doc_filenames": [
+        "app-getting-started-images.md"
+      ],
+      "gold_answer": "Because Next.js can't access remote files during the build, you must provide `width` and `height` (and optionally `blurDataURL`) yourself to infer the aspect ratio and avoid layout shift, or use the `fill` prop. To allow the host, define supported URL patterns under `images.remotePatterns` in `next.config.js`.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/images"
+      ]
+    },
+    {
+      "id": "q-0026",
+      "text": "How do I apply a Google Font to my entire Next.js application?",
+      "expected_doc_filenames": [
+        "app-getting-started-fonts.md"
+      ],
+      "gold_answer": "Import your chosen font (e.g. `Geist`) from `next/font/google`, call it as a function with options like `subsets: ['latin']`, and set the returned `className` on the `<html>` element in your Root Layout. Fonts are scoped to the component they're used in, so adding it to the Root Layout applies it app-wide.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/fonts"
+      ]
+    },
+    {
+      "id": "q-0027",
+      "text": "When using a local font that isn't a variable font and has several weights and styles, how do I configure next/font/local?",
+      "expected_doc_filenames": [
+        "app-getting-started-fonts.md"
+      ],
+      "gold_answer": "Import `localFont` from `next/font/local` and pass an array to `src`, where each entry is an object with `path`, `weight`, and `style` (e.g. separate entries for Roboto-Regular at weight 400 normal, Roboto-Italic at 400 italic, Roboto-Bold at 700 normal, etc.). This lets one font family use multiple files.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/fonts"
+      ]
+    },
+    {
+      "id": "q-0028",
+      "text": "What function do I use to set page metadata that depends on fetched data, like a blog post's title?",
+      "expected_doc_filenames": [
+        "app-getting-started-metadata-and-og-images.md"
+      ],
+      "gold_answer": "Use the dynamic `generateMetadata` function, which can `fetch` data and return a `Metadata` object. It receives `params`/`searchParams` and is only supported in Server Components. To avoid duplicate fetches between metadata and the page, wrap the data fetch in React's `cache` function.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/metadata-and-og-images"
+      ]
+    },
+    {
+      "id": "q-0029",
+      "text": "How can I generate a dynamic Open Graph image that includes data, like each blog post's title?",
+      "expected_doc_filenames": [
+        "app-getting-started-metadata-and-og-images.md"
+      ],
+      "gold_answer": "Add an `opengraph-image.tsx` file inside the route folder and use the `ImageResponse` constructor imported from `next/og` to generate the image with JSX and CSS. Export `size` (e.g. 1200x630) and `contentType` (e.g. `image/png`); only flexbox and a subset of CSS properties are supported.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/metadata-and-og-images"
+      ]
+    },
+    {
+      "id": "q-0030",
+      "text": "Which HTTP methods can a Route Handler respond to, and what happens if an unsupported one is called?",
+      "expected_doc_filenames": [
+        "app-getting-started-route-handlers.md"
+      ],
+      "gold_answer": "Route Handlers support `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`. If an unsupported method is called, Next.js returns a `405 Method Not Allowed` response.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/route-handlers"
+      ]
+    },
+    {
+      "id": "q-0031",
+      "text": "Are Route Handlers cached by default, and how do I make a GET handler static?",
+      "expected_doc_filenames": [
+        "app-getting-started-route-handlers.md"
+      ],
+      "gold_answer": "Route Handlers are not cached by default. You can opt into caching for `GET` methods (other methods are never cached) by adding a route config option such as `export const dynamic = 'force-static'` in the Route Handler file.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/route-handlers"
+      ]
+    },
+    {
+      "id": "q-0032",
+      "text": "I heard Next.js renamed Middleware in version 16 — what is it called now and where does the file go?",
+      "expected_doc_filenames": [
+        "app-getting-started-proxy.md"
+      ],
+      "gold_answer": "Starting with Next.js 16, Middleware is now called Proxy (the functionality is unchanged). You create a single `proxy.ts` (or `.js`) file in the project root, or inside `src` if applicable, at the same level as your `pages` or `app` directory.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/proxy"
+      ]
+    },
+    {
+      "id": "q-0033",
+      "text": "What are the different ways I can deploy a Next.js app, and which ones support all features?",
+      "expected_doc_filenames": [
+        "app-getting-started-deploying.md"
+      ],
+      "gold_answer": "Next.js can be deployed as a Node.js server, a Docker container, a static export, or via platform adapters. Node.js server and Docker container deployments support all Next.js features, while static export has limited support (no features requiring a server) and adapters vary.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/deploying"
+      ]
+    },
+    {
+      "id": "q-0034",
+      "text": "What's the command to upgrade Next.js to the latest version, and what do I do on older versions that don't have it?",
+      "expected_doc_filenames": [
+        "app-getting-started-upgrading.md"
+      ],
+      "gold_answer": "Run the `upgrade` command, e.g. `npx next upgrade` (or the pnpm/yarn/bun equivalent). Versions before Next.js 16.1.0 don't support it and must instead run `npx @next/codemod@canary upgrade latest`.",
+      "unanswerable": false,
+      "source_urls": [
+        "https://nextjs.org/docs/app/getting-started/upgrading"
+      ]
+    },
+    {
+      "id": "q-0035",
+      "text": "How do I enable Draft Mode in the App Router so I can preview unpublished CMS content, and what does the draftMode() function return?",
+      "expected_doc_filenames": [],
+      "gold_answer": "",
+      "unanswerable": true,
+      "source_urls": []
+    },
+    {
+      "id": "q-0036",
+      "text": "Which hook does Next.js provide to measure and report Core Web Vitals like LCP and CLS to an analytics endpoint, and how do I wire up useReportWebVitals in a client component?",
+      "expected_doc_filenames": [],
+      "gold_answer": "",
+      "unanswerable": true,
+      "source_urls": []
+    },
+    {
+      "id": "q-0037",
+      "text": "How do I configure internationalized (i18n) routing in the App Router so URLs are prefixed by locale, including setting a default locale and locale detection?",
+      "expected_doc_filenames": [],
+      "gold_answer": "",
+      "unanswerable": true,
+      "source_urls": []
+    },
+    {
+      "id": "q-0038",
+      "text": "What's the setup for using MDX with Next.js — installing @next/mdx, configuring next.config to handle .mdx pages, and providing custom components via an mdx-components file?",
+      "expected_doc_filenames": [],
+      "gold_answer": "",
+      "unanswerable": true,
+      "source_urls": []
+    },
+    {
+      "id": "q-0039",
+      "text": "How do I define rewrites() in next.config.js to proxy certain incoming paths to an external API without changing the URL shown in the browser?",
+      "expected_doc_filenames": [],
+      "gold_answer": "",
+      "unanswerable": true,
+      "source_urls": []
+    },
+    {
+      "id": "q-0040",
+      "text": "How do I use the built-in <Form> component from next/form to get client-side navigation and prefetching on a search form instead of a plain HTML form?",
+      "expected_doc_filenames": [],
+      "gold_answer": "",
+      "unanswerable": true,
+      "source_urls": []
+    }
+  ]
+}

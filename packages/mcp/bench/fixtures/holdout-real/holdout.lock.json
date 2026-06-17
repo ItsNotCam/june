@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "sealed": true,
+  "name": "holdout-real",
+  "holdout_id": "holdout-bcb2fa425fab",
+  "holdout_hash": "e1b4c989e9be8e35744b90172f83b6276be1656344ec071dbeedf5aa5f2e7ca8",
+  "source": {
+    "name": "Next.js documentation (App Router getting-started)",
+    "url": "https://nextjs.org/docs/llms-full.txt",
+    "doc_count": 19
+  },
+  "label_author": {
+    "provider": "claude-code-agent",
+    "model": "claude-opus-4-8"
+  },
+  "doc_count": 19,
+  "query_count": 40,
+  "answerable_count": 34,
+  "unanswerable_count": 6,
+  "files": [
+    {
+      "path": "corpus/app-getting-started-caching.md",
+      "sha256": "0a2ff9918622c4f75c1aca5cdca6f388ae0ed4aead0653350a2eb860dea19e43"
+    },
+    {
+      "path": "corpus/app-getting-started-css.md",
+      "sha256": "188d1febf75556b1de1d6dced6b7727de12e06dbb1586adfeb338e09790c6ae7"
+    },
+    {
+      "path": "corpus/app-getting-started-deploying.md",
+      "sha256": "13057b7329914090c98273eaa2b4c6a81e56a8bd3f871b22da7919e9e422bba1"
+    },
+    {
+      "path": "corpus/app-getting-started-error-handling.md",
+      "sha256": "559ed59498f59d90f215ce5d1df961a022054475ae60e3798ca2547dff15b325"
+    },
+    {
+      "path": "corpus/app-getting-started-fetching-data.md",
+      "sha256": "b4b9820656d7dc089a92d60b07031cc39f359d76436482bb21e297c011afdf98"
+    },
+    {
+      "path": "corpus/app-getting-started-fonts.md",
+      "sha256": "42910f53dca77de6cec3d57c0f10355559a9effba0d9ae2891969507bcfb5b50"
+    },
+    {
+      "path": "corpus/app-getting-started-images.md",
+      "sha256": "5858b75ffa6bd33339f00848548fcc235360cbb8eeec2f29144ad28e0c0612a0"
+    },
+    {
+      "path": "corpus/app-getting-started-installation.md",
+      "sha256": "b7ad7f1938d92b5a44c48b115d2565f6ccdf0778215128e202b866b82f4574ce"
+    },
+    {
+      "path": "corpus/app-getting-started-layouts-and-pages.md",
+      "sha256": "2844c7450c0dc02da3db382d8ceeb0d532f9d97ba90eac1f517ff48fe2a89b3d"
+    },
+    {
+      "path": "corpus/app-getting-started-linking-and-navigating.md",
+      "sha256": "a1a5e8995f06ea5986b4c1662e9b68500fc143a0278cf4ddb5f0909c8ce1860e"
+    },
+    {
+      "path": "corpus/app-getting-started-metadata-and-og-images.md",
+      "sha256": "900a80a1dd16838e908b6b115624f365e597b45289f9b41ec60a33d67a45b640"
+    },
+    {
+      "path": "corpus/app-getting-started-mutating-data.md",
+      "sha256": "d4214d3889bea18ebbd33fe21db82ebfef2871cc22db01c9bf497be640f8fe63"
+    },
+    {
+      "path": "corpus/app-getting-started-project-structure.md",
+      "sha256": "6c29f5a161b0f67c34244907267d815e69cdfa0fe060045e78abe132808b7695"
+    },
+    {
+      "path": "corpus/app-getting-started-proxy.md",
+      "sha256": "3a20d70b1c101bbaec7024f8bf55a3ad21552b55e43acd04aed48434ba5cad8f"
+    },
+    {
+      "path": "corpus/app-getting-started-revalidating.md",
+      "sha256": "80cf5021b5d55765a74c953285f9e570eee98a8db15be59b9e8225db96a3d73b"
+    },
+    {
+      "path": "corpus/app-getting-started-route-handlers.md",
+      "sha256": "37dd20d0f9630df081614ec7e19df340f5adb34841011b1be404cc132d50508c"
+    },
+    {
+      "path": "corpus/app-getting-started-server-and-client-components.md",
+      "sha256": "4bbbd06eb516b128fd29043931cd21f8c79f16b1f50c0042634e68996d7e21b6"
+    },
+    {
+      "path": "corpus/app-getting-started-upgrading.md",
+      "sha256": "d3575c38deb70ba26c17c1a2c47b3a80562a0e21077dcaf143b8c866bac9c1d6"
+    },
+    {
+      "path": "corpus/app-getting-started.md",
+      "sha256": "49563cba257cb1731488a7e45d7d6fc6169af99c68f904b6bb8995351ebfa9f2"
+    },
+    {
+      "path": "corpus_manifest.json",
+      "sha256": "eca901dc99c44c51261e7d83b45eacd4306ac72134e363993cb14fa23878df24"
+    },
+    {
+      "path": "holdout_queries.json",
+      "sha256": "4096cee005307871e65615ae0a807e346038276575d4f23305328df2f26ef812"
+    }
+  ],
+  "frozen_at": "2026-06-17T20:14:34.891Z",
+  "human_signoff": "cam (Phase 4 — Next.js getting-started subset)",
+  "note": "Sealed real-doc holdout: 19 App Router getting-started docs, 40 hand-labeled Q/A (34 answerable + 6 unanswerable). Reported separately; never pinned/gated/tuned."
+}

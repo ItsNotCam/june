@@ -83,6 +83,12 @@ june-eval control-pin <run_dir> [--noise-floor-file <path>] [--accept-floor <0..
 june-eval control-check <run_dir>
 june-eval freeze <fixture_dir> --name <name> [--signoff <who>] [--allow-collusion] [--force]
 june-eval verify-fixture <fixture_dir>
+june-eval holdout-split <source.txt> [--url-prefix <p>] [--max-docs <n>] [--out <dir>]
+june-eval holdout-assemble <split_dir> --labels <file> --label-model <m> [--out <dir>]
+june-eval freeze-holdout <holdout_dir> --name <name> [--signoff <who>] [--force]
+june-eval verify-holdout <holdout_dir>
+june-eval run-holdout <holdout_dir> --mode control [--no-baseline] [--out <dir>]
+june-eval score-holdout <run_dir> --verdicts <verdicts.json>
 june-eval health
 ```
 
@@ -103,6 +109,28 @@ anti-collusion). Ground-truth resolution is deterministic (tier-1 substring is
 order-independent with an earliest-chunk_index tie-break; tier-2 embedding is
 deterministic given the pinned ingest), so a frozen fixture + pinned ingest yield
 a reproducible ground truth.
+
+### Sealed real-doc holdout (the reward-hacking alarm)
+
+The synthetic fixtures are a *fictional* domain — they catch gross regressions but
+are blind to real-doc idioms (L7). The **holdout** is a small slice of REAL docs
+(committed `fixtures/holdout-real/` — 19 Next.js App Router "getting-started" docs,
+40 hand-labeled Q/A) scored at the **document level**: recall@k = "a chunk from a
+labeled expected document is in top-k" (no synthetic facts, no Stage-5 resolution).
+It is **sealed** — reported separately, and structurally incapable of becoming a
+golden: a holdout run writes `holdout_results.json` (`kind: "holdout"`), never the
+`results.json` that `control-pin`/`control-check` consume (which also refuse a
+holdout run-dir outright). The point is **synthetic↔holdout divergence**: a change
+that lifts the synthetic score but not the real-doc score is overfitting the toy
+domain (Goodhart). Build path (no API — agents do the labeling): `holdout-split`
+(slice a real `llms-full.txt` on its frontmatter boundaries + emit a labeling plan)
+→ agents label expected docs + gold answers → `holdout-assemble` (validates) →
+`freeze-holdout` (locks it). Run path: `run-holdout --mode control` (doc-level
+retrieval + the local reader + a no-RAG same-reader baseline) → agents judge →
+`score-holdout`. **Validity caveat:** the reader (gemma) and judge agents have
+**parametric knowledge** of real Next.js docs, so reader-correct% can come from
+memory — **lead with the retrieval metrics** (immune to that) and read the
+RAG−noRAG delta as the honest reader signal. Full protocol: `HOLDOUT.md`.
 
 ### Progress output
 

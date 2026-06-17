@@ -6,6 +6,7 @@ import type { MetricWithCi, ResultsFile } from "@/types/results";
 import { QUERY_TIERS } from "@/types/query";
 import { NoiseFloorFileSchema, type NoiseFloorFile } from "@/types/noise-floor";
 import { readJson, fileExists } from "@/lib/artifacts";
+import { HOLDOUT_RESULTS_FILENAME } from "@/lib/holdout-paths";
 import { UsageError, OperatorAbortError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { bootstrap, parseArgv, flagString } from "./shared";
@@ -205,6 +206,23 @@ export const judgeMismatch = (
   return null;
 };
 
+/**
+ * The sealed-holdout guard. A holdout run writes `holdout_results.json` (a
+ * `HoldoutResultsFile`), never `results.json`, so `control-pin`/`control-check`
+ * already can't read it — but if someone points them at a holdout run-dir, fail
+ * with a clear message instead of an opaque ENOENT. A holdout is structurally
+ * incapable of becoming a golden; this makes that explicit (audit safeguard #1).
+ */
+const assertNotHoldout = async (run_dir: string, verb: string): Promise<void> => {
+  if (await fileExists(join(run_dir, HOLDOUT_RESULTS_FILENAME))) {
+    throw new UsageError(
+      `${verb}: ${run_dir} is a SEALED real-doc holdout run (has ${HOLDOUT_RESULTS_FILENAME}). ` +
+        `A holdout is reported separately and can NEVER be pinned or gated — that's the reward-hacking guard. ` +
+        `Use \`june-eval score-holdout\` to finalize it; never \`control-pin\`/\`control-check\`.`,
+    );
+  }
+};
+
 const assertControl = (results: ResultsFile, verb: string): void => {
   if (results.manifest.mode !== "control") {
     throw new UsageError(
@@ -299,6 +317,7 @@ export const runControlPin = async (argv: readonly string[]): Promise<void> => {
     return;
   }
   await bootstrap(flags);
+  await assertNotHoldout(resolve(positionals[0]!), "control-pin");
   const results = (await readJson(
     join(resolve(positionals[0]!), "results.json"),
   )) as ResultsFile;
@@ -350,6 +369,7 @@ export const runControlCheck = async (argv: readonly string[]): Promise<void> =>
     return;
   }
   await bootstrap(flags);
+  await assertNotHoldout(resolve(positionals[0]!), "control-check");
   const results = (await readJson(
     join(resolve(positionals[0]!), "results.json"),
   )) as ResultsFile;
