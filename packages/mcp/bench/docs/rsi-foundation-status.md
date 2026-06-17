@@ -38,8 +38,8 @@ Per-phase history with commit hashes:
 | 2 | Measured noise floor | ✅ done, tested | `31cadf0`→`9c0a777` |
 | 3 | Freeze fixtures (+ no-API agent authoring) | ✅ done, tested | `ae64b66`→`88f5621` |
 | 4 | Real-doc holdout (**Next.js llms-full.txt**) | ✅ done, tested | `38178aa`→`7f947ab` |
-| 5 | Judge calibration gate (Cohen's κ) | ⬜ **NEXT** | |
-| 6 | Property/metamorphic tests + retriever fixes | ⬜ | |
+| 5 | Judge calibration gate (Cohen's κ) | ✅ done, tested | `f7aa199`→`d4f90f6` |
+| 6 | Property/metamorphic tests + retriever fixes | ⬜ **NEXT** | |
 | 7 | Meta-tests, CI, docs | ⬜ | |
 
 **Branch:** Phases 2–3 merged to `main`. Phase 3 landed on `rsi-phase-3-freeze-fixtures`
@@ -107,13 +107,32 @@ memory — lead with retrieval (immune), read the RAG−noRAG delta as the hones
 **`fixtures/holdout-real/`** — 19 App Router getting-started docs, 40 hand-labeled Q/A (34 answerable
 + 6 verified-absent unanswerable, labeled by opus agents). +30 tests (186→216).
 
-## Next: Phase 5 — judge calibration gate (Cohen's κ ≥ 0.7)
-- `validate-judge`: agent verdicts vs a human-labeled gold set; gate κ ≥ 0.7 before agent verdicts
-  may certify a run. This is what *licenses* the no-API judge seam (Phases 0/4 emit tasks; Phase 5
-  proves the agent judge agrees with a human).
-- The live holdout run is the **user's** (gemma reader via Ollama + Qdrant) — build/run split per
-  Phases 2–3. `run-holdout fixtures/holdout-real --mode control` → judge tasks → agents →
-  `score-holdout`. Reported separately; never gated.
+**Phase 5 — judge calibration gate (Cohen's κ ≥ 0.7).** The LLM judge (run by agents, no API) may
+now certify a `control` run only when its identity (model + prompt hash) has a PASSING κ record
+against a committed human-labeled gold set — `control-pin` enforces it (`assertJudgeCalibrated`). κ
+subtracts chance agreement, so a judge that always guesses the majority verdict scores ~0. No-API
+seam: `validate-judge emit` (gold → judge_tasks.json) → agents judge BLIND (JUDGE-RUNNER.md) →
+`validate-judge score` (computes κ via `src/lib/kappa.ts`, writes `judge-calibration.json`, fails
+exit 3 below threshold or on any UNJUDGED). Shipped `__test__/judge/fixtures/calibration-gold.json`
+(40 self-contained cases, balanced 8-per across the 5 verdict classes — 8 human grounding cases + 32
+orchestrator-constructed, double-verified); the recorded Sonnet verdicts re-score to κ = 1.000 (PASS,
+n=40) → claude-sonnet-4-6 licensed. A changed gold invalidates the license (staleness check). +23
+tests (216→239). `src/lib/calibration.ts`, `cli/validate-judge.ts`, `VALIDATE-JUDGE.md`.
+
+## Next: Phase 6 — property/metamorphic tests + retriever fixes (gaps #9/#10)
+- Property/metamorphic tests (judge-independent, pure retrieval): RRF determinism + stable tie-break,
+  retrieval ≤ k / scores in range, paraphrase invariance, irrelevant-doc invariance.
+- Fix the unstable RRF tie-break in `src/retriever/rrf.ts` (+ the mirror in `ingest/src/retriever/
+  rrf.ts`) — the Phase-2 `measure-noise-floor` determinism assertion is the probe built to expose it.
+- Per-fact multi-hop recall in `06-retrieval.ts`; stopgap↔production parity test.
+
+### Live runs still pending (the user's stack — gemma via Ollama + Qdrant)
+- **Holdout (Phase 4):** `run-holdout fixtures/holdout-real --mode control` → judge tasks → agents →
+  `score-holdout`. Reported separately; never gated. Lead with retrieval (parametric caveat).
+- **Calibration is already done for the Sonnet agent judge.** Re-run `validate-judge` only if the
+  judge prompt changes (Phase 6 may harden it) or the gold set grows — both invalidate the license.
+- The Phase-1 v2 golden still needs a first real `control` pin — which now also requires the judge
+  to be licensed (it is).
 
 ### Phase 2 follow-ups (when the live stack is up — the user runs these)
 - `--mode control` twice against one ingest (`--skip-ingest`) → `measure-noise-floor` to assert

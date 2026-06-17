@@ -89,6 +89,9 @@ june-eval freeze-holdout <holdout_dir> --name <name> [--signoff <who>] [--force]
 june-eval verify-holdout <holdout_dir>
 june-eval run-holdout <holdout_dir> --mode control [--no-baseline] [--out <dir>]
 june-eval score-holdout <run_dir> --verdicts <verdicts.json>
+june-eval validate-judge emit   [--gold <path>] [--out <tasks.json>]
+june-eval validate-judge score  <verdicts.json> [--min-kappa <0..1>] [--gold <path>]
+june-eval validate-judge status [--judge-model <m>]
 june-eval health
 ```
 
@@ -131,6 +134,23 @@ retrieval + the local reader + a no-RAG same-reader baseline) → agents judge �
 **parametric knowledge** of real Next.js docs, so reader-correct% can come from
 memory — **lead with the retrieval metrics** (immune to that) and read the
 RAG−noRAG delta as the honest reader signal. Full protocol: `HOLDOUT.md`.
+
+### Judge calibration (Cohen's κ licenses the judge)
+
+The correctness judge is an LLM run by Claude Code agents (no API). It may only
+certify a `control` run once it has been shown to agree with **human labels** beyond
+chance: `validate-judge` scores agent verdicts against a committed human-labeled gold
+set (`__test__/judge/fixtures/calibration-gold.json` — 40 self-contained cases,
+balanced 8-per across CORRECT/PARTIAL/INCORRECT/REFUSED/HALLUCINATED) and computes
+**Cohen's κ**. κ subtracts chance agreement, so a judge that always guesses the
+majority verdict scores ~0 — it can't be gamed by guessing CORRECT. A passing record
+(κ ≥ 0.7, default) keyed by `model + prompt hash` lands in `judge-calibration.json`
+and **licenses** that judge; `control-pin` refuses to pin a golden produced by an
+unlicensed judge (`assertJudgeCalibrated`), and editing the gold set invalidates the
+license (a staleness check). The seam is no-API like the judge runner: `validate-judge
+emit` → agents judge blind (JUDGE-RUNNER.md) → `validate-judge score`. The shipped
+Sonnet judge scores κ = 1.000 on the (deliberately unambiguous) gold; grow the gold
+with harder cases over time. Full protocol: `VALIDATE-JUDGE.md`.
 
 ### Progress output
 
