@@ -8,6 +8,7 @@ import { runCompare } from "./compare";
 import { runControlPin, runControlCheck } from "./control";
 import { runMeasureNoiseFloor, runMeasureConsistency } from "./measure";
 import { runFreeze, runVerifyFixture } from "./freeze";
+import { runScaffold, runAssemble } from "./author";
 import { runHealth } from "./health";
 import { logger } from "@/lib/logger";
 import {
@@ -48,6 +49,8 @@ COMMANDS
   control-check fail if a control run regresses vs the golden baseline
   measure-noise-floor  measure retrieval determinism across ≥2 runs (asserts ≈0)
   measure-consistency  measure judge variance across ≥2 re-judges of one run
+  scaffold      emit deterministic facts + an authoring plan (no API)
+  assemble      validate agent-authored drafts into a fixture (no API)
   freeze        commit a fixture as an immutable, hash-locked artifact
   verify-fixture  re-check a frozen fixture against its lock
   health      provider + june + qdrant reachability probe
@@ -85,6 +88,10 @@ const dispatch = async (argv: readonly string[]): Promise<void> => {
       return runFreeze(rest);
     case "verify-fixture":
       return runVerifyFixture(rest);
+    case "scaffold":
+      return runScaffold(rest);
+    case "assemble":
+      return runAssemble(rest);
     case "health":
       return runHealth(rest);
     default:
