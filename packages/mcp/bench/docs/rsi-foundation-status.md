@@ -35,14 +35,16 @@ Per-phase history with commit hashes:
 |---|---|---|---|
 | 0 | Externalize the judge (no-API seam) | ✅ done, tested | `664da18`→`a02eb9f` |
 | 1 | Statistically-sound gate | ✅ done, tested | `a02eb9f`→`4ac80ea` |
-| 2 | Measured noise floor | ⬜ **NEXT** | |
-| 3 | Freeze fixtures | ⬜ | |
+| 2 | Measured noise floor | ✅ done, tested | `31cadf0`→`9c0a777` |
+| 3 | Freeze fixtures | ⬜ **NEXT** | |
 | 4 | Real-doc holdout (**needs your docs**) | ⬜ | |
 | 5 | Judge calibration gate (Cohen's κ) | ⬜ | |
 | 6 | Property/metamorphic tests + retriever fixes | ⬜ | |
 | 7 | Meta-tests, CI, docs | ⬜ | |
 
-**Health:** `tsc --noEmit` clean; **122 tests, 0 fail** (1 pre-existing live-judge skip).
+**Branch:** Phase 2 landed on `rsi-phase-2-noise-floor` (off `main` @ `31cadf0`); not yet merged.
+
+**Health:** `tsc --noEmit` clean; **147 tests, 0 fail** (1 pre-existing live-judge skip).
 
 ## What's landed
 
@@ -63,17 +65,36 @@ candidate judged by a different model/prompt) and a `completed`-status guard. Go
 to schema v2 (legacy v1 entries skipped with a warning → re-pin). First unit tests for the
 gate logic (`detectRegressions` / `judgeMismatch` / `perTierMetrics`).
 
-## Next: Phase 2 — measured noise floor
-- New `cli/measure.ts` → `june-eval measure-noise-floor` + `measure-consistency`.
-  - *Determinism:* re-run retrieval/scoring N times against one frozen fixture + one ingest;
-    report per-tier/per-metric variance for recall@k/MRR. These are now LLM-free, so variance
-    should be ≈0 — assert it.
-  - *Consistency:* re-judge N times via agents; report verdict/correct% variance.
-  - Fan out with `mapConcurrent` (`src/lib/concurrency.ts`); emit `noise-floor.json`.
-- `control-pin` should consume a measured `noise-floor.json` instead of the typed
-  `--noise-floor` flag (or require `--accept-floor` to override).
-- **The command + variance math + unit tests are buildable now**; the real N-run *execution*
-  (to produce an actual floor) needs the live stack (Qdrant + Ollama gemma + `june ingest`).
+**Phase 2 — measured noise floor.** New `cli/measure.ts`: `measure-noise-floor <run_dir...>`
+(DETERMINISM — recall@k/MRR spread across ≥2 runs; **asserts ≈0** on a shared ingest, exit 3 on
+drift) and `measure-consistency <run_dir> <verdicts.json...>` (judge variance — `reader_correct_pct`
+spread across ≥2 agent re-judges). Both write/merge one per-fixture `noise-floor.json`
+(`recommended_noise_floor` = conservative max). `control-pin` consumes it (`--noise-floor-file`,
+default package-root) — cross-checks fixture + a measured judge-consistency block, requires a
+deliberate `--accept-floor` to pin without a measured file. New `src/lib/variance.ts` (pure
+sample-variance/range), `src/types/noise-floor.ts` (schema). +26 unit tests. The bench makes no
+LLM/agent calls here — the live N-run/N-judge execution is the orchestrator's; these are the
+pure-aggregation half.
+
+## Next: Phase 3 — freeze fixtures (gaps 5, 7)
+- Commit a canonical fixture dir (`facts.json` + `corpus/` + `corpus_manifest.json` +
+  `queries.json`) under `fixtures/<name>/` with provenance (author models, prompt hashes, human
+  sign-off); never regenerate — runs always evaluate the frozen set.
+- Make GT resolution deterministic (prefer tier-1 substring; keep/seed or drop tier-2 embedding).
+- Restore anti-collusion: authorship moves to distinct orchestrator agents per role at freeze
+  time; strengthen anti-leakage Jaccard + human review.
+- Tests: fixture-load determinism; fixture-hash stability; anti-leakage enforcement.
+
+### Phase 2 follow-ups (when the live stack is up — the user runs these)
+- `--mode control` twice against one ingest (`--skip-ingest`) → `measure-noise-floor` to assert
+  retrieval determinism and emit the `determinism` block. **This is also the probe that will
+  expose the unstable RRF tie-break (gap #9 / Phase 6)** — a determinism failure there is the
+  command working as intended.
+- Orchestrator agents judge one run's `judge_tasks.json` N times → N `verdicts.json` →
+  `measure-consistency` for the judge floor. Then re-pin the golden from a real control run
+  (the Phase 1 v2 golden still needs a first real pin).
+- Optional later: per-metric floors in the gate (golden v3) — the file already carries them;
+  retrieval ≈0 vs the judge floor. Deferred, not needed yet.
 
 ## Decisions locked (from the user)
 1. **Foundation only** — design the loop's seams, don't build the optimizer.
