@@ -350,6 +350,28 @@ All bench-local artifacts live under `packages/mcp/bench/state/`:
 mv runs/* state/runs/ && mv bench-scratch/* state/scratch/
 ```
 
+## RSI-readiness — the gauge as a fitness function
+
+This bench was hardened (RSI-foundation Phases 0–7) into a **trustworthy fitness function**: a
+gauge an automated self-improvement loop can optimize *against* without gaming it. The full
+list of guarantees — no-API eval path, deterministic ingest/retrieval, frozen hash-locked
+fixtures, the statistical regression gate, the sealed real-doc holdout, the κ-licensed judge,
+the BYO-local reader — with the seam each rests on and how CI verifies it, is the
+**[RSI-readiness contract](docs/rsi-readiness-contract.md)**. Read it before building anything
+that consumes these numbers programmatically.
+
+**The load-bearing caveat (L7):** a green synthetic number is *"no regression detected,"* never
+*"the product is good."* The fixture is fictional facts in a narrow question style — a higher
+score on it can mean a worse product (Goodhart). The sealed holdout (`fixtures/holdout-real/`)
+is the alarm for synthetic↔real divergence, but it is small and parametric-memory-contaminated
+(lead with its retrieval metrics). Never read a synthetic % as a real-doc quality claim.
+
+**CI.** [`.github/workflows/bench-ci.yml`](../../../.github/workflows/bench-ci.yml) runs the
+hermetic hot path on every change to bench/ingest/shared: typecheck + unit + property +
+the hermetic end-to-end test (`__test__/e2e/` — full pipeline over a fake retriever, no Qdrant/
+Ollama/API) + the agent-free judge-calibration κ gate. Live `control` + holdout passes need the
+BYO gemma + Qdrant stack and are kept off the hot path.
+
 ## Honesty audit
 
 Every measurement choice in this package maps to a specific failure mode in `BENCH_SPEC.md §4`'s L1–L14 table. If a design decision doesn't ladder up to defusing an `L`, it doesn't belong here.

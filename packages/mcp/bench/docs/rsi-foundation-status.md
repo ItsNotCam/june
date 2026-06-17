@@ -40,12 +40,15 @@ Per-phase history with commit hashes:
 | 4 | Real-doc holdout (**Next.js llms-full.txt**) | ✅ done, tested | `38178aa`→`7f947ab` |
 | 5 | Judge calibration gate (Cohen's κ) | ✅ done, tested | `f7aa199`→`d4f90f6` |
 | 6 | Property/metamorphic tests + retriever fixes | ✅ done, tested | `cf4bc63`→`18f5aaf` |
-| 7 | Meta-tests, CI, docs | ⬜ **NEXT** | |
+| 7 | Meta-tests, CI, the RSI-readiness contract | ✅ done, tested | `6bda6d8`→`c673b68` |
+
+**Foundation COMPLETE.** Phases 0–7 done. The gauge's guarantees are enumerated in
+[`rsi-readiness-contract.md`](./rsi-readiness-contract.md) — the spec the future RSI loop builds on.
 
 **Branch:** Phases 2–3 merged to `main`. Phase 3 landed on `rsi-phase-3-freeze-fixtures`
 (commits `73ac3f9` backbone → `ae64b66` authoring seam → `88f5621` the glorbulon-v1 fixture).
 
-**Health:** `tsc --noEmit` clean; **186 tests, 0 fail** (1 pre-existing live-judge skip).
+**Health:** `tsc --noEmit` clean; **253 tests, 0 fail** (1 pre-existing live-judge skip); ingest 150 pass.
 
 ## What's landed
 
@@ -131,13 +134,22 @@ Stage 6 (the fraction of a multi-hop query's expected chunks in top-k — surfac
 `retrieval_results.json` to distinguish 1-of-2 hops from a total miss; diagnostic only, gated recall
 unchanged). +10 bench tests (239→249); ingest 150 green.
 
-## Next: Phase 7 — meta-tests, CI, the RSI-readiness contract
-- Hermetic e2e: a tiny frozen fixture → ingest → resolve → retrieve → emit tasks → fixture verdicts →
-  `score`, asserting invariants end-to-end (needs the live-ish stack or a stubbed retriever).
-- CI wiring: unit + property + e2e + `validate-judge` (with the committed recorded verdicts) on every
-  change; periodic live `control` + holdout off the hot path.
-- Docs: the **"RSI-readiness contract"** — every guarantee the gauge now makes (determinism, the
-  statistical gate, the sealed holdout, the κ-licensed judge), as the spec the future loop builds on.
+**Phase 7 — meta-tests, CI, the RSI-readiness contract (gap: no e2e/CI/contract).** The gauge now
+defends itself on every change. A **hermetic e2e** (`__test__/e2e/pipeline.e2e.test.ts` + committed
+`fixtures/e2e-mini-v1`) wires the whole no-API pipeline — Stage 6 retrieval scoring → `buildJudgeTasks`
+→ Stage 9 partial → the real `score` command overlaying committed verdicts — over a deterministic FAKE
+retriever + a tiny seeded `june.db`, asserting every invariant end-to-end (retrieval final at partial
+time, self-contained judge tasks, verdict overlay materializes correctness without perturbing
+retrieval, cross-judge identity recorded, two-run determinism) with no Qdrant/Ollama/june-subprocess/API
+key — the no-API guarantee proven by construction. **CI** (`.github/workflows/bench-ci.yml`) runs
+typecheck + unit + property + the e2e + the **agent-free κ calibration gate** (the committed gold +
+recorded Sonnet verdicts re-scored to a PASSING κ — no agent) on every bench/ingest/shared change; live
+`control` + holdout stay off the hot path. The **[RSI-readiness contract](./rsi-readiness-contract.md)**
+enumerates all eight guarantees (G1 no-API · G2 determinism + RRF tie-break · G3 frozen anti-collusion
+fixtures · G4 statistical gate · G5 sealed holdout · G6 κ-licensed judge · G7 BYO-local reader · G8
+hermetic CI), the seam each rests on, the honest limits (L7 synthetic≠real, single judge, live-only
+metamorphic invariances), and the contract the future optimizer operates within. README L7 caveat
+surfaced. +5 e2e tests (249→253… counts vary by skip).
 
 ### Live-only (the user's stack — Qdrant + the embedder; NOT unit-testable in-bench)
 - The two metamorphic RETRIEVAL invariances from the plan — **paraphrase invariance** and
