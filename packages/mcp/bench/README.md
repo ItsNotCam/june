@@ -81,8 +81,28 @@ june-eval measure-noise-floor <run_dir...> [--out <path>] [--epsilon <n>]
 june-eval measure-consistency <run_dir> <verdicts.json...> [--out <path>]
 june-eval control-pin <run_dir> [--noise-floor-file <path>] [--accept-floor <0..1>]
 june-eval control-check <run_dir>
+june-eval freeze <fixture_dir> --name <name> [--signoff <who>] [--allow-collusion] [--force]
+june-eval verify-fixture <fixture_dir>
 june-eval health
 ```
+
+### Frozen fixtures (immutable, hash-locked test sets)
+
+A fixture (corpus + queries) is **LLM-authored and non-deterministic** — so to
+stop input drift from masquerading as a quality change, the canonical test sets
+are **frozen**: committed under `fixtures/<name>/` with a `fixture.lock.json` that
+records the canonical fixture hash, a per-file SHA-256 manifest, and the authoring
+provenance. `run` calls `assertFrozenFixtureIntact` before ingest, so a frozen
+fixture that drifted from its lock fails the run (`FixtureTamperedError`); re-check
+any time with `verify-fixture`. `freeze` **refuses a colluded fixture** — corpus
+and queries authored by the *same* model — unless `--allow-collusion`, because a
+single author lets queries lexically echo the corpus and inflates recall. The
+canonical fixtures are authored with **no API calls**: Claude Code's own agents
+write them (sonnet for the corpus, opus for the queries — distinct models restore
+anti-collusion). Ground-truth resolution is deterministic (tier-1 substring is
+order-independent with an earliest-chunk_index tie-break; tier-2 embedding is
+deterministic given the pinned ingest), so a frozen fixture + pinned ingest yield
+a reproducible ground truth.
 
 ### Progress output
 

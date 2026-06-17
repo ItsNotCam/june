@@ -200,7 +200,15 @@ const assertDocsIngested = (
   }
 };
 
-const resolveTier1 = (
+/**
+ * Tier-1 substring resolution (exported for determinism tests). Pure +
+ * order-independent: it normalizes the surface hint, substring-matches it
+ * against every chunk's normalized `raw_content`, and on multiple matches takes
+ * the EARLIEST by `chunk_index` (a stable tie-break). So the SAME chunk set in
+ * ANY order resolves to the SAME chunk_id — the property the frozen fixture +
+ * pinned ingest rely on for a reproducible ground truth.
+ */
+export const resolveTier1 = (
   fact: Fact,
   chunks: JuneChunkRow[],
 ): { chunk_id: string } | null => {

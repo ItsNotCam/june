@@ -7,6 +7,7 @@ import { runReport } from "./report";
 import { runCompare } from "./compare";
 import { runControlPin, runControlCheck } from "./control";
 import { runMeasureNoiseFloor, runMeasureConsistency } from "./measure";
+import { runFreeze, runVerifyFixture } from "./freeze";
 import { runHealth } from "./health";
 import { logger } from "@/lib/logger";
 import {
@@ -47,6 +48,8 @@ COMMANDS
   control-check fail if a control run regresses vs the golden baseline
   measure-noise-floor  measure retrieval determinism across ≥2 runs (asserts ≈0)
   measure-consistency  measure judge variance across ≥2 re-judges of one run
+  freeze        commit a fixture as an immutable, hash-locked artifact
+  verify-fixture  re-check a frozen fixture against its lock
   health      provider + june + qdrant reachability probe
 
 See \`june-eval <command> --help\` for command-specific flags.
@@ -78,6 +81,10 @@ const dispatch = async (argv: readonly string[]): Promise<void> => {
       return runMeasureNoiseFloor(rest);
     case "measure-consistency":
       return runMeasureConsistency(rest);
+    case "freeze":
+      return runFreeze(rest);
+    case "verify-fixture":
+      return runVerifyFixture(rest);
     case "health":
       return runHealth(rest);
     default:

@@ -29,7 +29,8 @@ import { BudgetMeter, buildCostPreview } from "@/lib/cost";
 import { logger } from "@/lib/logger";
 import { getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
-import { readJson, writeJsonAtomic, fileExists, sha256Hex } from "@/lib/artifacts";
+import { readJson, writeJsonAtomic, fileExists } from "@/lib/artifacts";
+import { computeFixtureHash, assertFrozenFixtureIntact } from "@/lib/fixture-lock";
 import { promptTemplateHash } from "@/lib/prompts";
 import { newRunId } from "@/lib/ids";
 import {
@@ -165,6 +166,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     );
   }
   const sample_ratio = parseSampleRatio({ quick, sample_str });
+
+  // If this is a FROZEN fixture, refuse to run it if it drifted from its lock —
+  // a committed fixture is immutable, so any edit is a tamper, not an input.
+  await assertFrozenFixtureIntact(fixture_dir);
 
   const facts = (await readJson(join(fixture_dir, "facts.json"))) as FactsFile;
   const corpus = (await readJson(
@@ -1088,20 +1093,6 @@ const prepareReuseFromPrior = async (args: {
   );
 
   return { ingest, copied };
-};
-
-const computeFixtureHash = (
-  facts: FactsFile,
-  corpus: CorpusManifest,
-  queries: QueriesFile,
-): string => {
-  const sortedCorpusHashes = corpus.documents
-    .map((d) => d.content_hash)
-    .sort()
-    .join("|");
-  return sha256Hex(
-    JSON.stringify(facts) + ":" + sortedCorpusHashes + ":" + JSON.stringify(queries),
-  );
 };
 
 const buildManifest = (args: {

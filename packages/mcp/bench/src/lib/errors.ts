@@ -47,6 +47,17 @@ export class CorpusTamperedError extends Error {
   }
 }
 
+/** A frozen fixture diverged from its committed `fixture.lock.json` (Phase 3 tamper check). Exit 1. */
+export class FixtureTamperedError extends Error {
+  constructor(
+    message: string,
+    readonly divergences: string[],
+  ) {
+    super(message);
+    this.name = "FixtureTamperedError";
+  }
+}
+
 /** Stage 5 assertion / setup failure (e.g. doc_id mismatch between manifest and mcp's `documents` table). Exit 1. */
 export class GroundTruthResolutionError extends Error {
   constructor(message: string) {
