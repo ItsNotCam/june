@@ -16,8 +16,20 @@ Valid types: `(feat)`, `(fix)`, `(chore)`, `(refactor)`, `(docs)`, `(test)`, `(s
 ### READMEs
 After every commit, update the README for any package whose files were changed. If no README exists for that package yet, create one. The root README should also be updated if the change affects the overall project structure or public API.
 
-### Progress diary (mandatory)
-After completing a **large action** — a plan phase, a feature, or a non-trivial fix that has been verified (compiles + tests pass) and committed — you **must** record a progress-diary entry, exactly as directed by the `progress-diary` skill (`.claude/skills/progress-diary/SKILL.md`). This is not optional. Each entry lives under `.claude/diary/<feature-name>/NN-slug.md`, is **committed into the repo** (never gitignored), and **never contains secrets** (no keys, tokens, `.env` values, or credentialed URLs). It cites the previous → new commit hashes and has, in order: a clear heading, a one-paragraph summary, a plain-English high-level section, the steps performed, and an action-items / next-steps section — so the diary forms a coherent history of progress on this tool.
+### Engineering log (mandatory)
+After completing a **large action** — a plan phase, a feature, or a non-trivial fix that has been verified (compiles + tests pass) and committed — you **must** record an engineering-log entry, exactly as directed by the `engineering-log` skill (`.claude/skills/engineering-log/SKILL.md`). This is not optional. Entries live in the **Obsidian vault** under `engineering-log/<feature-name>/<slug>.md` (one folder per feature/initiative) and are written via the `obsidian-notes` MCP (`mcp__obsidian-notes__vault_write`) — they are **not committed to the repo** and are **not** loose files under `.claude/`. An entry **never contains secrets** (no keys, tokens, `.env` values, or credentialed URLs). It opens with YAML frontmatter (`feature`, `sequence`, `status`, `prev_commit`/`new_commit`, `summary`, …), cites the previous → new commit hashes, and has, in order: a clear heading, a one-paragraph summary, a plain-English high-level section, the steps performed, and an action-items / next-steps section — so the log forms a coherent, searchable history of progress on this tool.
+
+### Telegram notifications (tg-send)
+
+A `tg-send` helper exists at `~/.local/bin/tg-send` — use it to push a Telegram message to the user (e.g. "long task finished", "needs input", build/bench results). Call it with the full path since `~/.local/bin` may not be on PATH in non-interactive shells:
+
+```bash
+~/.local/bin/tg-send "bench run finished: gemma control passed"
+echo "multi-line or piped body" | ~/.local/bin/tg-send
+~/.local/bin/tg-send --chat <CHAT_ID> "message to a different chat"
+```
+
+Credentials (bot token + default chat id) live in `~/.config/tg-send/credentials` (chmod 600) and must **never** be printed, committed, or echoed. The script prints `sent` on success and a non-zero error otherwise.
 
 ### Bench reader-by-purpose (flash iterates, gemma4:26b is the bar)
 
