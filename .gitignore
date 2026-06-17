@@ -68,6 +68,7 @@ packages/mcp/bench/state/cache/llm/
 !packages/mcp/bench/state/.gitkeep
 !packages/mcp/bench/state/cache/.gitkeep
 packages/mcp/bench/state/fixtures/
+packages/mcp/bench/state/scaffold/
 
 # Claude
 .intermediary/
