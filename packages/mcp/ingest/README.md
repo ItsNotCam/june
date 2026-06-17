@@ -239,6 +239,7 @@ query(
 - The query is dense-embedded with the asymmetric `query:` prefix (configurable via `retrieval.query_prefix`) and BM25-vectorized from the raw text. Each target collection is searched for both modalities at `k * fetch_multiplier`, then fused.
 - Only `is_latest = true` chunks are returned. Each `RetrievedChunk` carries `content` + citation metadata straight from the Qdrant payload — no sidecar read.
 - Tunables live under the `retrieval:` config block (`default_k`, `fetch_multiplier`, `dense_weight`, `bm25_weight`, `rank_constant`, `query_prefix`, `collections`).
+- RRF fusion (`src/retriever/rrf.ts`) sorts by an **explicit total order** — `(score desc, chunk_id asc)`. The `chunk_id` secondary key makes equal-score chunks resolve deterministically instead of by vector-store arrival order, so the ranking is reproducible run-to-run at tie boundaries. Kept byte-identical to the bench's `rrf.ts` (a cross-package parity test guards the two against drift).
 
 `query` requires `loadConfig` (it reads `retrieval` + `bm25.stopwords`) and `buildDeps` (for the embedder + vector store).
 

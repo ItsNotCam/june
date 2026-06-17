@@ -229,8 +229,14 @@ Two commands produce a `noise-floor.json` per fixture:
 - `june-eval measure-noise-floor <run_dir...>` — re-run retrieval against ≥2 runs of one
   fixture (ideally sharing one ingest via `--skip-ingest`) and report the recall@k/MRR spread.
   Retrieval is LLM-free, so on a shared ingest the spread **must** be ≈0 — the command
-  **asserts** it and fails (exit 3) on any non-zero drift (a real determinism bug, e.g. an
-  unstable RRF tie-break). This is the proof the retrieval metrics can be gated tightly.
+  **asserts** it and fails (exit 3) on any non-zero drift (a real determinism bug). The one
+  such bug it was built to expose — an unstable RRF tie-break — was **fixed in Phase 6**:
+  `reciprocalRankFusion` now sorts by an explicit `(score desc, chunk_id asc)` total order, so
+  equal-score chunks no longer reorder with vector-store arrival order (a cross-package parity
+  test keeps the bench + production fusion byte-identical). This is the proof the retrieval
+  metrics can be gated tightly. (Stage 6 also records `per_fact_recall_at_k` — the fraction of a
+  multi-hop query's expected chunks in top-k — as a partial-composition diagnostic alongside the
+  gated all-or-nothing recall.)
 - `june-eval measure-consistency <run_dir> <verdicts.json...>` — re-score one run under ≥2
   independent agent re-judges of its tasks and report the reader-correct% spread. The judge is
   the only non-deterministic stage, so this is where the real floor comes from.

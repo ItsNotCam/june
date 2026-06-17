@@ -39,8 +39,8 @@ Per-phase history with commit hashes:
 | 3 | Freeze fixtures (+ no-API agent authoring) | ✅ done, tested | `ae64b66`→`88f5621` |
 | 4 | Real-doc holdout (**Next.js llms-full.txt**) | ✅ done, tested | `38178aa`→`7f947ab` |
 | 5 | Judge calibration gate (Cohen's κ) | ✅ done, tested | `f7aa199`→`d4f90f6` |
-| 6 | Property/metamorphic tests + retriever fixes | ⬜ **NEXT** | |
-| 7 | Meta-tests, CI, docs | ⬜ | |
+| 6 | Property/metamorphic tests + retriever fixes | ✅ done, tested | `cf4bc63`→`18f5aaf` |
+| 7 | Meta-tests, CI, docs | ⬜ **NEXT** | |
 
 **Branch:** Phases 2–3 merged to `main`. Phase 3 landed on `rsi-phase-3-freeze-fixtures`
 (commits `73ac3f9` backbone → `ae64b66` authoring seam → `88f5621` the glorbulon-v1 fixture).
@@ -119,12 +119,34 @@ orchestrator-constructed, double-verified); the recorded Sonnet verdicts re-scor
 n=40) → claude-sonnet-4-6 licensed. A changed gold invalidates the license (staleness check). +23
 tests (216→239). `src/lib/calibration.ts`, `cli/validate-judge.ts`, `VALIDATE-JUDGE.md`.
 
-## Next: Phase 6 — property/metamorphic tests + retriever fixes (gaps #9/#10)
-- Property/metamorphic tests (judge-independent, pure retrieval): RRF determinism + stable tie-break,
-  retrieval ≤ k / scores in range, paraphrase invariance, irrelevant-doc invariance.
-- Fix the unstable RRF tie-break in `src/retriever/rrf.ts` (+ the mirror in `ingest/src/retriever/
-  rrf.ts`) — the Phase-2 `measure-noise-floor` determinism assertion is the probe built to expose it.
-- Per-fact multi-hop recall in `06-retrieval.ts`; stopgap↔production parity test.
+**Phase 6 — property/metamorphic tests + retriever fixes (gaps #9/#10).** Fixed the non-deterministic
+RRF tie-break: both `reciprocalRankFusion` copies (bench `src/retriever/rrf.ts` + production
+`ingest/src/retriever/rrf.ts`) sorted by score with NO secondary key, so equal-score chunks resolved
+by Qdrant arrival order. Added an explicit total order `(score desc, chunk_id asc)` to both — the
+nondeterminism the Phase-2 `measure-noise-floor` assertion was built to expose. Added judge-independent
+RRF property/metamorphic tests (the total-order invariant over random inputs, determinism, k-cap +
+subset + no-dup, modality-swap invariance, the fused formula), a cross-package PARITY test executing
+BOTH rrf copies on shared inputs (asserts byte-equal — they can never drift), and `perFactRecall` in
+Stage 6 (the fraction of a multi-hop query's expected chunks in top-k — surfaced in
+`retrieval_results.json` to distinguish 1-of-2 hops from a total miss; diagnostic only, gated recall
+unchanged). +10 bench tests (239→249); ingest 150 green.
+
+## Next: Phase 7 — meta-tests, CI, the RSI-readiness contract
+- Hermetic e2e: a tiny frozen fixture → ingest → resolve → retrieve → emit tasks → fixture verdicts →
+  `score`, asserting invariants end-to-end (needs the live-ish stack or a stubbed retriever).
+- CI wiring: unit + property + e2e + `validate-judge` (with the committed recorded verdicts) on every
+  change; periodic live `control` + holdout off the hot path.
+- Docs: the **"RSI-readiness contract"** — every guarantee the gauge now makes (determinism, the
+  statistical gate, the sealed holdout, the κ-licensed judge), as the spec the future loop builds on.
+
+### Live-only (the user's stack — Qdrant + the embedder; NOT unit-testable in-bench)
+- The two metamorphic RETRIEVAL invariances from the plan — **paraphrase invariance** and
+  **irrelevant-doc invariance** — need real embeddings + Qdrant, so they're live-run properties, not
+  committed unit tests (the committed property tests cover the pure fusion logic). Worth running once
+  the stack is up, alongside a `measure-noise-floor` pass (which should now read ~0 drift given the
+  tie-break fix).
+- Still pending from earlier phases: the Phase-4 holdout live run, and the first real `control` golden
+  pin (now unblocked — it requires a licensed judge, which `claude-sonnet-4-6` is).
 
 ### Live runs still pending (the user's stack — gemma via Ollama + Qdrant)
 - **Holdout (Phase 4):** `run-holdout fixtures/holdout-real --mode control` → judge tasks → agents →
