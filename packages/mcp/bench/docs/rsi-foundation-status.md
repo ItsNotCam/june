@@ -37,8 +37,8 @@ Per-phase history with commit hashes:
 | 1 | Statistically-sound gate | ✅ done, tested | `a02eb9f`→`4ac80ea` |
 | 2 | Measured noise floor | ✅ done, tested | `31cadf0`→`9c0a777` |
 | 3 | Freeze fixtures (+ no-API agent authoring) | ✅ done, tested | `ae64b66`→`88f5621` |
-| 4 | Real-doc holdout (**Next.js llms-full.txt**) | ⬜ **NEXT** | |
-| 5 | Judge calibration gate (Cohen's κ) | ⬜ | |
+| 4 | Real-doc holdout (**Next.js llms-full.txt**) | ✅ done, tested | `38178aa`→`7f947ab` |
+| 5 | Judge calibration gate (Cohen's κ) | ⬜ **NEXT** | |
 | 6 | Property/metamorphic tests + retriever fixes | ⬜ | |
 | 7 | Meta-tests, CI, docs | ⬜ | |
 
@@ -91,13 +91,29 @@ query stays under the anti-leakage threshold. Shipped the first canonical fixtur
 **`fixtures/glorbulon-v1/`** (10 docs, 30 queries T1–T5, `anti_collusion: true`, max leak 0.375).
 First Stage-5 resolution-determinism tests. +38 tests (148→186).
 
-## Next: Phase 4 — real-doc holdout (gap #6)
-- **Source (user-specified): the Next.js docs `llms-full.txt`** —
-  https://nextjs.org/docs/llms-full.txt. Fetch, split into real documents, hand-label a small Q/A
-  set, and seal as `fixtures/holdout-real/`: run with `--holdout`, reported **separately**, and
-  **never pinned/gated/tuned**. Synthetic↔holdout divergence is the reward-hacking alarm.
-- Reuse Phase 3's freeze/verify lock machinery (commit it immutable, hash-locked). No synthetic
-  authoring needed (real docs), but the no-API discipline still holds for any labeling agents.
+**Phase 4 — sealed real-doc holdout (gap #6).** A doc-native holdout now sits beside the synthetic
+fixtures: real Next.js docs ingested as-is, ground truth = hand-labeled **expected document(s)** per
+query, scored at the DOCUMENT level (recall@k = "a chunk from a labeled expected doc is in top-k" —
+no facts, no Stage 5). It is **sealed**: a holdout run writes `holdout_results.json` (`kind:
+"holdout"`), never `results.json`, so `control-pin`/`control-check` can't read it — and they refuse a
+holdout run-dir outright (`assertNotHoldout`). No-API build path mirrors the Phase-3 seam:
+`holdout-split` slices `llms-full.txt` on its frontmatter boundaries + emits a labeling plan → agents
+label → `holdout-assemble` validates → `freeze-holdout` locks it (`src/lib/holdout-{build,lock,
+score}.ts`, `cli/holdout.ts`, `HOLDOUT.md`). Run path: `run-holdout --mode control` (doc-level
+retrieval via the plain stopgap retriever — deterministic + API-free; the LOCAL reader + a no-RAG
+same-reader baseline) → agents judge → `score-holdout`. **Parametric-knowledge caveat** surfaced
+loudly: the reader (gemma) + judge agents know real Next.js docs, so reader-correct% can come from
+memory — lead with retrieval (immune), read the RAG−noRAG delta as the honest reader signal. Shipped
+**`fixtures/holdout-real/`** — 19 App Router getting-started docs, 40 hand-labeled Q/A (34 answerable
++ 6 verified-absent unanswerable, labeled by opus agents). +30 tests (186→216).
+
+## Next: Phase 5 — judge calibration gate (Cohen's κ ≥ 0.7)
+- `validate-judge`: agent verdicts vs a human-labeled gold set; gate κ ≥ 0.7 before agent verdicts
+  may certify a run. This is what *licenses* the no-API judge seam (Phases 0/4 emit tasks; Phase 5
+  proves the agent judge agrees with a human).
+- The live holdout run is the **user's** (gemma reader via Ollama + Qdrant) — build/run split per
+  Phases 2–3. `run-holdout fixtures/holdout-real --mode control` → judge tasks → agents →
+  `score-holdout`. Reported separately; never gated.
 
 ### Phase 2 follow-ups (when the live stack is up — the user runs these)
 - `--mode control` twice against one ingest (`--skip-ingest`) → `measure-noise-floor` to assert
