@@ -11,6 +11,7 @@
  * run-manager re-declares an equivalent Zod schema at its own trust boundary
  * (`packages/next/lib/test/events.ts`) — keep the two in sync.
  */
+import { appendFileSync } from "fs";
 import { z } from "zod";
 
 /** One pipeline stage, used in `run_start` so a consumer can pre-render the list. */
@@ -86,9 +87,28 @@ export type ProgressEventReporter = {
   runError: (err: { name: string; message: string }) => void;
 };
 
-const emit = (event: TestEvent): void => {
-  process.stdout.write(`${JSON.stringify(event)}\n`);
-};
+/**
+ * Build a reporter whose every method funnels into a single `sink(event)`. The
+ * stdout, file, and (via `combineReporters`) tee reporters all share this so the
+ * method→event mapping lives in exactly one place.
+ */
+const reporterFromSink = (sink: (event: TestEvent) => void): ProgressEventReporter => ({
+  runStart: (info) =>
+    sink({
+      type: "run_start",
+      fixture_id: info.fixture_id,
+      run_id: info.run_id,
+      stages: [...info.stages],
+    }),
+  stageStart: (stage, name, total) =>
+    sink({ type: "stage_start", stage, name, ...(total !== undefined ? { total } : {}) }),
+  tick: (stage, done, total) => sink({ type: "tick", stage, done, total }),
+  poll: (stage, elapsed_ms, status) => sink({ type: "poll", stage, elapsed_ms, status }),
+  stageEnd: (stage, name, duration_ms, detail) =>
+    sink({ type: "stage_end", stage, name, duration_ms, ...(detail !== undefined ? { detail } : {}) }),
+  runComplete: (info) => sink({ type: "run_complete", ...info }),
+  runError: (err) => sink({ type: "run_error", ...err }),
+});
 
 /**
  * NDJSON reporter — writes each event as a single JSON line to stdout.
@@ -96,23 +116,36 @@ const emit = (event: TestEvent): void => {
  * Used when `--progress-ndjson` is passed. Keeps stdout reserved for events so
  * the consumer can line-split it cleanly.
  */
-export const createNdjsonReporter = (): ProgressEventReporter => ({
-  runStart: (info) =>
-    emit({
-      type: "run_start",
-      fixture_id: info.fixture_id,
-      run_id: info.run_id,
-      stages: [...info.stages],
-    }),
-  stageStart: (stage, name, total) =>
-    emit({ type: "stage_start", stage, name, ...(total !== undefined ? { total } : {}) }),
-  tick: (stage, done, total) => emit({ type: "tick", stage, done, total }),
-  poll: (stage, elapsed_ms, status) => emit({ type: "poll", stage, elapsed_ms, status }),
-  stageEnd: (stage, name, duration_ms, detail) =>
-    emit({ type: "stage_end", stage, name, duration_ms, ...(detail !== undefined ? { detail } : {}) }),
-  runComplete: (info) => emit({ type: "run_complete", ...info }),
-  runError: (err) => emit({ type: "run_error", ...err }),
-});
+export const createNdjsonReporter = (): ProgressEventReporter =>
+  reporterFromSink((event) => process.stdout.write(`${JSON.stringify(event)}\n`));
+
+/**
+ * File reporter — appends each event as a single JSON line to `path`.
+ *
+ * Always wired (teed onto whatever stdout reporter is active) so EVERY run
+ * persists `<run_dir>/progress.ndjson`; the dashboard tails this to show live
+ * stage progress without spawning the run itself. Append IO is best-effort —
+ * a failed write must never break a run, so errors are swallowed.
+ */
+export const createFileReporter = (path: string): ProgressEventReporter =>
+  reporterFromSink((event) => {
+    try {
+      appendFileSync(path, `${JSON.stringify(event)}\n`);
+    } catch {
+      /* progress IO is non-critical */
+    }
+  });
+
+/** Tee — fans every event out to each reporter in order. */
+export const combineReporters = (...reporters: ProgressEventReporter[]): ProgressEventReporter => ({
+    runStart: (i) => reporters.forEach((r) => r.runStart(i)),
+    stageStart: (s, n, t) => reporters.forEach((r) => r.stageStart(s, n, t)),
+    tick: (s, d, t) => reporters.forEach((r) => r.tick(s, d, t)),
+    poll: (s, e, st) => reporters.forEach((r) => r.poll(s, e, st)),
+    stageEnd: (s, n, d, det) => reporters.forEach((r) => r.stageEnd(s, n, d, det)),
+    runComplete: (i) => reporters.forEach((r) => r.runComplete(i)),
+    runError: (e) => reporters.forEach((r) => r.runError(e)),
+  });
 
 /** No-op reporter — the default when `--progress-ndjson` is absent. */
 export const createNullReporter = (): ProgressEventReporter => ({

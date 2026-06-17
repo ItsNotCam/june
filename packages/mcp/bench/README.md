@@ -93,6 +93,7 @@ june-eval validate-judge emit   [--gold <path>] [--out <tasks.json>]
 june-eval validate-judge score  <verdicts.json> [--min-kappa <0..1>] [--gold <path>]
 june-eval validate-judge status [--judge-model <m>]
 june-eval health
+june-eval dashboard [--port <n>] [--host <h>] [--runs <dir>] [--golden <file>]
 ```
 
 ### Frozen fixtures (immutable, hash-locked test sets)
@@ -167,6 +168,10 @@ read events off stdout cleanly. This is what the Next `/test` web UI consumes
 ```bash
 june-eval run <fixture> --quick --cache --yes --progress-ndjson 1>events.ndjson 2>logs.txt
 ```
+
+Independently of the flag, **every** run also persists the same events to
+`<run_dir>/progress.ndjson`. The dashboard (below) tails that file to render live
+stage progress without having to launch the run itself.
 
 ### Per-run config overrides
 
@@ -245,6 +250,37 @@ Two commands produce a `noise-floor.json` per fixture:
 `--accept-floor <0..1>` is the only way to pin without a measured file (logged as UNMEASURED).
 The live N-run/N-judge execution needs the local stack (Qdrant + Ollama gemma + the
 orchestrator's agents); the commands are the pure-aggregation half. See `JUDGE-RUNNER.md`.
+
+### Dashboard (`june-eval dashboard`)
+
+A local web dashboard for reviewing runs over time and watching a run live — so as
+the future RSI loop iterates, you can see what's improving. Plain HTML/CSS/JS on a
+zero-dependency `Bun.serve` backend (no Next.js, no build step). It is **read-only**:
+it reads `state/runs/`, `golden.json`, and per-run `progress.ndjson`; it never
+launches or mutates runs.
+
+```bash
+june-eval dashboard            # http://localhost:4317
+june-eval dashboard --port 8080 --runs ./state/runs --golden ./golden.json
+```
+
+What it shows:
+
+- **Trend** of `reader_correct_pct` / `recall@5` / `MRR` across runs, plus a
+  **per-tier** view with golden baselines drawn as dashed lines.
+- **Live in-flight panel** — stage-by-stage progress (stages 4–9) of a running
+  eval, streamed over SSE (tails `progress.ndjson`; falls back to artifact-presence
+  inference for holdout runs, which have no progress reporter).
+- **Runs table** + per-run drill-down (per-tier point ± 95% CI, integrity, manifest,
+  `summary.md`); holdout runs render a retrieval-led panel.
+- **Golden gate** — pinned baseline per fixture and a pass/fail of the latest control
+  run, plus a synthetic↔holdout divergence flag.
+
+Guardrails it enforces (from the RSI-readiness contract): control & iterate are never
+plotted on the same line (mode filter, control by default), metrics are grouped by
+`fixture_hash`, and a cross-judge mismatch is flagged. The data layer
+(`src/dashboard/reader.ts`) normalizes both the on-disk **v1** golden (flat
+`per_tier_correct`) and the newer **v2** schema.
 
 ### Exit codes
 

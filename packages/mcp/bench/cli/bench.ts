@@ -19,6 +19,7 @@ import {
 } from "./holdout";
 import { runValidateJudge } from "./validate-judge";
 import { runHealth } from "./health";
+import { runDashboard } from "./dashboard";
 import { logger } from "@/lib/logger";
 import {
   BudgetExceededError,
@@ -71,6 +72,7 @@ COMMANDS
   score-holdout    finalize an awaiting-verdicts holdout from external verdicts
   validate-judge  calibrate the LLM judge vs a human gold set (Cohen's κ gate)
   health      provider + june + qdrant reachability probe
+  dashboard   serve the local web dashboard (trends + live run progress)
 
 See \`june-eval <command> --help\` for command-specific flags.
 `;
@@ -125,6 +127,8 @@ const dispatch = async (argv: readonly string[]): Promise<void> => {
       return runValidateJudge(rest);
     case "health":
       return runHealth(rest);
+    case "dashboard":
+      return runDashboard(rest);
     default:
       throw new UsageError(`Unknown subcommand: ${sub}`);
   }

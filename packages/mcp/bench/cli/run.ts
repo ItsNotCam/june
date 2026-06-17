@@ -36,6 +36,8 @@ import { newRunId } from "@/lib/ids";
 import {
   createNdjsonReporter,
   createNullReporter,
+  createFileReporter,
+  combineReporters,
   type StageDescriptor,
 } from "@/lib/progress-events";
 import {
@@ -100,7 +102,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const json_log = flagBool(flags, "log-json");
   // NDJSON progress events on stdout — consumed by the `/test` web UI server.
   const progress_ndjson = flagBool(flags, "progress-ndjson");
-  const events = progress_ndjson ? createNdjsonReporter() : createNullReporter();
+  // Base reporter targets stdout (when --progress-ndjson) or nothing; a file
+  // reporter writing <run_dir>/progress.ndjson is teed on once run_dir exists
+  // (below), so the dashboard can tail live progress for EVERY run.
+  let events = progress_ndjson ? createNdjsonReporter() : createNullReporter();
   // Per-run config overrides surfaced by the `/test` UI (otherwise config.yaml wins).
   const ingest_config = flagString(flags, "ingest-config");
   const reader_concurrency_override = parseReaderConcurrency(
@@ -261,6 +266,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const run_id = newRunId(facts.fixture_id);
   const run_dir = join(outRoot, run_id);
   await mkdir(run_dir, { recursive: true });
+
+  // Persist progress to the run dir so the dashboard can tail it live (the file
+  // sink is additive — stdout/null behavior is unchanged).
+  events = combineReporters(events, createFileReporter(join(run_dir, "progress.ndjson")));
 
   events.runStart({ fixture_id: facts.fixture_id, run_id, stages: RUN_STAGES });
 
