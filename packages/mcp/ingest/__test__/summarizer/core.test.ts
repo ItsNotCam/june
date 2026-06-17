@@ -8,7 +8,7 @@ import {
 import { asChunkId } from "@/types/ids";
 import type { SummarizerInput } from "@/lib/summarizer/types";
 
-const { extractJsonObject, extractSummary, validSummary, fallbackSummary } =
+const { extractJsonObject, extractSummary, checkSummary, fallbackSummary } =
   __test__;
 
 const CHUNK_ID = asChunkId("a".repeat(64));
@@ -62,16 +62,25 @@ describe("extractSummary", () => {
   });
 });
 
-describe("validSummary", () => {
-  test("rejects too-short and accepts in-bounds", () => {
-    expect(validSummary("short")).toBe(false);
-    expect(validSummary("x".repeat(80))).toBe(true);
+describe("checkSummary", () => {
+  test("rejects too-short and accepts in-bounds, with reasons", () => {
+    expect(checkSummary("short")).toEqual({ ok: false, reason: "too_short" });
+    expect(checkSummary("x".repeat(80))).toEqual({ ok: true });
   });
 
-  test("rejects JSON-looking, fenced, and heading-heavy output", () => {
-    expect(validSummary(`{${"x".repeat(80)}`)).toBe(false);
-    expect(validSummary("```" + "x".repeat(80))).toBe(false);
-    expect(validSummary("# Heading\n" + "x".repeat(80))).toBe(false);
+  test("rejects JSON-looking, fenced, and heading-led output, with reasons", () => {
+    expect(checkSummary(`{${"x".repeat(80)}`)).toEqual({
+      ok: false,
+      reason: "leading_json",
+    });
+    expect(checkSummary("```" + "x".repeat(80))).toEqual({
+      ok: false,
+      reason: "code_fence",
+    });
+    expect(checkSummary("# Heading\n" + "x".repeat(80))).toEqual({
+      ok: false,
+      reason: "heading_line",
+    });
   });
 });
 

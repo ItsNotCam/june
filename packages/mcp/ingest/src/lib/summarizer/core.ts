@@ -125,15 +125,30 @@ const extractSummary = (raw: string): string | null => {
   return parsed.data.summary.trim();
 };
 
-const validSummary = (s: string): boolean => {
+/** Why a model summary was rejected — surfaced in the `summarizer_rejected` log. */
+type SummaryRejection =
+  | "too_short"
+  | "too_long"
+  | "leading_json"
+  | "code_fence"
+  | "heading_line";
+
+type SummaryCheck = { ok: true } | { ok: false; reason: SummaryRejection };
+
+/**
+ * Validates a model summary against the [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds) bounds, returning the
+ * failing reason so the caller can log *why* a chunk fell back (the failure was
+ * historically silent). Acceptance behaviour is unchanged from the prior boolean.
+ */
+const checkSummary = (s: string): SummaryCheck => {
   const trimmed = s.trim();
-  if (trimmed.length < MIN_SUMMARY_CHARS) return false;
-  if (trimmed.length > MAX_SUMMARY_CHARS) return false;
+  if (trimmed.length < MIN_SUMMARY_CHARS) return { ok: false, reason: "too_short" };
+  if (trimmed.length > MAX_SUMMARY_CHARS) return { ok: false, reason: "too_long" };
   // Reject JSON-looking, code-fenced, or heading-heavy outputs ([§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds)).
-  if (/^[[{]/.test(trimmed)) return false;
-  if (/^```/.test(trimmed)) return false;
-  if (/^#+\s/m.test(trimmed)) return false;
-  return true;
+  if (/^[[{]/.test(trimmed)) return { ok: false, reason: "leading_json" };
+  if (/^```/.test(trimmed)) return { ok: false, reason: "code_fence" };
+  if (/^#+\s/m.test(trimmed)) return { ok: false, reason: "heading_line" };
+  return { ok: true };
 };
 
 /**
@@ -177,12 +192,32 @@ export const createSummarizerFromGenerate = (
     try {
       const raw = await generate(prompt, true);
       const summary = extractSummary(raw);
-      if (summary !== null && validSummary(summary)) {
-        return {
-          chunk_id: input.chunk_id,
-          contextual_summary: summary,
-          used_long_doc_path: input.outline !== undefined,
-        };
+      if (summary === null) {
+        // Generation succeeded but the output isn't a `{"summary": string}`
+        // object — historically a SILENT fallback. Log it with a raw snippet.
+        logger.warn("summarizer_rejected", {
+          event: "summarizer_rejected",
+          chunk_id: input.chunk_id as string,
+          reason: "extract_null",
+          raw_preview: raw.trim().slice(0, 200),
+        });
+      } else {
+        const check = checkSummary(summary);
+        if (check.ok) {
+          return {
+            chunk_id: input.chunk_id,
+            contextual_summary: summary,
+            used_long_doc_path: input.outline !== undefined,
+          };
+        }
+        // Parsed a summary but it failed §19.5 validation — also historically
+        // silent. Snippet is the rejected summary itself (the useful artifact).
+        logger.warn("summarizer_rejected", {
+          event: "summarizer_rejected",
+          chunk_id: input.chunk_id as string,
+          reason: check.reason,
+          raw_preview: summary.slice(0, 200),
+        });
       }
     } catch (err) {
       logger.warn("summarizer_failure", {
@@ -228,7 +263,7 @@ export const createSummarizerFromGenerate = (
 export const __test__ = {
   extractJsonObject,
   extractSummary,
-  validSummary,
+  checkSummary,
   fallbackSummary,
   MIN_SUMMARY_CHARS,
   MAX_SUMMARY_CHARS,
