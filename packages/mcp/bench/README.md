@@ -226,6 +226,13 @@ Standalone, read-only diagnostics that sit beside the pipeline — run with `bun
 
 - `judge-screen.ts` — **judge-agreement screen.** Re-judges a completed run's reader answers with a *second* model using the exact production judge prompt + parser, then compares verdict-for-verdict against the Sonnet verdicts already on disk (overall agreement, Cohen's κ, confusion matrix, the T4 CORRECT/PARTIAL boundary, disagreement dump). Makes zero Anthropic calls (reuses on-disk verdicts), opens SQLite read-only, writes only to `/tmp`. Run/fixture/model are consts at the top of the file. Use it to vet a cheaper judge before trusting it.
 
+### In-session query authors (`scripts/author-*.ts`)
+
+One-off, **fixture-mutating** scripts (not diagnostics). When the Anthropic Sonnet `query_author` is unavailable, deterministic question tiers can be authored against an existing corpus/ingest without it — the facts already exist, only the question *text* is missing. Each script carries the authoritative `(tier, fact_ids, text)` records, validates chain integrity + anti-leakage + dedup, and **appends** to a fixture's gitignored `queries.json`. Evaluate with `--skip-ingest` (no re-ingest, no Anthropic). The committed script is the record of the questions, since the fixture itself is gitignored.
+
+- `author-t7-queries.ts <fixture_dir>` — the original 15 four-hop (T7) questions.
+- `author-double-queries.ts <fixture_dir>` — doubles every tier of the deep-hop fixture (+80: T1–T7 → 10/10/10/30/10/60/30 = 160 questions). gemma-certified; golden pinned on the 160-question fixture. The questions are Opus-authored (a mild authorship difference vs the Sonnet-authored originals); a full Sonnet regenerate supersedes them once credits return.
+
 ### State directory
 
 All bench-local artifacts live under `packages/mcp/bench/state/`:
