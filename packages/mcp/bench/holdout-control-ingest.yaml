@@ -12,13 +12,13 @@
 # committed default — small summarizers can keep concurrency high.
 summarizer:
   concurrency: 1
-  # Summarizer = qwen3:14b (NOT the gemma4:26b reader). gemma4:26b's ~17GB weights
-  # don't fit this host's ~16.6GB usable VRAM, so it ran ~25% on CPU: ~9-20s/chunk
-  # with frequent timeouts. qwen3:14b (9-11GB) fits 100% on GPU -> ~1.6s/chunk, zero
-  # stalls, and sits alongside the classifier without eviction. Measured ~6x faster
-  # with identical-quality situating summaries. The READER stays gemma4:26b (the
-  # certification bar) — only the summarizer (a pipeline component) is swapped.
-  ollama_model: qwen3:14b
+  # Summarizer = gemma4:26b — the REFERENCE model. A baseline must use the strongest
+  # model for the summaries, not a lighter stand-in. gemma4:26b fits 100% on the 24GB
+  # RTX 3090 *when the GPU is free* (validated ~2s/chunk, 0 rejects on real docs); the
+  # earlier "doesn't fit / slow" was Stable Diffusion squatting ~7GB — close other GPU
+  # tenants before a cert run. (qwen3:14b remains a proven fast fallback for VRAM-tight
+  # hosts — set ollama_model: qwen3:14b — but it is NOT the reference baseline.)
+  ollama_model: gemma4:26b
   # No fallback on a certification ingest. If a chunk can't get a real model summary
   # after all retries, HARD-FAIL the run instead of shipping a heading-path template
   # — a non-model summary would silently contaminate the holdout eval ("muddy the
@@ -47,3 +47,7 @@ summarizer:
 ollama:
   summarizer_timeout_ms: 60000
   summarizer_retry_max_attempts: 5
+  # gemma4:26b is natively a 262K-context model; give it a comfortable window. It fits
+  # 100% on the 24GB 3090 at 32K when the GPU is free, and the schema-default 8192 is an
+  # unnecessary squeeze for the reference summarizer. (8192 is fine for smaller models.)
+  summarizer_num_ctx: 32768
