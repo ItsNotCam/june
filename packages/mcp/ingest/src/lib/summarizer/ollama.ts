@@ -44,6 +44,19 @@ const SUMMARIZER_TEMPERATURE = 0.5;
 const SUMMARIZER_REPEAT_PENALTY = 1.3;
 const SUMMARIZER_REPEAT_LAST_N = 256;
 
+/**
+ * Keep gemma resident between summarizer calls. Without this, Ollama uses its
+ * 5-min default keep-alive and evicts the 26B model during any slow stretch,
+ * forcing a ~18s cold reload whose `load_duration` blows past the per-call
+ * timeout → `OllamaTimeoutError` → degraded template fallback. Pinning it long
+ * prevents that **self-inflicted** reload. (It does NOT stop an *external*
+ * tenant on a shared host from evicting gemma — the post-timeout cold-load
+ * budget in `retryLoop`/`timeoutFor` handles that case, and a dedicated host
+ * eliminates it.) The deliberate two-phase `unloadOllamaSummarizer` still
+ * last-writes `keep_alive: 0` after summarization to free VRAM for the embedder.
+ */
+const SUMMARIZER_KEEP_ALIVE = "30m";
+
 const postWithTimeout = async (
   url: string,
   body: unknown,
@@ -82,6 +95,8 @@ const generate = async (
       model,
       prompt,
       stream: false,
+      // Pin the model resident across calls — see SUMMARIZER_KEEP_ALIVE.
+      keep_alive: SUMMARIZER_KEEP_ALIVE,
       // Reproducible (seeded) + anti-degeneration decoding — see
       // SUMMARIZER_SEED / SUMMARIZER_TEMPERATURE / SUMMARIZER_REPEAT_PENALTY.
       // `attempt` offsets the seed so a re-roll after an unparseable output
@@ -138,11 +153,17 @@ export const createOllamaSummarizer = (): Summarizer => {
   const env = getEnv();
   // Config wins when set; OLLAMA_SUMMARIZER_MODEL env is the fallback.
   const model = getConfig().summarizer.ollama_model ?? env.OLLAMA_SUMMARIZER_MODEL;
-  const state = { firstCallDone: false };
+  // `reloadLikely` is set after a timeout so the *next* attempt gets the generous
+  // cold-load budget (a timeout most often means a mid-run eviction reload is in
+  // progress). It is one-shot — see the retry loop below.
+  const state = { firstCallDone: false, reloadLikely: false };
 
   const timeoutFor = (): number => {
     const cfg = getConfig();
-    return state.firstCallDone
+    // The first call (cold load) and the one retry right after a timeout (likely
+    // a cold reload) get the generous budget; steady-state warm calls get the
+    // tight one.
+    return state.firstCallDone && !state.reloadLikely
       ? cfg.ollama.summarizer_timeout_ms
       : cfg.ollama.first_call_timeout_ms;
   };
@@ -159,9 +180,17 @@ export const createOllamaSummarizer = (): Summarizer => {
       try {
         const res = await attempt();
         state.firstCallDone = true;
+        state.reloadLikely = false;
         return res;
       } catch (err) {
         if (err instanceof OllamaModelNotFoundError) throw err;
+        // One-shot timeout escalation: a fresh timeout escalates the next
+        // attempt to the cold-load budget; if that escalated attempt *also*
+        // times out, the flag flips back off so the remaining retries use the
+        // tight budget and fail fast to the template rather than burning
+        // multiple 300s waits on a genuinely dead host.
+        state.reloadLikely =
+          err instanceof OllamaTimeoutError && !state.reloadLikely;
         lastErr = err;
         logger.warn("summarizer_retry", {
           event: "summarizer_retry",

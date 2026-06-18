@@ -13,16 +13,22 @@
 summarizer:
   concurrency: 1
 
-# Host-stall resilience for the remote 24GB Ollama host. Empirically a serialized
-# gemma4:26b summarize is ~7-8s, but individual requests intermittently HANG; the hang
-# never resolves on its own — only a fresh retry clears it (retry then completes in ~8s).
-# So we detect fast and retry more, rather than waiting longer:
-#   - summarizer_timeout_ms 60000 -> 30000: abandon a hung request in ~30s (≈4x normal
-#     call) instead of 60s. (first_call_timeout_ms stays at the schema default 300000ms,
-#     which still absorbs the gemma cold-load on the very first call.)
-#   - summarizer_retry_max_attempts 3 -> 5: a transient cluster of hangs can't cascade to
-#     a degraded fallback summary — unacceptable on a certification/control ingest.
-# Not a committed june default; pure host tuning for this remote-host control run.
+# Host resilience for the remote 24GB Ollama host. A serialized warm gemma4:26b
+# summarize is ~3-8s. The "intermittent hangs" seen earlier were NOT wedged requests —
+# live diagnosis showed they are ~18s gemma **cold reloads**: on a shared host another
+# model evicts gemma from VRAM, and the next call pays load_duration ≈ 18s. A trivial
+# 22-token completion measured ~20s total, ~18s of it load; warm the same call is ~2.7s.
+#   - summarizer_timeout_ms: keep the schema default 60000 (NOT the earlier 30000). 60s
+#     comfortably absorbs an ~18s cold reload while still abandoning a truly dead request.
+#     The earlier 30s was set on the wrong "wedge" diagnosis and had no margin over a
+#     reload → it tripped → degraded template fallback. The summarizer also now pins
+#     keep_alive ("30m") and escalates a post-timeout retry to first_call_timeout_ms
+#     (300s) for the rare load-under-contention case — see summarizer/ollama.ts.
+#   - summarizer_retry_max_attempts 3 -> 5: a transient cluster of reloads/contention
+#     can't cascade to a degraded fallback summary — unacceptable on a certification run.
+# Best fix is operational: run the cert ingest against a **dedicated** gemma host (sole
+# VRAM tenant) so the cold-load happens once (covered by first_call_timeout_ms) and
+# residual timeouts go to ~0. Not a committed june default; host tuning for this run.
 ollama:
-  summarizer_timeout_ms: 30000
+  summarizer_timeout_ms: 60000
   summarizer_retry_max_attempts: 5

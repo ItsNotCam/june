@@ -305,6 +305,17 @@ of chunks on real docs, silently:
   **`summarizer_rejected`** event (reason + raw preview) and re-rolls with a **seed offset by the
   attempt index** so a deterministic degeneration gets a genuinely different decode. Only after all
   attempts fail does the template fallback ship — and that path is now logged, never silent.
+- **Host cold-loads don't ship a degraded summary.** A separate failure class is the host **timeout**
+  (`summarizer_failure`): on a shared GPU another model can evict `gemma4:26b` from VRAM, so a
+  mid-run call pays a ~18 s cold reload (`load_duration`) that can exceed the per-call timeout. Two
+  guards: the summarizer pins `keep_alive: "30m"` on every `/api/generate` so it doesn't
+  **self-evict** between calls, and a timeout on a warm call escalates the **next** retry to
+  `first_call_timeout_ms` (the cold-load budget) — one-shot, so a genuinely dead host still fails
+  fast to the template rather than burning repeated long waits. `summarizer_timeout_ms` is kept at
+  60 s (comfortably over an ~18 s load); the earlier 30 s gave no margin and tripped on every reload.
+  **Operationally, run a certification ingest against a dedicated gemma host** (sole VRAM tenant) so
+  the cold-load happens once and residual timeouts go to ~0 — no code can stop an external tenant
+  from evicting.
 - `src/lib/{env,config,logger,errors,error-types,offline-guard,lock,shutdown,progress,ids,encoding,tokenize,retry}.ts` — shared primitives.
 - `cli/*.ts` — thin argv wrappers around the public API in `src/index.ts`.
 

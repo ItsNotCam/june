@@ -63,6 +63,21 @@ describe("ollama summarizer determinism", () => {
     expect(body.format).toBe("json");
   });
 
+  test("pins the model resident with a top-level keep_alive", async () => {
+    const s = createOllamaSummarizer();
+    await s.summarizeChunk(input());
+
+    const body = captured!.body as {
+      keep_alive?: unknown;
+      options?: Record<string, unknown>;
+    };
+    // keep_alive must be a top-level sibling of model/prompt (NOT inside
+    // `options`) so Ollama keeps gemma loaded across calls and avoids the ~18s
+    // cold reload that otherwise trips the per-call timeout → template fallback.
+    expect(body.keep_alive).toBeDefined();
+    expect(body.options?.["keep_alive"]).toBeUndefined();
+  });
+
   test("sends an anti-degeneration repetition penalty (breaks greedy loops)", async () => {
     const s = createOllamaSummarizer();
     await s.summarizeChunk(input());
