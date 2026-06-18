@@ -128,6 +128,13 @@ export const ConfigSchema = z
         retry: RetrySchema.default({ base_ms: 1000, max_attempts: 3 }),
         embed_retry_max_attempts: z.number().int().positive().default(5),
         summarizer_retry_max_attempts: z.number().int().positive().default(3),
+        // Context window for summarizer /api/generate calls. The model default
+        // (often 32K) sizes a large KV-cache that, on a VRAM-tight host, spills
+        // the model to CPU (slow, GPU idle). A contextual summary only needs the
+        // section/outline + chunk + a short output, so 8192 is ample and frees
+        // VRAM. (Note: when the model's *weights* already exceed VRAM, this only
+        // helps modestly — a smaller summarizer model is the real lever.)
+        summarizer_num_ctx: z.number().int().positive().default(8192),
       })
       .prefault({}),
     qdrant: z

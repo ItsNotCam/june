@@ -107,6 +107,9 @@ const generate = async (
         seed: SUMMARIZER_SEED + attempt,
         repeat_penalty: SUMMARIZER_REPEAT_PENALTY,
         repeat_last_n: SUMMARIZER_REPEAT_LAST_N,
+        // Cap the context window so the KV-cache doesn't bloat VRAM and spill the
+        // model to CPU. A summary needs far less than the model's 32K default.
+        num_ctx: getConfig().ollama.summarizer_num_ctx,
       },
       ...(jsonMode ? { format: "json" } : {}),
     },

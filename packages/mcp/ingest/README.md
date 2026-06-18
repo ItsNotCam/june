@@ -316,6 +316,12 @@ of chunks on real docs, silently:
   **Operationally, run a certification ingest against a dedicated gemma host** (sole VRAM tenant) so
   the cold-load happens once and residual timeouts go to ~0 — no code can stop an external tenant
   from evicting.
+- **Bounded context (`ollama.summarizer_num_ctx`, default 8192).** Summarizer `/api/generate` calls
+  cap `num_ctx` instead of inheriting the model's large default (often 32K). A 32K KV-cache needlessly
+  inflates VRAM and, on a VRAM-tight host, spills the model to CPU (slow generation, idle GPU). A
+  contextual summary only needs the section/outline + chunk + a short output, so 8192 is ample. Note:
+  this only helps when the KV-cache is what overflows — if the model's *weights* already exceed VRAM,
+  a smaller summarizer model is the real lever.
 - **No fallback for cert/baseline runs (`summarizer.on_failure`).** The template fallback keeps a
   *production* ingest resilient (one bad chunk never blocks it), but on a **certification / baseline**
   run a heading-path template would silently contaminate the eval — some chunks would carry a
