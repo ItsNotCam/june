@@ -1,6 +1,8 @@
 // author: Claude
 import { z } from "zod";
 import { logger } from "#internal/lib/logger";
+import { getConfig } from "#internal/lib/config";
+import { SummarizerUnsummarizableError } from "#internal/lib/errors";
 import { DocumentOutlineSchema, type DocumentOutline } from "#internal/schemas/classifier";
 import {
   buildFitsPrompt,
@@ -203,6 +205,7 @@ export const createSummarizerFromGenerate = (
             document_body: input.containing_text,
             chunk_content: input.chunk_content,
           });
+    let lastCause = "unknown";
     for (let attempt = 0; attempt < SUMMARY_VALIDATION_ATTEMPTS; attempt++) {
       try {
         const raw = await generate(prompt, true, attempt);
@@ -218,6 +221,7 @@ export const createSummarizerFromGenerate = (
             attempt,
             raw_preview: raw.trim().slice(0, 200),
           });
+          lastCause = "extract_null";
           continue;
         }
         const check = checkSummary(summary);
@@ -237,6 +241,7 @@ export const createSummarizerFromGenerate = (
           attempt,
           raw_preview: summary.slice(0, 200),
         });
+        lastCause = check.reason;
       } catch (err) {
         // Transport failure — the backend already retried timeouts internally,
         // so a re-roll won't help. Log and fall straight through to the template.
@@ -246,8 +251,19 @@ export const createSummarizerFromGenerate = (
           error_type: err instanceof Error ? err.name : "unknown",
           attempt,
         });
+        lastCause = err instanceof Error ? err.name : "unknown";
         break;
       }
+    }
+    // No valid summary after all attempts. "error" mode forbids the template
+    // fallback (cert/baseline: a non-model summary would silently muddy the
+    // eval) and hard-fails the ingest; "template" keeps production resilient.
+    if (getConfig().summarizer.on_failure === "error") {
+      throw new SummarizerUnsummarizableError(
+        input.chunk_id as string,
+        SUMMARY_VALIDATION_ATTEMPTS,
+        lastCause,
+      );
     }
     return {
       chunk_id: input.chunk_id,

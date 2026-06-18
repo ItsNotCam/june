@@ -75,6 +75,15 @@ export const runStage6 = async (input: Stage6Input): Promise<Stage6Result> => {
         document_body: input.body,
       });
     } catch (err) {
+      if (cfg.summarizer.on_failure === "error") {
+        // No fallback — a degraded title-only outline would muddy a cert corpus.
+        logger.error("summarizer_hard_failure", {
+          event: "summarizer_hard_failure",
+          doc_id: input.document.doc_id as string,
+          error_message: (err instanceof Error ? err.message : String(err)).slice(0, 300),
+        });
+        throw err;
+      }
       const message = err instanceof Error ? err.message : String(err);
       logger.warn("summarizer_outline_failed", {
         event: "summarizer_outline_failed",
@@ -131,6 +140,17 @@ export const runStage6 = async (input: Stage6Input): Promise<Stage6Result> => {
         logger.debug("chunk_summarized", { chunk_id: c.chunk_id as string });
         return { chunk: c, summary: result.contextual_summary, fallback_error: undefined };
       } catch (err) {
+        // "error" mode: no fallback. A chunk that can't be summarized aborts the
+        // whole ingest (cert/baseline cleanliness) — mapConcurrent uses
+        // Promise.all, so this rejection propagates and stops Stage 6.
+        if (cfg.summarizer.on_failure === "error") {
+          logger.error("summarizer_hard_failure", {
+            event: "summarizer_hard_failure",
+            chunk_id: c.chunk_id as string,
+            error_message: (err instanceof Error ? err.message : String(err)).slice(0, 300),
+          });
+          throw err;
+        }
         // [§19.5](../../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#195-output-validation-and-bounds): summarizer failure → deterministic heading-path blurb.
         // Advance the chunk so the pipeline isn't blocked by a flaky impl.
         const message = err instanceof Error ? err.message : String(err);

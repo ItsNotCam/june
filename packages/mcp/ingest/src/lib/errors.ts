@@ -77,6 +77,25 @@ export class OllamaModelNotFoundError extends Error {
 }
 
 /**
+ * A chunk could not be summarized after all retries, and `summarizer.on_failure`
+ * is `"error"` — so the template fallback is forbidden and the ingest aborts.
+ * Used for certification / baseline runs where a non-model summary would silently
+ * contaminate the eval corpus.
+ */
+export class SummarizerUnsummarizableError extends Error {
+  constructor(
+    readonly chunk_id: string,
+    readonly attempts: number,
+    readonly last_reason: string,
+  ) {
+    super(
+      `summarizer could not produce a valid summary for chunk ${chunk_id} after ${attempts} attempt(s) (last: ${last_reason}); summarizer.on_failure="error" forbids the template fallback`,
+    );
+    this.name = "SummarizerUnsummarizableError";
+  }
+}
+
+/**
  * Classifier returned output that could not be parsed or validated against
  * `ClassifierOutputSchema`. Triggers the fallback path ([§18.6](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#186-failure-handling-and-fallbacks)).
  */

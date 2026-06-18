@@ -111,6 +111,13 @@ export const ConfigSchema = z
         anthropic_model: z.string().min(1).default("claude-haiku-4-5"),
         // Output cap for hosted backends — summaries are short.
         api_max_tokens: z.number().int().positive().default(1024),
+        // What to do when a chunk can't be summarized after all retries.
+        // "template" ships the deterministic heading-path blurb so one bad chunk
+        // never blocks a production ingest. "error" hard-fails the whole ingest
+        // instead — a certification / baseline corpus must never be contaminated
+        // by a non-model summary (a template would silently muddy the eval). The
+        // default keeps production resilient; cert configs opt into "error".
+        on_failure: z.enum(["template", "error"]).default("template"),
       })
       .prefault({}),
     ollama: z

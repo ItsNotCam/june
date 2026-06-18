@@ -12,6 +12,12 @@
 # committed default — small summarizers can keep concurrency high.
 summarizer:
   concurrency: 1
+  # No fallback on a certification ingest. If a chunk can't get a real gemma4:26b
+  # summary after all retries, HARD-FAIL the run instead of shipping a heading-path
+  # template — a non-model summary would silently contaminate the holdout eval
+  # ("muddy the waters"). The run then either certifies a 100%-real-summary corpus
+  # or aborts loudly (fix the host, re-run). Production default stays "template".
+  on_failure: error
 
 # Host resilience for the remote 24GB Ollama host. A serialized warm gemma4:26b
 # summarize is ~3-8s. The "intermittent hangs" seen earlier were NOT wedged requests —

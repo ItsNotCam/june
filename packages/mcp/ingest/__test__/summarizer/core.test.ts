@@ -1,15 +1,39 @@
 // author: Claude
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   __test__,
   createSummarizerFromGenerate,
   type GenerateFn,
 } from "@/lib/summarizer/core";
+import { loadConfig } from "@/lib/config";
 import { asChunkId } from "@/types/ids";
 import type { SummarizerInput } from "@/lib/summarizer/types";
 
 const { extractJsonObject, extractSummary, checkSummary, fallbackSummary } =
   __test__;
+
+// summarizeChunk now reads `summarizer.on_failure` at the fallback point, so the
+// config must be loaded. Default to shipped defaults (on_failure="template") and
+// reset before every test; the error-mode test loads its own config in-test.
+let errorConfigPath: string;
+let tmpDir: string;
+
+beforeAll(async () => {
+  tmpDir = await mkdtemp(join(tmpdir(), "june-core-"));
+  errorConfigPath = join(tmpDir, "error.yaml");
+  await writeFile(errorConfigPath, "summarizer:\n  on_failure: error\n");
+});
+
+beforeEach(async () => {
+  await loadConfig(undefined); // shipped defaults: on_failure="template"
+});
+
+afterAll(async () => {
+  await rm(tmpDir, { recursive: true, force: true });
+});
 
 const CHUNK_ID = asChunkId("a".repeat(64));
 
@@ -133,5 +157,30 @@ describe("createSummarizerFromGenerate.summarizeChunk", () => {
     const out = await s.summarizeChunk(baseInput());
     expect(out.contextual_summary).toBe(good);
     expect(calls).toBe(2);
+  });
+
+  test("on_failure=error throws instead of templating when generate keeps throwing", async () => {
+    await loadConfig(errorConfigPath);
+    const s = createSummarizerFromGenerate({
+      name: "fake",
+      generate: async () => {
+        throw new Error("boom");
+      },
+    });
+    // No fallback: the ingest must abort, not ship a heading-path template.
+    await expect(s.summarizeChunk(baseInput())).rejects.toThrow(
+      /on_failure="error"/,
+    );
+  });
+
+  test("on_failure=error throws when output is persistently invalid", async () => {
+    await loadConfig(errorConfigPath);
+    const s = createSummarizerFromGenerate({
+      name: "fake",
+      generate: constGenerate('{"summary":"too short"}'),
+    });
+    await expect(s.summarizeChunk(baseInput())).rejects.toThrow(
+      /could not produce a valid summary/,
+    );
   });
 });

@@ -316,6 +316,15 @@ of chunks on real docs, silently:
   **Operationally, run a certification ingest against a dedicated gemma host** (sole VRAM tenant) so
   the cold-load happens once and residual timeouts go to ~0 — no code can stop an external tenant
   from evicting.
+- **No fallback for cert/baseline runs (`summarizer.on_failure`).** The template fallback keeps a
+  *production* ingest resilient (one bad chunk never blocks it), but on a **certification / baseline**
+  run a heading-path template would silently contaminate the eval — some chunks would carry a
+  non-model summary. Set `summarizer.on_failure: "error"` (default `"template"`) and the pipeline
+  **hard-fails** the moment a chunk can't get a real summary after all retries: `summarizeChunk`
+  raises `SummarizerUnsummarizableError`, Stage 6 re-throws it (the outline path too), and the
+  `mapConcurrent`/`Promise.all` fan-out aborts the ingest with a `summarizer_hard_failure` log. The
+  run then either certifies a 100%-real-summary corpus or stops loudly (fix the host, re-run).
+  `holdout-control-ingest.yaml` ships with `on_failure: error`.
 - `src/lib/{env,config,logger,errors,error-types,offline-guard,lock,shutdown,progress,ids,encoding,tokenize,retry}.ts` — shared primitives.
 - `cli/*.ts` — thin argv wrappers around the public API in `src/index.ts`.
 
