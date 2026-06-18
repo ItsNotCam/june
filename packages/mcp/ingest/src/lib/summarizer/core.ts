@@ -39,17 +39,33 @@ const ChunkSummaryJsonSchema = z.object({
 });
 
 /**
+ * Ollama structured-output schemas (grammar-constrained decode). Passing the
+ * actual schema — not just `format:"json"` — *forces* a well-formed
+ * `{"summary": …}` / outline shape, so a thinking model can't collapse to an
+ * empty `{}` and a degenerate decode can't emit unparseable text. Derived from
+ * the zod schemas so the two can't drift; `$schema` is stripped because Ollama
+ * wants a bare schema object.
+ */
+const toOllamaSchema = (s: z.ZodType): Record<string, unknown> => {
+  const js = z.toJSONSchema(s) as Record<string, unknown>;
+  delete js["$schema"];
+  return js;
+};
+const CHUNK_SUMMARY_SCHEMA = toOllamaSchema(ChunkSummaryJsonSchema);
+const DOC_OUTLINE_SCHEMA = toOllamaSchema(DocumentOutlineSchema);
+
+/**
  * Generates raw model text for a built prompt. Implementations own their
- * transport, retry, and timeout; `jsonMode` lets a backend opt into a native
- * JSON-only decode mode (Ollama) — backends without one ignore it and rely on
- * the balanced-brace extraction below. `attempt` (0-based) lets the validation
- * loop request a *different* sampling on a re-roll — Ollama offsets its seed by
- * it so a degenerate greedy loop on attempt 0 doesn't recur identically; other
- * backends may ignore it.
+ * transport, retry, and timeout. `jsonSchema` (when set) is a JSON Schema the
+ * backend should *force* the output to match (Ollama structured outputs) —
+ * backends without grammar-constrained decode may ignore it and rely on the
+ * balanced-brace extraction below. `attempt` (0-based) lets the validation loop
+ * request a *different* sampling on a re-roll — Ollama offsets its seed by it so
+ * a degenerate decode on attempt 0 doesn't recur identically.
  */
 export type GenerateFn = (
   prompt: string,
-  jsonMode: boolean,
+  jsonSchema?: Record<string, unknown>,
   attempt?: number,
 ) => Promise<string>;
 
@@ -208,7 +224,7 @@ export const createSummarizerFromGenerate = (
     let lastCause = "unknown";
     for (let attempt = 0; attempt < SUMMARY_VALIDATION_ATTEMPTS; attempt++) {
       try {
-        const raw = await generate(prompt, true, attempt);
+        const raw = await generate(prompt, CHUNK_SUMMARY_SCHEMA, attempt);
         const summary = extractSummary(raw);
         if (summary === null) {
           // Generation succeeded but the output isn't a `{"summary": string}`
@@ -277,7 +293,7 @@ export const createSummarizerFromGenerate = (
     const prompt = await buildLongDocOutlinePrompt({
       document_body_truncated: truncated,
     });
-    const raw = await generate(prompt, true);
+    const raw = await generate(prompt, DOC_OUTLINE_SCHEMA);
     const json = extractJsonObject(raw);
     const parsed = DocumentOutlineSchema.safeParse(json);
     if (parsed.success) return parsed.data;

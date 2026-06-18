@@ -51,20 +51,26 @@ describe("ollama summarizer determinism", () => {
     expect(captured).not.toBeNull();
     const body = captured!.body as {
       options?: { temperature?: number; seed?: number; num_ctx?: number };
-      format?: string;
+      format?: { type?: string; properties?: { summary?: unknown }; required?: string[] };
+      think?: boolean;
     };
     expect(captured!.url).toContain("/api/generate");
     // num_ctx is capped (not the model's 32K default) so the KV-cache doesn't
     // spill the model to CPU on a VRAM-tight host.
     expect(typeof body.options?.num_ctx).toBe("number");
     expect(body.options?.num_ctx).toBeLessThanOrEqual(32768);
+    // Reasoning disabled (thinking models collapse to `{}` under forced JSON).
+    expect(body.think).toBe(false);
     // Reproducibility comes from the fixed seed; a low (<1) non-zero temperature
     // escapes greedy repetition loops without sacrificing it.
     expect(typeof body.options?.seed).toBe("number");
     expect(body.options?.temperature).toBeGreaterThan(0);
     expect(body.options?.temperature).toBeLessThan(1);
-    // JSON-mode decode is still requested.
-    expect(body.format).toBe("json");
+    // FORCED JSON: `format` is the actual schema (grammar-constrained decode),
+    // not the loose "json" mode — so the output can't be an empty `{}`.
+    expect(body.format?.type).toBe("object");
+    expect(body.format?.properties?.summary).toBeDefined();
+    expect(body.format?.required).toContain("summary");
   });
 
   test("pins the model resident with a top-level keep_alive", async () => {

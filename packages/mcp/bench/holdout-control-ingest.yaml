@@ -12,18 +12,27 @@
 # committed default — small summarizers can keep concurrency high.
 summarizer:
   concurrency: 1
-  # No fallback on a certification ingest. If a chunk can't get a real gemma4:26b
-  # summary after all retries, HARD-FAIL the run instead of shipping a heading-path
-  # template — a non-model summary would silently contaminate the holdout eval
-  # ("muddy the waters"). The run then either certifies a 100%-real-summary corpus
-  # or aborts loudly (fix the host, re-run). Production default stays "template".
+  # Summarizer = qwen3:14b (NOT the gemma4:26b reader). gemma4:26b's ~17GB weights
+  # don't fit this host's ~16.6GB usable VRAM, so it ran ~25% on CPU: ~9-20s/chunk
+  # with frequent timeouts. qwen3:14b (9-11GB) fits 100% on GPU -> ~1.6s/chunk, zero
+  # stalls, and sits alongside the classifier without eviction. Measured ~6x faster
+  # with identical-quality situating summaries. The READER stays gemma4:26b (the
+  # certification bar) — only the summarizer (a pipeline component) is swapped.
+  ollama_model: qwen3:14b
+  # No fallback on a certification ingest. If a chunk can't get a real model summary
+  # after all retries, HARD-FAIL the run instead of shipping a heading-path template
+  # — a non-model summary would silently contaminate the holdout eval ("muddy the
+  # waters"). Output is also schema-FORCED (Ollama structured outputs) + think:false,
+  # so a thinking model can't emit an empty {} and a bad decode can't be unparseable.
+  # The run then either certifies a 100%-real-summary corpus or aborts loudly.
   on_failure: error
 
-# Host resilience for the remote 24GB Ollama host. A serialized warm gemma4:26b
-# summarize is ~3-8s. The "intermittent hangs" seen earlier were NOT wedged requests —
-# live diagnosis showed they are ~18s gemma **cold reloads**: on a shared host another
-# model evicts gemma from VRAM, and the next call pays load_duration ≈ 18s. A trivial
-# 22-token completion measured ~20s total, ~18s of it load; warm the same call is ~2.7s.
+# Host resilience (now belt-and-suspenders — qwen3:14b fits fully on GPU, so the
+# cold-reload/eviction stalls below no longer apply to the summarizer; kept as cheap
+# insurance and because the gemma4:26b READER phase can still cold-load). History,
+# for the record: gemma4:26b as summarizer ran ~25% on CPU and its "intermittent
+# hangs" were ~18s VRAM-eviction cold reloads (load_duration ≈ 18s; warm ~2.7s) —
+# which is exactly why the summarizer was moved to qwen3:14b above.
 #   - summarizer_timeout_ms: keep the schema default 60000 (NOT the earlier 30000). 60s
 #     comfortably absorbs an ~18s cold reload while still abandoning a truly dead request.
 #     The earlier 30s was set on the wrong "wedge" diagnosis and had no margin over a

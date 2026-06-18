@@ -316,6 +316,12 @@ of chunks on real docs, silently:
   **Operationally, run a certification ingest against a dedicated gemma host** (sole VRAM tenant) so
   the cold-load happens once and residual timeouts go to ~0 — no code can stop an external tenant
   from evicting.
+- **Forced-schema JSON + reasoning off.** The Ollama summarizer passes the *actual* JSON schema as
+  `format` (Ollama structured outputs), not the loose `format:"json"` — the decode is grammar-
+  constrained to `{"summary": …}` (and the outline schema), so output can never be an empty `{}` or
+  unparseable text. It also sends `think:false`: thinking-capable models (qwen3, gemma4) otherwise
+  burn latency on a reasoning pass that, under forced JSON, gets suppressed and collapses to `{}`.
+  Together these make the no-fallback (`on_failure:error`) path safe — a well-formed summary every time.
 - **Bounded context (`ollama.summarizer_num_ctx`, default 8192).** Summarizer `/api/generate` calls
   cap `num_ctx` instead of inheriting the model's large default (often 32K). A 32K KV-cache needlessly
   inflates VRAM and, on a VRAM-tight host, spills the model to CPU (slow generation, idle GPU). A

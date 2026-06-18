@@ -86,7 +86,7 @@ const generate = async (
   model: string,
   prompt: string,
   timeoutMs: number,
-  jsonMode = false,
+  jsonSchema?: Record<string, unknown>,
   attempt = 0,
 ): Promise<string> => {
   const res = await postWithTimeout(
@@ -97,6 +97,11 @@ const generate = async (
       stream: false,
       // Pin the model resident across calls — see SUMMARIZER_KEEP_ALIVE.
       keep_alive: SUMMARIZER_KEEP_ALIVE,
+      // Disable reasoning. On thinking-capable models (qwen3, gemma4) a reasoning
+      // pass is pure latency here and, worse, under `format:"json"` it gets
+      // suppressed and leaves an empty `{}` (summarization breaks). A no-op for
+      // non-thinking backends. Mirrors the Anthropic path's `thinking: disabled`.
+      think: false,
       // Reproducible (seeded) + anti-degeneration decoding — see
       // SUMMARIZER_SEED / SUMMARIZER_TEMPERATURE / SUMMARIZER_REPEAT_PENALTY.
       // `attempt` offsets the seed so a re-roll after an unparseable output
@@ -111,7 +116,10 @@ const generate = async (
         // model to CPU. A summary needs far less than the model's 32K default.
         num_ctx: getConfig().ollama.summarizer_num_ctx,
       },
-      ...(jsonMode ? { format: "json" } : {}),
+      // FORCED JSON: pass the actual schema (not just "json") so Ollama
+      // grammar-constrains the decode to the exact shape — no empty `{}`, no
+      // unparseable output, even from thinking models.
+      ...(jsonSchema ? { format: jsonSchema } : {}),
     },
     timeoutMs,
   );
@@ -211,9 +219,9 @@ export const createOllamaSummarizer = (): Summarizer => {
 
   return createSummarizerFromGenerate({
     name: model,
-    generate: (prompt, jsonMode, attempt) =>
+    generate: (prompt, jsonSchema, attempt) =>
       retryLoop("generate", () =>
-        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), jsonMode, attempt),
+        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), jsonSchema, attempt),
       ),
     unload: () => unloadOllamaSummarizer(env.OLLAMA_URL, model),
   });
