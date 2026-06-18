@@ -301,6 +301,10 @@ export const runRunHoldout = async (argv: readonly string[]): Promise<void> => {
   const outRoot = resolve(flagString(flags, "out") ?? "./state/runs");
   const baseline_enabled = !flagBool(flags, "no-baseline"); // ON by default (the parametric delta)
   const quiet = flagBool(flags, "quiet");
+  // Optional YAML whose ingest tunables merge into the Stage-4 scratch config —
+  // e.g. `summarizer.concurrency: 1` so a big control summarizer (gemma4:26b) on a
+  // single 24GB GPU runs one context at a time (mirrors `run`'s --ingest-config).
+  const ingest_config = flagString(flags, "ingest-config");
 
   // A frozen holdout is immutable — refuse to run a drifted one.
   await assertFrozenHoldoutIntact(holdout_dir);
@@ -331,6 +335,7 @@ export const runRunHoldout = async (argv: readonly string[]): Promise<void> => {
     corpus_dir: join(holdout_dir, "corpus"),
     manifest: corpus,
     ingest_manifest_path: ingestPath,
+    ...(ingest_config !== undefined ? { ingest_config_path: ingest_config } : {}),
   });
 
   // Resolve labeled expected filenames → june doc_ids (matches what june ingested).
@@ -722,7 +727,8 @@ ${HOLDOUT_LOCK_FILENAME}. Exits 1 (tampered) on any drift, 0 when intact.
 const RUN_HELP = `june-eval run-holdout — run the sealed real-doc holdout (doc-level retrieval + reader).
 
 USAGE
-  june-eval run-holdout <holdout_dir> --mode <m> [--out <dir>] [--no-baseline] [--quiet] [--config <path>]
+  june-eval run-holdout <holdout_dir> --mode <m> [--out <dir>] [--no-baseline] [--quiet]
+                        [--ingest-config <path>] [--config <path>]
 
 Ingests the real corpus, scores DOC-LEVEL recall@k/MRR over the labeled expected docs
 (the un-contaminated signal — lead with it), runs the LOCAL reader (+ a no-RAG same-reader

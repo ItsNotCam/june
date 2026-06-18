@@ -1,0 +1,28 @@
+# Ingest tunables for the SEALED real-doc holdout under --mode control (gemma4:26b).
+#
+# Pass with: june-eval run-holdout fixtures/holdout-real --mode control \
+#              --ingest-config holdout-control-ingest.yaml
+#
+# WHY: the control summarizer is gemma4:26b (~the whole 24GB VRAM budget). The
+# ingest summarizer runs per-chunk LLM calls with `summarizer.concurrency` in
+# flight; the schema default (4) means FOUR parallel 26B contexts, whose KV-caches
+# overflow 24GB → Ollama offloads/queues → OllamaTimeoutError thrash. Serialize to
+# one resident context. Pairs with the two-phase ingest (summarize-all → embed-all)
+# that keeps the embedder out of VRAM during summarization. Host tuning, not a
+# committed default — small summarizers can keep concurrency high.
+summarizer:
+  concurrency: 1
+
+# Host-stall resilience for the remote 24GB Ollama host. Empirically a serialized
+# gemma4:26b summarize is ~7-8s, but individual requests intermittently HANG; the hang
+# never resolves on its own — only a fresh retry clears it (retry then completes in ~8s).
+# So we detect fast and retry more, rather than waiting longer:
+#   - summarizer_timeout_ms 60000 -> 30000: abandon a hung request in ~30s (≈4x normal
+#     call) instead of 60s. (first_call_timeout_ms stays at the schema default 300000ms,
+#     which still absorbs the gemma cold-load on the very first call.)
+#   - summarizer_retry_max_attempts 3 -> 5: a transient cluster of hangs can't cascade to
+#     a degraded fallback summary — unacceptable on a certification/control ingest.
+# Not a committed june default; pure host tuning for this remote-host control run.
+ollama:
+  summarizer_timeout_ms: 30000
+  summarizer_retry_max_attempts: 5
