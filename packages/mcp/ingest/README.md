@@ -282,12 +282,29 @@ evict/reload them and time out. So `ingestPath`/`ingestContent` process the corp
 
 This is safe because Phase B consumes the in-memory summarized chunks (stage 8 is pure and never
 re-reads summaries), and a crash between phases is recoverable: a doc left at `contextualized` is
-re-summarized deterministically (`temperature: 0` + fixed seed) on resume, yielding identical
-embeddings. A window ≥ corpus size is a single model swap for the whole run; a large vault swaps
-once per window instead of once per doc, which also bounds the in-memory carry. The `Summarizer`
-interface gains `unload()` (real for Ollama; no-op for the API/stub backends, which hold no VRAM),
-mirroring the embedder's. *Resume's per-doc replay still alternates models — acceptable on that rare
-recovery path; batching it is a fast-follow.*
+re-summarized **reproducibly** (fixed seed) on resume, yielding identical embeddings. A window ≥
+corpus size is a single model swap for the whole run; a large vault swaps once per window instead of
+once per doc, which also bounds the in-memory carry. The `Summarizer` interface gains `unload()`
+(real for Ollama; no-op for the API/stub backends, which hold no VRAM), mirroring the embedder's.
+*Resume's per-doc replay still alternates models — acceptable on that rare recovery path; batching it
+is a fast-follow.*
+
+### Summarizer decoding & fallback visibility
+
+The Stage-6 contextual summarizer guards against two failure modes that previously degraded ~11 %
+of chunks on real docs, silently:
+
+- **Greedy degeneration.** Pure greedy decoding (`temperature: 0`) made `gemma4:26b` fall into
+  token-repetition loops ("…the and the…" → "fulfulful…") that never close the `{"summary": …}`
+  JSON, so it failed to parse and fell back to a heading-path template. Decoding now uses a **low
+  non-zero temperature + repetition penalty** (`repeat_penalty`/`repeat_last_n`) to break the loop.
+  Reproducibility comes from the **fixed seed**, not from `temperature: 0`, so re-ingest is still
+  byte-identical on a given host.
+- **Bad output is re-rolled, not silently dropped.** `summarizeChunk` runs a generate→validate loop
+  (`SUMMARY_VALIDATION_ATTEMPTS`); when output is unparseable or violates the §19.5 bounds it logs a
+  **`summarizer_rejected`** event (reason + raw preview) and re-rolls with a **seed offset by the
+  attempt index** so a deterministic degeneration gets a genuinely different decode. Only after all
+  attempts fail does the template fallback ship — and that path is now logged, never silent.
 - `src/lib/{env,config,logger,errors,error-types,offline-guard,lock,shutdown,progress,ids,encoding,tokenize,retry}.ts` — shared primitives.
 - `cli/*.ts` — thin argv wrappers around the public API in `src/index.ts`.
 
