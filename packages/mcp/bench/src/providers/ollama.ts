@@ -101,7 +101,14 @@ export const embedViaOllama = async (args: {
   input: string;
   kind?: "query" | "document";
 }): Promise<number[]> => {
-  const text = args.kind === "query" ? `query: ${args.input}` : args.input;
+  // Asymmetric-embedding query prefix is MODEL-SPECIFIC. arctic-embed2 expects
+  // `query: `; qwen3-embedding expects an instruction ("Instruct: …\nQuery: …")
+  // with documents raw. Using the wrong prefix puts query/doc vectors in different
+  // sub-spaces and tanks recall — so pick by model for a fair cross-embedder A/B.
+  const queryPrefix = /qwen3-embedding/i.test(args.model)
+    ? "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: "
+    : "query: ";
+  const text = args.kind === "query" ? `${queryPrefix}${args.input}` : args.input;
   const res = await fetch(`${args.ollamaUrl}/api/embed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
