@@ -1,0 +1,452 @@
+{
+  "schema_version": 1,
+  "name": "glorbulon-v3",
+  "fixture_id": "MGQFGMPQPZ6SDGE61W089N2X33",
+  "fixture_hash": "d6a2713b110aac3d63dc80c8244e437ed60d34f94c13f6cb55f59e87d195ba40",
+  "domain": "Glorbulon Protocol",
+  "seed": 31337,
+  "authoring": {
+    "facts": "deterministic",
+    "corpus_author": {
+      "provider": "claude-code-agent",
+      "model": "claude-sonnet-4-6"
+    },
+    "query_author": {
+      "provider": "claude-code-agent",
+      "model": "claude-opus-4-8"
+    },
+    "anti_collusion": true
+  },
+  "query_count": 700,
+  "per_tier_counts": {
+    "T1": 100,
+    "T2": 100,
+    "T3": 100,
+    "T4": 100,
+    "T5": 100,
+    "T6": 100,
+    "T7": 100
+  },
+  "anti_leakage": {
+    "threshold": 0.4,
+    "max_score": 0.3888888888888889,
+    "mean_score": 0.2259796637352955,
+    "scored_count": 500
+  },
+  "files": [
+    {
+      "path": "corpus/begeke-framework.md",
+      "sha256": "5864116447ca68c59d9b5027338b144edf2e2878ea9dfb344581a305ab9c2739"
+    },
+    {
+      "path": "corpus/belemo-signal.md",
+      "sha256": "343bb0bcb756156b9062742f419c92ff481619934d33deb81695078ec1ca5276"
+    },
+    {
+      "path": "corpus/bitesucu-transport.md",
+      "sha256": "4d3416ac70402e5ede12d6b7fdc7d445cbf93ec57aef8f4f1f7005c3d8143424"
+    },
+    {
+      "path": "corpus/borghyl-control.md",
+      "sha256": "d82592b99af471333bd491b768e404c415aa4eb931f4f8a332fd0a54483ca01b"
+    },
+    {
+      "path": "corpus/bulaxu-session.md",
+      "sha256": "6442641ba801294a4d32f3405f763306175b1c2e740c35bf201a64bb7784cc49"
+    },
+    {
+      "path": "corpus/carudalo-session.md",
+      "sha256": "259ca7b7e647aa47cfb802398f556be1880488f29cb2500071aef35f8e5d537c"
+    },
+    {
+      "path": "corpus/cekugisu-session.md",
+      "sha256": "50b24a032cc6f278ac92d38013cd907b4374a5981ff5c1ec73cb7f119f039536"
+    },
+    {
+      "path": "corpus/cihipu-framework.md",
+      "sha256": "241f6498f7c57dde8326d44cf6ff818dce801adf046bce40a68804a628031d51"
+    },
+    {
+      "path": "corpus/dargwave-transport.md",
+      "sha256": "572fe282f980c812f0687505df4b1a9ac7ebb8d579dbb170dbdd6bfb6c312413"
+    },
+    {
+      "path": "corpus/diforeki-transport.md",
+      "sha256": "b84fdefd20ae282ad61a10d7e0e229af3f7030907500b6dc7cecf2fb45eed68f"
+    },
+    {
+      "path": "corpus/dojovure-protocol.md",
+      "sha256": "a8dfd8cbcd0d0930f74f1d3a66b493077ca20f99a689ae0c72057ec295772672"
+    },
+    {
+      "path": "corpus/fajedo-layer.md",
+      "sha256": "211b332448fce5d857e7be6eddf330af052fc6a56c14ac085450bd31e59970fa"
+    },
+    {
+      "path": "corpus/faliwu-transport.md",
+      "sha256": "169a056ef343a855302529c048749bca2b04eebd4bdf5ceec6f4c79045ee9bea"
+    },
+    {
+      "path": "corpus/famaribi-signal.md",
+      "sha256": "5a927bf4808464531f8ad38ebc8c286ae7f622c8feba9a3bdf6afab08069f96b"
+    },
+    {
+      "path": "corpus/fikemobe-session.md",
+      "sha256": "00c7b3ea4fd79871adbd19e91160c7b61f7fb0c666336decd6a6113b171e5e59"
+    },
+    {
+      "path": "corpus/fivibetu-framework.md",
+      "sha256": "e077f3df92a44c0ffe9a18318fa45e7e198b4ef5496098c648c1cca7f6aa1afc"
+    },
+    {
+      "path": "corpus/froznet-v2.md",
+      "sha256": "b27ceae1ea886328a242bc6222d27e6a218a7b8e7b0c77e0e5f9e74135866192"
+    },
+    {
+      "path": "corpus/fucava-exchange.md",
+      "sha256": "311a943e4d2af779cdcfc9285bfb0dd616992a90ffbd2a2a4329308689b6f851"
+    },
+    {
+      "path": "corpus/futuri-exchange.md",
+      "sha256": "19d414b1fe40548797b9d43d478cb8829d513818dd093dbb921505cabdd67838"
+    },
+    {
+      "path": "corpus/gakiwuva-exchange.md",
+      "sha256": "47dd3be772003fcfea664d5aa576434d1e46084fd68a0268e4d34bb29d4858c4"
+    },
+    {
+      "path": "corpus/gemeho-signal.md",
+      "sha256": "debe0a5a4a46ece0d57dcc6c5defe78f9e829dbd5861278a6015f66a1ff61abd"
+    },
+    {
+      "path": "corpus/gexicesu-signal.md",
+      "sha256": "a9538751038c3175c644d0ccfaf6adca6f2d8ef5421388c98527762aa58d06bf"
+    },
+    {
+      "path": "corpus/gimefu-protocol.md",
+      "sha256": "dc76635b3e678a66e3c68e6f20551186ed99be1ee0b25405157db1316f144d3c"
+    },
+    {
+      "path": "corpus/glorbulon-protocol.md",
+      "sha256": "0a568c28175e2ac0e4e5d607da413a594a07046f1b431056b18d23db25ddb34f"
+    },
+    {
+      "path": "corpus/gokapola-exchange.md",
+      "sha256": "7e97430980c12efc9d7aca6a2b0c9883952566c7da2f2b88fca06605d7c17d4f"
+    },
+    {
+      "path": "corpus/goveke-session.md",
+      "sha256": "5aac87e585fe11d1cece1a776f547cde8e9b4e99e1162324d44ba7cea53c7579"
+    },
+    {
+      "path": "corpus/gowowabo-protocol.md",
+      "sha256": "682d52b71312f627542160c1a3188c06118d4369ccfbe56e2f7aefa305741214"
+    },
+    {
+      "path": "corpus/gufadiso-framework.md",
+      "sha256": "7e1d63a677b8225a371df686eb60f3e3862fb870dabf3b80577e2394ad0200d8"
+    },
+    {
+      "path": "corpus/havusase-signal.md",
+      "sha256": "e360757f8903ec44f4469074ad1d54e49ad28c1cddf2cb8693339f906a5e5712"
+    },
+    {
+      "path": "corpus/hekaga-signal.md",
+      "sha256": "fef9861740a7df1f6db6d48a9c01c8ec756fd517e8fbe45f0089036a8f623c66"
+    },
+    {
+      "path": "corpus/hiwupi-transport.md",
+      "sha256": "4e0aaefc14f3c334596e2a063bea031ad62d7db077174a0ffcbc9ddc30c2d79f"
+    },
+    {
+      "path": "corpus/howodi-exchange.md",
+      "sha256": "1862c88715402bfb03bd07f0f14cddc90c78f8c34e62a2e9e251558e252eb602"
+    },
+    {
+      "path": "corpus/hubava-protocol.md",
+      "sha256": "831c31c14b1ccc165e0904f615ebfb986fe6ace3e754b5f7c85283ad7e57180f"
+    },
+    {
+      "path": "corpus/jaduwesa-signal.md",
+      "sha256": "cfad62eb126cbd8776753cfcac71edbee6ce76b9920815f4f6dc267661da17cd"
+    },
+    {
+      "path": "corpus/jexuvodi-framework.md",
+      "sha256": "206318008f2dea253a26f8c7667cd6dde7d40671e88459f0327d05f9a52dccb1"
+    },
+    {
+      "path": "corpus/jokavigi-exchange.md",
+      "sha256": "046c59ae8ea1ffb5bffaa3f1a8e235920f563462db0311df4fa1f94993edeb1d"
+    },
+    {
+      "path": "corpus/jovekihu-transport.md",
+      "sha256": "6c8b35a64502dde30c2ef1a67d1ff4182efd8f9260be3c6c3e3fa735a2448217"
+    },
+    {
+      "path": "corpus/kaxapi-layer.md",
+      "sha256": "c9bb36ec9270da8574d85677c3e8a67068f1fe72560148ee2a08c946de1a2934"
+    },
+    {
+      "path": "corpus/kilufoxa-transport.md",
+      "sha256": "2748a5748fb24a784be4f9fee2c1b978b7377edff2fa95795d6275d036d3a7e5"
+    },
+    {
+      "path": "corpus/kivugaca-layer.md",
+      "sha256": "3ffe7adb68ddedcd36bf190dbf5623de50a2a7ef9d26aaaeb777291203d0c9b4"
+    },
+    {
+      "path": "corpus/kiwogesu-framework.md",
+      "sha256": "161040ed3997e1f7083198a41ceaf5ef04deeb8fbead264186c66ef2767034af"
+    },
+    {
+      "path": "corpus/kreznak-signal.md",
+      "sha256": "0fe6b201df191cb6eb4989b4a5b5b48f5ce8d341ac9f4c3aa69c982e787d7fde"
+    },
+    {
+      "path": "corpus/lasegi-transport.md",
+      "sha256": "31b61c05438837b9666a526241e5d3268ef8178ccf03c7a42b5ede0848c2bc62"
+    },
+    {
+      "path": "corpus/lijabe-signal.md",
+      "sha256": "eefd727dc09f847600a4bd9ddf21d4cff634212e3536cbd9cd5676ba62fa7a84"
+    },
+    {
+      "path": "corpus/lohoxoso-protocol.md",
+      "sha256": "696be1c8b46ca1ba032adab4cd1aeec35dcff34ebaac1050b6de71f90181b020"
+    },
+    {
+      "path": "corpus/lozami-control.md",
+      "sha256": "02a930fd1129f22d2e6a8aa11e47db91c8034e201184ff325471e2773a4a9852"
+    },
+    {
+      "path": "corpus/makubobu-control.md",
+      "sha256": "df02f1c3a10e2996f92c06c966275405a3c5e7d4cf896d2d07a10ec5bf34c95e"
+    },
+    {
+      "path": "corpus/mehidu-control.md",
+      "sha256": "232544325ee31d1a68e682bebdbb27d0a94a6d2bfec017be239154725dc57577"
+    },
+    {
+      "path": "corpus/mehuniju-exchange.md",
+      "sha256": "89b6bc6abae09eab2814e9f7af3e00718cff0e64751b812d4aea0d91b3b9787a"
+    },
+    {
+      "path": "corpus/miluvipo-session.md",
+      "sha256": "48527b1cbfb0f7bdec8feb9dd7899dd7fa579aad9591aa4e2d904411dd4275c6"
+    },
+    {
+      "path": "corpus/motovupu-exchange.md",
+      "sha256": "b2b7ffda3148acdd93209a7bf6a7a26c97df074e2411a81395ef135e964c2ac9"
+    },
+    {
+      "path": "corpus/mulihu-exchange.md",
+      "sha256": "86dc51d30a1fd86d73754e71476d176c0dac78ac4011ccdaf9cf07bc02983d5f"
+    },
+    {
+      "path": "corpus/nemare-control.md",
+      "sha256": "05103f97904cd48d822b52cf729b8061e5e9bc38e9626abc340de0f4dfd365af"
+    },
+    {
+      "path": "corpus/nihapi-control.md",
+      "sha256": "97a2c7c4f5923218f6ca69ce4ceca782d882109fefa344140750413ecaa0a990"
+    },
+    {
+      "path": "corpus/nixepa-exchange.md",
+      "sha256": "482ef1bacc90c350b155b88caa95627f350cec99a13e18e6432e6d00219df4ed"
+    },
+    {
+      "path": "corpus/patuxuxa-control.md",
+      "sha256": "95990c737373455fbddadf45ef913eaa5f636f07c0bf783086d41169c7a652f5"
+    },
+    {
+      "path": "corpus/pebaseko-control.md",
+      "sha256": "89f1f345b6b38fdac5d33428ff285e487127132b6a92e87f2f55857210557df9"
+    },
+    {
+      "path": "corpus/pevemu-framework.md",
+      "sha256": "b1fdb6e50c525c48f532ae18ed7d5079e60c5991fc48456050aa16db74250642"
+    },
+    {
+      "path": "corpus/pilenuwe-protocol.md",
+      "sha256": "23efbabe9e3914155eefeb91ec89b35091819c9d4782390325e0372baf389a8f"
+    },
+    {
+      "path": "corpus/plirnode-framework.md",
+      "sha256": "3fbdbcf81464a990a966d4d8f404aa75f15cd9908667f14c71c49ca56947ee99"
+    },
+    {
+      "path": "corpus/pohico-signal.md",
+      "sha256": "0b33c93def079392bf8defeb83b2fcce5f4f8e472e19f2b61deba12f3886326e"
+    },
+    {
+      "path": "corpus/posewu-exchange.md",
+      "sha256": "16b155ecc20cad09d99bbd213aa9c1bccef4457408a96002f7fed4e16a6d01e2"
+    },
+    {
+      "path": "corpus/puzicoti-layer.md",
+      "sha256": "db664a215d74f54ba6fd57a4b9bcee3271fe869430a9eb61757ff3b1ee0e4cfc"
+    },
+    {
+      "path": "corpus/querban-layer.md",
+      "sha256": "cd7ade6814ddd0f9ef9fcead1fc6d71310d613cc9084e8ff46fa65a7f45cb7c9"
+    },
+    {
+      "path": "corpus/raxaxo-session.md",
+      "sha256": "79ff89db53e9c00abe81c67ce715c32b096794dc70ff4ee02d0cb906f65b101c"
+    },
+    {
+      "path": "corpus/rujofe-framework.md",
+      "sha256": "12edaafb18aa1b9709761698b361bdc835db3fc2c173a1e4f5c2849cb36315c6"
+    },
+    {
+      "path": "corpus/ruxesiwi-control.md",
+      "sha256": "b0e11c73246be3cb5ae81c86ef7b652cf05bd996897ec80e444fc93610452df3"
+    },
+    {
+      "path": "corpus/sedezo-transport.md",
+      "sha256": "490110a653b844a898df4cd674b2c313296b7394f5af7639a17752c13e1dbfa3"
+    },
+    {
+      "path": "corpus/sewuzeru-framework.md",
+      "sha256": "3a5cce8a3ce79cce4bb5c4854ddbd56602b00dbbc03a7a66cc5d8bd39fb29f18"
+    },
+    {
+      "path": "corpus/sijini-control.md",
+      "sha256": "5a61b4991d5c3f3c7f92b1f0a3bc010ab4c89b5e5bb6d8614695918e9f039634"
+    },
+    {
+      "path": "corpus/snorblath-protocol.md",
+      "sha256": "82ae75653efc8c8f82698166987f0ab9068957aebb46f394609f8f9ff7f924f3"
+    },
+    {
+      "path": "corpus/tirucove-framework.md",
+      "sha256": "d88f476ffd70cabf03ac431bd6da820f806f07ab4fb71813220b5d23af9563fe"
+    },
+    {
+      "path": "corpus/tonige-exchange.md",
+      "sha256": "8b019b6844c9a8d246f9566957d7b57907a0c78a616404a208671bda6651af5b"
+    },
+    {
+      "path": "corpus/topuboka-framework.md",
+      "sha256": "d6f3565b4334966118596e578980748427fff6125e402bdf004c9cab40c47d92"
+    },
+    {
+      "path": "corpus/tukoni-control.md",
+      "sha256": "ec6d30dc224d79d5fd24789ea2173a27f3925ccb5259af2a5bbd6d829b8724d3"
+    },
+    {
+      "path": "corpus/vekoso-control.md",
+      "sha256": "962d6bf430b3e0374fc2eb2f12f0efdceff8e4653a07836c51a8fb42fd44a4af"
+    },
+    {
+      "path": "corpus/vetuva-session.md",
+      "sha256": "4ad428685129c3f8f36c8d23d0566c6ea0d1b7db405d7241c19d4e2c608ed5e0"
+    },
+    {
+      "path": "corpus/vicenopi-session.md",
+      "sha256": "ff5c1cda3d18bf1533c12ab3ee990aa3c3dcd1f58ccca2f7b43643c8c3e37819"
+    },
+    {
+      "path": "corpus/videki-signal.md",
+      "sha256": "67777b41cd58313b3ec5b3466fe3b52333a18de68a754d9e5e2c526d510f6b66"
+    },
+    {
+      "path": "corpus/viznet-exchange.md",
+      "sha256": "de3ecdff9ad964f2092e7c0dcba23a64898f88218e57f879b84812f9d8236aad"
+    },
+    {
+      "path": "corpus/vubisunu-control.md",
+      "sha256": "5d8ea57e83cae66f3b0c7f8db18e1faad3bcb479136a73b5ea5b5aeff3156bac"
+    },
+    {
+      "path": "corpus/vudefa-framework.md",
+      "sha256": "8c1c378f59a4d45562020dcea252ff4541a69027543e9787317a62cb077790cd"
+    },
+    {
+      "path": "corpus/vukuride-signal.md",
+      "sha256": "f763c1d35491e9395db3952d013154ded27b4f43ae08bf888780c0a573c1567a"
+    },
+    {
+      "path": "corpus/vunigijo-framework.md",
+      "sha256": "8d1fc480e7a750a86a8828ab64e4a5743f4e18873431a61ae67605b3555d30ca"
+    },
+    {
+      "path": "corpus/vuwiposu-signal.md",
+      "sha256": "ad9a143fdeb92770a56393a638d70b541805ada94b2addcb54326c5505995b1f"
+    },
+    {
+      "path": "corpus/vuzugila-control.md",
+      "sha256": "2f50c13d36c42210db74c5692e0d58239730bce80b49588a769df97b497a220e"
+    },
+    {
+      "path": "corpus/wapuhegi-layer.md",
+      "sha256": "1eae585ceaf8cc9372b83aca1cd651a9e5917500357d319395498c7942a5e724"
+    },
+    {
+      "path": "corpus/wasewimo-exchange.md",
+      "sha256": "f198c622fee64d064cc6a4519609e0a4139da4e2c0e8b985f9820b03cd2d5ace"
+    },
+    {
+      "path": "corpus/wefexa-framework.md",
+      "sha256": "f1efff4917e78b9a083acefa71dd017aa56fea23bc9d1530afbac24a063439bd"
+    },
+    {
+      "path": "corpus/wemewoxi-layer.md",
+      "sha256": "2524992ac5dab7f2eac435d31cd5b03f1e59064fa6d0ca1849eff22cd92dee2d"
+    },
+    {
+      "path": "corpus/wexmar-session.md",
+      "sha256": "f96b7ec9d817d3c4e146c8e0598236ebd6e9b0124358130754419923d6a4f768"
+    },
+    {
+      "path": "corpus/wibokebo-layer.md",
+      "sha256": "e998b298c3982fc7ec312d0b0a07dbb4fe56e6dfb22a08baeda66c75ed14e0a8"
+    },
+    {
+      "path": "corpus/wotema-session.md",
+      "sha256": "7eb9ac510a701c228275cb707de46436b9d5f10f2da57faee1fb280fca0041ad"
+    },
+    {
+      "path": "corpus/woxavo-exchange.md",
+      "sha256": "b2282bbc375510bbfab4a0842c1a200be5ec27a713fa96baee40a28831a411f9"
+    },
+    {
+      "path": "corpus/xacilefe-exchange.md",
+      "sha256": "6fe090426495e93cf18753dce2dfa7d58a6933f4f9c32b3e06d68b34ab6852f7"
+    },
+    {
+      "path": "corpus/xecigedu-transport.md",
+      "sha256": "1f272dc2c1aaa05be356be8b33e78477c3dd746bf67da5b146990ddbfa5d9acb"
+    },
+    {
+      "path": "corpus/xedekizo-layer.md",
+      "sha256": "01e93dcdb6baec246f0c2bc95123b5e53453649d0ddcb97edf249c48e30426ee"
+    },
+    {
+      "path": "corpus/xerafani-transport.md",
+      "sha256": "cb50ed2fe530dcec613ec69ed1bd5fe8798a49c80f2d1fc39bea9fc8c6b2ec3e"
+    },
+    {
+      "path": "corpus/xuxivaxe-layer.md",
+      "sha256": "576a0835c3f4340ce8aa3c0e1d13dd111e694e8381c3271720685e75d3cc0c95"
+    },
+    {
+      "path": "corpus/zevifaco-signal.md",
+      "sha256": "fa5203bf73fc3cfbcab5b02007706b04075e4b5696f2a2f9274a783a57efd35c"
+    },
+    {
+      "path": "corpus_manifest.json",
+      "sha256": "f094f67c272a8ed1a0069df3f00afe3f71dd0e9e242b9dad0ebaf3535f6736cc"
+    },
+    {
+      "path": "facts.json",
+      "sha256": "b3d6975235fb36944f4c1522cdfaed2db044048e61e48f4d7a274ef58131d39e"
+    },
+    {
+      "path": "queries.json",
+      "sha256": "6322e02a7b8efb4aecf01c9a7df4a40ca6783e2fb8c50170d67c158313f92936"
+    }
+  ],
+  "frozen_at": "2026-06-18T23:35:34.039Z",
+  "human_signoff": "cam — 7-tier 100/tier high-power (sonnet corpus / opus queries)"
+}
