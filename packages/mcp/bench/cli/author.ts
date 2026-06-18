@@ -27,7 +27,7 @@ import { bootstrap, getConfig, parseArgv, flagString } from "./shared";
 const PLAN_FILENAME = "authoring_plan.json";
 
 /**
- * `june-eval scaffold <domain> --seed <n> --out <dir> [--counts T1,T2,T3,T4,T5]`
+ * `june-eval scaffold <domain> --seed <n> --out <dir> [--counts T1,T2,T3,T4,T5,T6,T7]`
  * Runs Stage 1 (deterministic facts, no API) and writes facts.json + the
  * authoring plan. The plan says WHICH facts each document/query must cover.
  */
@@ -151,18 +151,18 @@ export const runAssemble = async (argv: readonly string[]): Promise<void> => {
 const parseCounts = (s: string | undefined): QueryCounts | undefined => {
   if (s === undefined) return undefined;
   const parts = s.split(",").map((x) => Number(x.trim()));
-  if (parts.length !== 5 || parts.some((n) => !Number.isInteger(n) || n < 0)) {
+  if (parts.length !== 7 || parts.some((n) => !Number.isInteger(n) || n < 0)) {
     throw new UsageError(
-      `--counts expects five non-negative integers "T1,T2,T3,T4,T5" (got ${JSON.stringify(s)}). Default: ${Object.values(DEFAULT_QUERY_COUNTS).join(",")}.`,
+      `--counts expects seven non-negative integers "T1,T2,T3,T4,T5,T6,T7" (got ${JSON.stringify(s)}). Default: ${Object.values(DEFAULT_QUERY_COUNTS).join(",")}.`,
     );
   }
-  return { T1: parts[0]!, T2: parts[1]!, T3: parts[2]!, T4: parts[3]!, T5: parts[4]! };
+  return { T1: parts[0]!, T2: parts[1]!, T3: parts[2]!, T4: parts[3]!, T5: parts[4]!, T6: parts[5]!, T7: parts[6]! };
 };
 
 const SCAFFOLD_HELP = `june-eval scaffold — emit deterministic facts + an authoring plan (no API).
 
 USAGE
-  june-eval scaffold <domain> --seed <n> [--out <dir>] [--counts T1,T2,T3,T4,T5] [--config <path>]
+  june-eval scaffold <domain> --seed <n> [--out <dir>] [--counts T1,T2,T3,T4,T5,T6,T7] [--config <path>]
 
 Runs Stage 1 (seeded, LLM-free) and writes facts.json + authoring_plan.json. The
 plan lists each document's facts (to plant verbatim) and each query's target

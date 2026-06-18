@@ -31,14 +31,14 @@ const facts: FactsFile = {
 
 describe("buildAuthoringPlan", () => {
   test("is deterministic for the same facts + counts", () => {
-    const opts = { maxFactsPerDoc: 10, counts: { T1: 2, T2: 2, T3: 2, T4: 1, T5: 2 } };
+    const opts = { maxFactsPerDoc: 10, counts: { T1: 2, T2: 2, T3: 2, T4: 1, T5: 2, T6: 0, T7: 0 } };
     const a = buildAuthoringPlan(facts, opts);
     const b = buildAuthoringPlan(facts, opts);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
   test("groups facts into per-entity documents and plans the requested query counts", () => {
-    const plan = buildAuthoringPlan(facts, { maxFactsPerDoc: 10, counts: { T1: 2, T2: 2, T3: 2, T4: 1, T5: 2 } });
+    const plan = buildAuthoringPlan(facts, { maxFactsPerDoc: 10, counts: { T1: 2, T2: 2, T3: 2, T4: 1, T5: 2, T6: 0, T7: 0 } });
     // Relay (3 facts incl. the relational) + Gate (1) → 2 documents.
     expect(plan.documents.map((d) => d.slug).sort()).toEqual(["gate", "relay"]);
     const byTier = (t: string) => plan.query_specs.filter((s) => s.tier === t).length;
@@ -48,7 +48,7 @@ describe("buildAuthoringPlan", () => {
   });
 
   test("T4 specs target BOTH chain facts; T5 specs target none; T1 is not anti-leakage", () => {
-    const plan = buildAuthoringPlan(facts, { maxFactsPerDoc: 10, counts: { T1: 1, T2: 1, T3: 1, T4: 1, T5: 1 } });
+    const plan = buildAuthoringPlan(facts, { maxFactsPerDoc: 10, counts: { T1: 1, T2: 1, T3: 1, T4: 1, T5: 1, T6: 0, T7: 0 } });
     const t4 = plan.query_specs.find((s) => s.tier === "T4")!;
     expect(t4.target_fact_ids).toHaveLength(2);
     expect(t4.anti_leakage).toBe(true);
@@ -57,9 +57,29 @@ describe("buildAuthoringPlan", () => {
     const t1 = plan.query_specs.find((s) => s.tier === "T1")!;
     expect(t1.anti_leakage).toBe(false);
   });
+
+  test("deep tiers: T6 targets a 3-hop chain (3 facts), T7 a 4-hop chain (4 facts), both anti-leakage", () => {
+    // A --R1--> B --R2--> C --R3--> D, plus an atomic on D → supports depth-3 and depth-4 chains.
+    const deepFacts: FactsFile = {
+      ...facts,
+      facts: [
+        { kind: "relational", id: "r1", subject: "A", predicate: "feeds", object: "B", surface_hint: "A feeds B." },
+        { kind: "relational", id: "r2", subject: "B", predicate: "feeds", object: "C", surface_hint: "B feeds C." },
+        { kind: "relational", id: "r3", subject: "C", predicate: "feeds", object: "D", surface_hint: "C feeds D." },
+        { kind: "atomic", id: "a1", entity: "D", attribute: "color", value: "blue", surface_hint: "D color is blue." },
+      ],
+    };
+    const plan = buildAuthoringPlan(deepFacts, { maxFactsPerDoc: 10, counts: { T1: 0, T2: 0, T3: 0, T4: 0, T5: 0, T6: 1, T7: 1 } });
+    const t6 = plan.query_specs.find((s) => s.tier === "T6")!;
+    expect(t6.target_fact_ids).toHaveLength(3); // 2 relationals + 1 atomic
+    expect(t6.anti_leakage).toBe(true);
+    const t7 = plan.query_specs.find((s) => s.tier === "T7")!;
+    expect(t7.target_fact_ids).toHaveLength(4); // 3 relationals + 1 atomic
+    expect(t7.anti_leakage).toBe(true);
+  });
 });
 
-const plan2: AuthoringPlan = buildAuthoringPlan(facts, { maxFactsPerDoc: 10, counts: { T1: 1, T2: 1, T3: 1, T4: 0, T5: 1 } });
+const plan2: AuthoringPlan = buildAuthoringPlan(facts, { maxFactsPerDoc: 10, counts: { T1: 1, T2: 1, T3: 1, T4: 0, T5: 1, T6: 0, T7: 0 } });
 
 describe("assembleCorpus", () => {
   test("accepts documents that embed every surface hint verbatim", () => {

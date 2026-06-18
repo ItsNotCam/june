@@ -66,10 +66,14 @@ question. Batch per tier for consistency. Tier semantics:
 | **T1** lexical | ask for the fact using wording close to the hint (lexical overlap is the point; not anti-leakage-gated). |
 | **T2** paraphrase | ask for the same fact in DIFFERENT words — **avoid the hint's content words** (Jaccard ≤ threshold, default 0.40). |
 | **T3** conceptual | pose a scenario whose answer IS the fact, without naming it; also anti-leakage-gated. |
-| **T4** multi-hop | require composing BOTH target facts (e.g. "what does the thing that X connects to compress with?"); gated. |
+| **T4** multi-hop (2-hop) | require composing BOTH target facts (e.g. "what does the thing that X connects to compress with?"); gated. |
 | **T5** negative | ask a plausible question about the anchor entity whose answer is **NOT** in the corpus — correct behavior is refusal. Never reveal a real fact. |
+| **T6** deep multi-hop (3-hop) | require composing ALL THREE target facts along the chain `A→B→C` + the atomic on the last entity — the question names only the start entity and walks two relational hops to the final fact. Gated against every hop's hint. See `prompts/query-t6.md`. |
+| **T7** deep multi-hop (4-hop) | require composing ALL FOUR target facts along `A→B→C→D` + the atomic on the last entity — three relational hops then the final fact, naming only the start entity. Gated against every hop's hint. See `prompts/query-t7.md`. |
 
-Collect into `query-drafts.json`: `{ "T1-1": "…", "T2-1": "…", … }`.
+For T6/T7 the spec's `target_fact_ids` are the chain in order (relationals then the atomic); the question must be answerable ONLY by traversing the full chain — never name an intermediate entity's fact directly (that collapses the hop count). Use the per-tier prompts `prompts/query-t6.md` / `query-t7.md`.
+
+Collect into `query-drafts.json`: `{ "T1-1": "…", "T2-1": "…", … }` (keys are the `spec_id`s, including `T6-*` / `T7-*`).
 
 ## 4. Assemble (the validity gate)
 

@@ -3,7 +3,7 @@ import type { Fact, AtomicFact, RelationalFact, FactsFile } from "@/types/facts"
 import type { CorpusDocument, CorpusManifest } from "@/types/corpus";
 import type { Query, QueriesFile, QueryTier } from "@/types/query";
 import { groupFactsIntoDocuments } from "@/stages/02-corpus";
-import { buildFactChains } from "@/stages/03-queries";
+import { buildFactChains, buildDeepChains, deepChainFactIds } from "@/stages/03-queries";
 import { seededRng, seedFromString, shuffle, type Rng } from "@/lib/rng";
 import { normalizeForResolution } from "@/lib/normalize";
 import { jaccardOverlap } from "@/lib/tokens";
@@ -64,8 +64,8 @@ export type AuthoringPlan = {
 };
 
 /** Per-tier query counts for the plan. Small by default — agent authoring is hand-paced. */
-export type QueryCounts = { T1: number; T2: number; T3: number; T4: number; T5: number };
-export const DEFAULT_QUERY_COUNTS: QueryCounts = { T1: 6, T2: 6, T3: 6, T4: 6, T5: 6 };
+export type QueryCounts = { T1: number; T2: number; T3: number; T4: number; T5: number; T6: number; T7: number };
+export const DEFAULT_QUERY_COUNTS: QueryCounts = { T1: 6, T2: 6, T3: 6, T4: 6, T5: 6, T6: 0, T7: 0 };
 
 const slugify = (s: string): string =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -141,6 +141,26 @@ export const buildAuthoringPlan = (
       target_fact_ids: [],
       facts: [f],
       anti_leakage: false,
+    });
+  });
+  // T6 — three-hop chains: 2 relationals + 1 atomic; target every fact in the chain.
+  buildDeepChains(atomic, relational, 3, counts.T6, rng).forEach((chain, i) => {
+    query_specs.push({
+      spec_id: `T6-${i + 1}`,
+      tier: "T6",
+      target_fact_ids: deepChainFactIds(chain),
+      facts: [...chain.relationals, chain.atomic],
+      anti_leakage: true,
+    });
+  });
+  // T7 — four-hop chains: 3 relationals + 1 atomic; target every fact in the chain.
+  buildDeepChains(atomic, relational, 4, counts.T7, rng).forEach((chain, i) => {
+    query_specs.push({
+      spec_id: `T7-${i + 1}`,
+      tier: "T7",
+      target_fact_ids: deepChainFactIds(chain),
+      facts: [...chain.relationals, chain.atomic],
+      anti_leakage: true,
     });
   });
 
