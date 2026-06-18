@@ -22,6 +22,8 @@ export const runStage1 = async (args: {
   seed: number;
   domain: string;
   out_path: string;
+  /** Corpus entity count (default 10 = the legacy hardcoded set). */
+  entityCount?: number;
 }): Promise<FactsFile> => {
   const template = getDomainTemplate(args.domain);
   if (!template) {
@@ -31,12 +33,12 @@ export const runStage1 = async (args: {
   }
 
   const rng = seededRng(args.seed);
-  const { facts } = template.generate(rng);
+  const { facts } = template.generate(rng, { entityCount: args.entityCount });
 
   validateFacts(facts);
 
   const file: FactsFile = {
-    fixture_id: fixtureId(args.seed, template.domain_name),
+    fixture_id: fixtureId(args.seed, template.domain_name, args.entityCount),
     fixture_seed: args.seed,
     schema_version: 1,
     domain_name: template.domain_name,

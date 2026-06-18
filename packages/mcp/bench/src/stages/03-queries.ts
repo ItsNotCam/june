@@ -302,6 +302,51 @@ export type FactChain = {
  * The truncation uses a seeded shuffle so the selected subset is stable
  * across regenerations of the same fixture.
  */
+/**
+ * Selects `count` chains preferring ENTITY-DISJOINT ones — chains that share no
+ * entity with any already-picked chain — falling back to overlapping chains
+ * only once the disjoint supply is exhausted. Independent (non-overlapping)
+ * chains are what make per-tier metrics statistically independent rather than
+ * pseudo-replicated; a naive `shuffle().slice()` freely reuses entities and
+ * reintroduces correlation. Deterministic (seed-shuffled). If fewer than
+ * `count` chains exist at all, it logs a loud under-supply warning and returns
+ * what it can — so a short tier can never silently masquerade as full.
+ */
+const selectChainsDisjointFirst = <T>(
+  all: readonly T[],
+  count: number,
+  entitiesOf: (c: T) => readonly string[],
+  rng: ReturnType<typeof seededRng>,
+  tier: QueryTier,
+): T[] => {
+  const shuffled = shuffle(rng, all);
+  const used = new Set<string>();
+  const picked: T[] = [];
+  const overlapping: T[] = [];
+  for (const c of shuffled) {
+    if (picked.length >= count) break;
+    const ents = entitiesOf(c);
+    if (ents.some((e) => used.has(e))) {
+      overlapping.push(c);
+      continue;
+    }
+    ents.forEach((e) => used.add(e));
+    picked.push(c);
+  }
+  if (picked.length < count) {
+    picked.push(...overlapping.slice(0, count - picked.length)); // fall back to overlap
+  }
+  if (picked.length < count) {
+    logger.warn("queries.chain_undersupply", {
+      tier,
+      query_count: picked.length,
+      candidates: all.length,
+      note: `requested ${count} ${tier} chains but the fact graph yields only ${all.length}; tier will be SHORT. Add entities (--entities) for a full tier.`,
+    });
+  }
+  return picked;
+};
+
 export const buildFactChains = (
   atomic: AtomicFact[],
   relational: RelationalFact[],
@@ -322,7 +367,13 @@ export const buildFactChains = (
     const matching = atomicByEntity.get(r.object) ?? [];
     for (const a of matching) chains.push({ relational: r, atomic: a });
   }
-  return shuffle(rng, chains).slice(0, count);
+  return selectChainsDisjointFirst(
+    chains,
+    count,
+    (c) => [c.relational.subject, c.relational.object, c.atomic.entity],
+    rng,
+    "T4",
+  );
 };
 
 /**
@@ -395,7 +446,14 @@ export const buildDeepChains = (
   for (const r1 of relational) {
     extend([r1], new Set([r1.subject, r1.object]));
   }
-  return shuffle(rng, chains).slice(0, count);
+  const tier: QueryTier = depth === 3 ? "T6" : depth === 4 ? "T7" : "T4";
+  return selectChainsDisjointFirst(
+    chains,
+    count,
+    (c) => [...c.relationals.flatMap((r) => [r.subject, r.object]), c.atomic.entity],
+    rng,
+    tier,
+  );
 };
 
 const buildT4 = async (args: {

@@ -99,8 +99,32 @@ export const BenchConfigSchema = z.object({
       T6: z.number().int().nonnegative().default(0),
       T7: z.number().int().nonnegative().default(0),
     }),
-    max_total: z.number().int().positive().max(500),
+    // Ceiling raised 500 → 1000 for the deep-multihop fixture (glorbulon-v3,
+    // ~100 queries × 7 tiers). This is a hard parse-time bound: config.yaml
+    // cannot exceed it.
+    max_total: z.number().int().positive().max(1000),
   }),
+  // Optional fast-iteration default: cap how many queries per tier a run
+  // executes (overridden by the `--tier-limit` CLI flag). A subsampled run is
+  // iteration-only — `control-pin`/`control-check` refuse to certify it.
+  sampling: z
+    .object({
+      max_per_tier: z
+        .union([
+          z.number().int().positive(),
+          z.object({
+            T1: z.number().int().positive().optional(),
+            T2: z.number().int().positive().optional(),
+            T3: z.number().int().positive().optional(),
+            T4: z.number().int().positive().optional(),
+            T5: z.number().int().positive().optional(),
+            T6: z.number().int().positive().optional(),
+            T7: z.number().int().positive().optional(),
+          }),
+        ])
+        .optional(),
+    })
+    .optional(),
   anti_leakage: z.object({
     threshold: z.number().min(0).max(1),
     max_retries: z.number().int().nonnegative(),

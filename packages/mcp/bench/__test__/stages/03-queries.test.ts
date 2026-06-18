@@ -83,4 +83,37 @@ describe("buildDeepChains", () => {
   test("count 0 yields no chains", () => {
     expect(buildDeepChains(ATOMIC, RELATIONAL, 3, 0, seededRng(1))).toEqual([]);
   });
+
+  test("under-supply: returns all available (fewer than requested) without crashing", () => {
+    // The tiny graph yields a handful of depth-3 chains; ask for far more.
+    const chains = buildDeepChains(ATOMIC, RELATIONAL, 3, 1000, seededRng(7));
+    expect(chains.length).toBeGreaterThan(0);
+    expect(chains.length).toBeLessThan(1000); // short, not padded — caller sees the real count
+  });
+
+  describe("entity-disjoint-first selection", () => {
+    // Two A→B→{C,D} chains that share {A,B}, plus an independent X→Y→Z chain.
+    const REL = [
+      rel("r-ab", "A", "B"),
+      rel("r-bc", "B", "C"),
+      rel("r-bd", "B", "D"),
+      rel("r-xy", "X", "Y"),
+      rel("r-yz", "Y", "Z"),
+    ];
+    const AT = [atom("a-C", "C"), atom("a-D", "D"), atom("a-Z", "Z")];
+
+    const entitySet = (c: DeepChain): Set<string> =>
+      new Set([...c.relationals.flatMap((r) => [r.subject, r.object]), c.atomic.entity]);
+
+    test("prefers independent chains: the picked subset shares no entity", () => {
+      // 3 chains exist {ABC, ABD, XYZ}; ABC/ABD overlap. Disjoint-first must pull
+      // in XYZ rather than returning both overlapping A-chains.
+      const [c1, c2] = buildDeepChains(AT, REL, 3, 2, seededRng(3));
+      expect(c1).toBeDefined();
+      expect(c2).toBeDefined();
+      const a = entitySet(c1!);
+      const b = entitySet(c2!);
+      expect([...a].some((e) => b.has(e))).toBe(false); // fully disjoint
+    });
+  });
 });

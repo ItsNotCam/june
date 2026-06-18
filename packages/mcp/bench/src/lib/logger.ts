@@ -73,6 +73,8 @@ export type BenchLogFields = {
   scratch_path?: string;
   qdrant_collections?: string[];
   sampled_ratio?: number;
+  sampling_mode?: string;
+  sampling_detail?: string;
   key?: string;
   cache_root?: string;
   missing?: number;

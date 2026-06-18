@@ -11,7 +11,7 @@ import type { RetrievalResultsFile } from "@/types/retrieval";
 import type { ReaderAnswersFile, BaselineAnswersFile } from "@/types/reader";
 import type { JudgeResultsFile, VerdictRecord } from "@/types/judge";
 import { BASELINE_QUERY_PREFIX } from "@/types/judge";
-import type { ResultsFile, RunManifest, RunStatus } from "@/types/results";
+import type { ResultsFile, RunManifest, RunStatus, SamplingMode } from "@/types/results";
 import { runStage4 } from "@/stages/04-ingest";
 import { runStage5 } from "@/stages/05-resolve";
 import { runStage6 } from "@/stages/06-retrieval";
@@ -96,6 +96,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const rerun_from_str = flagString(flags, "rerun-from");
   const quick = flagBool(flags, "quick");
   const sample_str = flagString(flags, "sample");
+  const tier_limit_str = flagString(flags, "tier-limit");
   const cache_flag = flagBool(flags, "cache");
   const yes = flagBool(flags, "yes");
   const quiet = flagBool(flags, "quiet");
@@ -170,6 +171,11 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       "--quick and --sample are mutually exclusive. --quick is shorthand for --sample 0.1.",
     );
   }
+  if (tier_limit_str !== undefined && (quick || sample_str !== undefined)) {
+    throw new UsageError(
+      "--tier-limit is mutually exclusive with --sample/--quick. --tier-limit caps queries by absolute per-tier count; --sample/--quick scale by ratio. Pick one.",
+    );
+  }
   const sample_ratio = parseSampleRatio({ quick, sample_str });
 
   // If this is a FROZEN fixture, refuse to run it if it drifted from its lock —
@@ -188,24 +194,40 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   // attributable to the canonical fixture they were drawn from.
   const fixture_hash = computeFixtureHash(facts, corpus, fullQueries);
 
-  const queries: QueriesFile =
-    sample_ratio === 1
-      ? fullQueries
-      : {
-          ...fullQueries,
-          queries: stratifiedSample(fullQueries.queries, sample_ratio),
-        };
-  if (sample_ratio !== 1) {
+  // Resolve per-tier absolute caps: CLI --tier-limit wins, else config
+  // sampling.max_per_tier, else none. Returns null when no cap is in effect.
+  const tier_limits = resolveTierLimits(tier_limit_str, getConfig());
+
+  // Sampling mode recorded into the manifest — the certification guard
+  // (assertFullFixture) refuses to pin/gate anything that isn't "full".
+  let sampling: SamplingMode = { mode: "full" };
+  let queries: QueriesFile = fullQueries;
+  if (tier_limits !== null) {
+    queries = { ...fullQueries, queries: perTierLimit(fullQueries.queries, tier_limits) };
+    sampling = {
+      mode: "tier-limit",
+      detail: [...tier_limits.entries()].map(([t, n]) => `${t}:${n}`).join(","),
+    };
+  } else if (sample_ratio !== 1) {
+    queries = { ...fullQueries, queries: stratifiedSample(fullQueries.queries, sample_ratio) };
+    sampling = { mode: "ratio", detail: String(sample_ratio) };
+  }
+  if (sampling.mode !== "full") {
     const before = fullQueries.queries.length;
     const after = queries.queries.length;
-    logger.info("run.sample.applied", {
+    logger.info(tier_limits !== null ? "run.tier_limit.applied" : "run.sample.applied", {
       query_count: after,
       candidates: before,
-      sampled_ratio: sample_ratio,
+      sampling_mode: sampling.mode,
+      sampling_detail: sampling.detail,
     });
     if (!quiet && !json_log) {
+      const what =
+        tier_limits !== null
+          ? `--tier-limit (${sampling.detail})`
+          : `--${quick ? "quick" : "sample"} (${(sample_ratio * 100).toFixed(0)}%)`;
       process.stderr.write(
-        `\n⚠️  --${quick ? "quick" : "sample"} active: ${after}/${before} queries (${(sample_ratio * 100).toFixed(0)}%, stratified by tier).\n   Bootstrap CIs will widen — DO NOT compare these numbers to full-fixture runs.\n\n`,
+        `\n⚠️  ${what} active: ${after}/${before} queries, stratified by tier.\n   Bootstrap CIs will widen — DO NOT compare these numbers to full-fixture runs, and this run CANNOT be pinned/gated as a golden.\n\n`,
       );
     }
   }
@@ -586,6 +608,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
       judge_provider: "external",
       judge_model: cfg.roles.judge.model,
       judge_prompt_hash: judgePromptHash,
+      sampling,
     });
     // Partial scoring: every answer is UNJUDGED until the external judge runs, so
     // retrieval metrics (recall@k, MRR) are computed now and correctness is
@@ -719,6 +742,7 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
     judge_provider: judge_provider_name,
     judge_model,
     judge_prompt_hash: judgePromptHash,
+    sampling,
   });
   await runStage9({
     facts,
@@ -856,6 +880,81 @@ const stratifiedSample = (queries: readonly Query[], ratio: number): Query[] => 
     const take = Math.max(1, Math.ceil(tierQueries.length * ratio));
     const sorted = [...tierQueries].sort((a, b) => a.id.localeCompare(b.id));
     out.push(...sorted.slice(0, take));
+  }
+  return out;
+};
+
+/**
+ * Parses `--tier-limit` into an absolute per-tier cap map. Two forms:
+ *   `--tier-limit 10`          → uniform cap of 10 on every tier
+ *   `--tier-limit T6:5,T7:5`   → cap only T6/T7 at 5; other tiers run in full
+ * Positive integers only; unknown tier names are a usage error.
+ */
+export const parseTierLimit = (raw: string): Map<QueryTier, number> => {
+  const limits = new Map<QueryTier, number>();
+  const trimmed = raw.trim();
+  if (/^\d+$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (n <= 0) throw new UsageError(`--tier-limit expects a positive integer; got ${JSON.stringify(raw)}.`);
+    for (const tier of QUERY_TIERS) limits.set(tier, n);
+    return limits;
+  }
+  for (const part of trimmed.split(",")) {
+    const [tierRaw, countRaw] = part.split(":");
+    const tier = tierRaw?.trim() as QueryTier | undefined;
+    const n = Number(countRaw);
+    if (!tier || !QUERY_TIERS.includes(tier) || !Number.isInteger(n) || n <= 0) {
+      throw new UsageError(
+        `--tier-limit expects "<int>" or "Tn:int,Tn:int" with valid tiers (${QUERY_TIERS.join(",")}) and positive ints; got ${JSON.stringify(raw)}.`,
+      );
+    }
+    limits.set(tier, n);
+  }
+  return limits;
+};
+
+/**
+ * Resolves the active per-tier caps: the CLI `--tier-limit` flag wins, else the
+ * config `sampling.max_per_tier` default, else `null` (no cap → full fixture).
+ */
+const resolveTierLimits = (
+  flag: string | undefined,
+  cfg: ReturnType<typeof getConfig>,
+): Map<QueryTier, number> | null => {
+  if (flag !== undefined) return parseTierLimit(flag);
+  const cfgLimit = cfg.sampling?.max_per_tier;
+  if (cfgLimit === undefined) return null;
+  const limits = new Map<QueryTier, number>();
+  if (typeof cfgLimit === "number") {
+    for (const tier of QUERY_TIERS) limits.set(tier, cfgLimit);
+  } else {
+    for (const tier of QUERY_TIERS) {
+      const n = cfgLimit[tier];
+      if (n !== undefined) limits.set(tier, n);
+    }
+  }
+  return limits.size > 0 ? limits : null;
+};
+
+/**
+ * Picks a deterministic per-tier subset capped at an ABSOLUTE count per tier
+ * (vs `stratifiedSample`'s ratio). Tiers absent from `limits` run in full.
+ * Same fixture + same caps → same subset (sorts each tier by `id`, slices head).
+ */
+export const perTierLimit = (queries: readonly Query[], limits: Map<QueryTier, number>): Query[] => {
+  const byTier = new Map<QueryTier, Query[]>();
+  for (const q of queries) {
+    const list = byTier.get(q.tier) ?? [];
+    list.push(q);
+    byTier.set(q.tier, list);
+  }
+  const out: Query[] = [];
+  for (const tier of QUERY_TIERS) {
+    const tierQueries = byTier.get(tier);
+    if (!tierQueries || tierQueries.length === 0) continue;
+    const cap = limits.get(tier) ?? tierQueries.length;
+    const sorted = [...tierQueries].sort((a, b) => a.id.localeCompare(b.id));
+    out.push(...sorted.slice(0, cap));
   }
   return out;
 };
@@ -1120,6 +1219,7 @@ const buildManifest = (args: {
   judge_provider: string;
   judge_model: string;
   judge_prompt_hash: string;
+  sampling: SamplingMode;
 }): RunManifest => {
   const cfg = getConfig();
   return {
@@ -1168,6 +1268,7 @@ const buildManifest = (args: {
     retrieval_config_snapshot: args.retriever_config_snapshot,
     caching_enabled: cfg.caching.enabled,
     budget_cap_usd: args.budget_cap_usd,
+    sampling: args.sampling,
   };
 };
 
@@ -1289,7 +1390,7 @@ USAGE
   june-eval run <fixture_dir> [--out <dir>]
                 [--resume | --skip-ingest <run_id> |
                  --from <run_id> --rerun-from <stage>]
-                [--quick | --sample <ratio>] [--cache] [--yes]
+                [--quick | --sample <ratio> | --tier-limit <spec>] [--cache] [--yes]
                 [--config <path>] [--quiet] [--log-json]
 
 FLAGS
@@ -1317,6 +1418,14 @@ FLAGS
                            yields the same subset. CIs widen — DO NOT compare
                            sampled-run numbers to full-fixture numbers.
                            Mutually exclusive with --quick.
+  --tier-limit <spec>      cap queries by ABSOLUTE per-tier count for fast
+                           iteration on a large fixture. Two forms:
+                             --tier-limit 10        uniform cap of 10 on every tier
+                             --tier-limit T6:5,T7:5 cap only T6/T7; others run full
+                           Deterministic (sorts each tier by id, takes the head).
+                           Defaults from config sampling.max_per_tier when unset.
+                           CIs widen — a subsampled run CANNOT be pinned/gated as a
+                           golden. Mutually exclusive with --quick/--sample.
   --cache                  serve identical LLM requests from the on-disk
                            response cache (caching.cache_root). Misses are
                            written through; hits report cost_usd: 0. Boolean

@@ -108,6 +108,20 @@ export type RunManifest = {
   retrieval_config_snapshot: Record<string, unknown>;
   caching_enabled: boolean;
   budget_cap_usd: number;
+  /**
+   * How the query set was sampled for this run (§ iteration). Absent on older
+   * runs ⇒ treat as `"full"`. Only `"full"` runs may be pinned/gated as a
+   * golden — `control-pin`/`control-check` refuse `ratio`/`tier-limit` runs
+   * (subsampled CIs are wider and per-tier counts differ from the lock).
+   */
+  sampling?: SamplingMode;
+};
+
+/** Query-sampling provenance recorded into the manifest. */
+export type SamplingMode = {
+  mode: "full" | "ratio" | "tier-limit";
+  /** Human-readable spec: the ratio (e.g. "0.1") or per-tier caps (e.g. "T6:5,T7:5"). */
+  detail?: string;
 };
 
 /**

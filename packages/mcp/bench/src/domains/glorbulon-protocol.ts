@@ -1,8 +1,8 @@
 // author: Claude
 import type { DomainTemplate } from "./types";
 import type { AtomicFact, Fact, RelationalFact } from "@/types/facts";
-import { pick, shuffle, type Rng } from "@/lib/rng";
-import { logger } from "@/lib/logger";
+import { pick, randInt, shuffle, type Rng } from "@/lib/rng";
+import { DEFAULT_ENTITY_COUNT } from "@/lib/ids";
 
 /**
  * v1's synthetic domain — a fictional network-protocol family (§15, Appendix A).
@@ -70,7 +70,7 @@ const portNumber = (rng: Rng): number => 7000 + Math.floor(rng() * 1000);
 const intInRange = (rng: Rng, lo: number, hi: number): number =>
   lo + Math.floor(rng() * (hi - lo + 1));
 
-const buildAtomicFacts = (rng: Rng): AtomicFact[] => {
+const buildAtomicFacts = (rng: Rng, entities: readonly string[]): AtomicFact[] => {
   const out: AtomicFact[] = [];
   let counter = 1;
   const usedPorts = new Set<number>();
@@ -78,7 +78,6 @@ const buildAtomicFacts = (rng: Rng): AtomicFact[] => {
   const uniquePort = (): number => {
     for (let tries = 0; tries < 1000; tries++) {
       const p = portNumber(rng);
-			logger.debug(`Trying port ${p}`);
       if (!usedPorts.has(p)) {
         usedPorts.add(p);
         return p;
@@ -87,7 +86,7 @@ const buildAtomicFacts = (rng: Rng): AtomicFact[] => {
     throw new Error("Exhausted port pool while generating atomic facts");
   };
 
-  for (const entity of PROTOCOLS) {
+  for (const entity of entities) {
     const controlPort = uniquePort();
     const dataPort = uniquePort();
     const heartbeatMs = intInRange(rng, 100, 5000);
@@ -187,11 +186,55 @@ const buildRelationalFacts = (rng: Rng, atomic: AtomicFact[]): RelationalFact[] 
   return out;
 };
 
+// --- Synthetic entity scaling (entityCount > 10) ----------------------------
+// Beyond the 10 hardcoded protocols, extra entities are minted as
+// pronounceable nonsense names so a larger fixture (e.g. glorbulon-v3, 100
+// entities) can be generated deterministically with NO LLM. The generator is
+// invoked ONLY when entityCount > 10, so the default-10 path is byte-identical
+// to v1/v2 (the main rng stream is never touched by name generation there).
+
+const NAME_SUFFIXES: readonly string[] = [
+  "Protocol", "Layer", "Framework", "Transport", "Session", "Control", "Signal", "Exchange",
+];
+const NAME_CONSONANTS = "bcdfghjklmnprstvwxz".split("");
+const NAME_VOWELS = "aeiou".split("");
+
+/**
+ * Mints `n` byte-distinct, slug-distinct protocol names. Each name's leading
+ * token is globally unique (tracked in a Set seeded with the 10 hardcoded
+ * first-words), which guarantees both full-name and slug distinctness
+ * regardless of the decorative suffix. Deterministic in `rng`.
+ */
+const generateProtocolNames = (rng: Rng, n: number): string[] => {
+  const usedBases = new Set(PROTOCOLS.map((p) => p.split(" ")[0]!.toLowerCase()));
+  const names: string[] = [];
+  while (names.length < n) {
+    const syllables = 3 + randInt(rng, 2); // 3–4 syllables → 6–8 letters
+    let base = "";
+    for (let i = 0; i < syllables; i++) {
+      base += pick(rng, NAME_CONSONANTS)! + pick(rng, NAME_VOWELS)!;
+    }
+    if (usedBases.has(base)) continue;
+    usedBases.add(base);
+    const capped = base[0]!.toUpperCase() + base.slice(1);
+    names.push(`${capped} ${pick(rng, NAME_SUFFIXES)!}`);
+  }
+  return names;
+};
+
 export const glorbulonProtocol: DomainTemplate = {
   name: "glorbulon-protocol",
   domain_name: "Glorbulon Protocol",
-  generate: (rng: Rng) => {
-    const atomic = buildAtomicFacts(rng);
+  generate: (rng: Rng, opts?: { entityCount?: number }) => {
+    const entityCount = opts?.entityCount ?? DEFAULT_ENTITY_COUNT;
+    // entityCount === 10 ⇒ exactly the hardcoded set, name generator NOT called
+    // ⇒ byte-identical to the historical fixtures. Larger counts append minted
+    // names (which draw from the same rng — fine, v3 is a fresh fixture).
+    const entities =
+      entityCount <= PROTOCOLS.length
+        ? PROTOCOLS.slice(0, entityCount)
+        : [...PROTOCOLS, ...generateProtocolNames(rng, entityCount - PROTOCOLS.length)];
+    const atomic = buildAtomicFacts(rng, entities);
     const relational = buildRelationalFacts(rng, atomic);
     const facts: Fact[] = [...atomic, ...relational];
     return { facts };

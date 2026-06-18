@@ -280,6 +280,23 @@ const assertCompleted = (results: ResultsFile, verb: string): void => {
 };
 
 /**
+ * A subsampled run (`--sample`/`--quick`/`--tier-limit`) is iteration-only: its
+ * bootstrap CIs are wider and its per-tier counts differ from the fixture lock,
+ * so it must never become — or be gated against — a golden. Older runs predate
+ * the `sampling` field; `undefined` ⇒ treat as full.
+ */
+export const assertFullFixture = (results: ResultsFile, verb: string): void => {
+  const mode = results.manifest.sampling?.mode;
+  if (mode !== undefined && mode !== "full") {
+    throw new UsageError(
+      `${verb} requires a FULL-fixture run, but this run was subsampled (sampling.mode="${mode}"` +
+        (results.manifest.sampling?.detail ? `, ${results.manifest.sampling.detail}` : "") +
+        `). Subsampled runs are iteration-only — re-run without --tier-limit/--sample/--quick to certify.`,
+    );
+  }
+};
+
+/**
  * Resolves the noise floor for `control-pin` from MEASUREMENT, not a guess
  * (Phase 2, the audit's gap #2). Order:
  *  1. `--accept-floor <0..1>` — an explicit, deliberately-flagged typed override
@@ -359,6 +376,7 @@ export const runControlPin = async (argv: readonly string[]): Promise<void> => {
   )) as ResultsFile;
   assertControl(results, "control-pin");
   assertCompleted(results, "control-pin");
+  assertFullFixture(results, "control-pin");
   await assertJudgeCalibrated(results, flags);
 
   const { noise_floor, source } = await resolveNoiseFloor(flags, results.manifest.fixture_hash);
@@ -412,6 +430,7 @@ export const runControlCheck = async (argv: readonly string[]): Promise<void> =>
   )) as ResultsFile;
   assertControl(results, "control-check");
   assertCompleted(results, "control-check");
+  assertFullFixture(results, "control-check");
 
   const registry = await loadRegistry();
   const golden = registry[results.manifest.fixture_hash];

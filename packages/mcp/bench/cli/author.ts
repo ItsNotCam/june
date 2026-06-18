@@ -27,7 +27,7 @@ import { bootstrap, getConfig, parseArgv, flagString } from "./shared";
 const PLAN_FILENAME = "authoring_plan.json";
 
 /**
- * `june-eval scaffold <domain> --seed <n> --out <dir> [--counts T1,T2,T3,T4,T5,T6,T7]`
+ * `june-eval scaffold <domain> --seed <n> --out <dir> [--counts T1..T7] [--entities <n>]`
  * Runs Stage 1 (deterministic facts, no API) and writes facts.json + the
  * authoring plan. The plan says WHICH facts each document/query must cover.
  */
@@ -48,9 +48,14 @@ export const runScaffold = async (argv: readonly string[]): Promise<void> => {
   }
   const outDir = resolve(flagString(flags, "out") ?? `./state/scaffold/${domain}-${seed}`);
   const counts = parseCounts(flagString(flags, "counts"));
+  const entitiesStr = flagString(flags, "entities");
+  const entityCount = entitiesStr !== undefined ? Number(entitiesStr) : undefined;
+  if (entityCount !== undefined && (!Number.isInteger(entityCount) || entityCount < 1)) {
+    throw new UsageError(`--entities <positive integer> (got ${JSON.stringify(entitiesStr)}).`);
+  }
 
   await mkdir(outDir, { recursive: true });
-  const facts = await runStage1({ seed, domain, out_path: join(outDir, "facts.json") });
+  const facts = await runStage1({ seed, domain, out_path: join(outDir, "facts.json"), entityCount });
   const plan = buildAuthoringPlan(facts, {
     maxFactsPerDoc: getConfig().corpus.max_facts_per_doc,
     counts,
@@ -162,12 +167,19 @@ const parseCounts = (s: string | undefined): QueryCounts | undefined => {
 const SCAFFOLD_HELP = `june-eval scaffold — emit deterministic facts + an authoring plan (no API).
 
 USAGE
-  june-eval scaffold <domain> --seed <n> [--out <dir>] [--counts T1,T2,T3,T4,T5,T6,T7] [--config <path>]
+  june-eval scaffold <domain> --seed <n> [--out <dir>] [--counts T1,T2,T3,T4,T5,T6,T7]
+                     [--entities <n>] [--config <path>]
 
 Runs Stage 1 (seeded, LLM-free) and writes facts.json + authoring_plan.json. The
 plan lists each document's facts (to plant verbatim) and each query's target
 fact(s). Agents then author the prose — sonnet corpus, opus queries — and
 \`june-eval assemble\` validates + writes the fixture. See AUTHORING.md.
+
+  --entities <n>   corpus entity count (default 10 = the legacy hardcoded set).
+                   Larger values mint deterministic synthetic entities so a
+                   higher-powered fixture (e.g. 100 entities → ~100 independent
+                   deep chains) can be built. The fixture_id is discriminated by
+                   entity count, so v3 (100) never collides with v1/v2 (10).
 `;
 
 const ASSEMBLE_HELP = `june-eval assemble — validate agent-authored drafts into a fixture (no API).

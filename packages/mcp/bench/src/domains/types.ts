@@ -19,5 +19,10 @@ import type { Rng } from "@/lib/rng";
 export type DomainTemplate = {
   name: string;
   domain_name: string;
-  generate: (rng: Rng) => { facts: Fact[] };
+  /**
+   * `opts.entityCount` scales the corpus (default 10 = the legacy hardcoded
+   * set). At the default the output is byte-identical to the historical
+   * fixtures; larger counts append deterministically-generated entities.
+   */
+  generate: (rng: Rng, opts?: { entityCount?: number }) => { facts: Fact[] };
 };

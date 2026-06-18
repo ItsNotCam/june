@@ -30,15 +30,29 @@ const base32Encode130 = (bytes: Uint8Array): string => {
   return out;
 };
 
+/** The default domain entity count (the 10 hardcoded protocols). */
+export const DEFAULT_ENTITY_COUNT = 10;
+
 /**
- * Deterministic fixture id derived from seed + domain_name (§15).
+ * Deterministic fixture id derived from seed + domain_name (+ entity count) (§15).
  *
  * `sha256("fixture:" + seed + ":" + domain_name)`, first 130 bits, base32.
  * Stable across fact-generation runs with the same inputs.
+ *
+ * `entityCount` discriminates corpora of different sizes built from the same
+ * seed + domain (e.g. the 10-entity v1/v2 vs the 100-entity v3). It is folded
+ * into the hash **only when it differs from the default 10**, so existing
+ * frozen fixtures keep their byte-identical ids — the legacy id IS the
+ * 10-entity id.
  */
-export const fixtureId = (seed: number, domain_name: string): string => {
+export const fixtureId = (
+  seed: number,
+  domain_name: string,
+  entityCount: number = DEFAULT_ENTITY_COUNT,
+): string => {
+  const suffix = entityCount === DEFAULT_ENTITY_COUNT ? "" : `:e${entityCount}`;
   const digest = createHash("sha256")
-    .update(`fixture:${seed}:${domain_name}`, "utf-8")
+    .update(`fixture:${seed}:${domain_name}${suffix}`, "utf-8")
     .digest();
   return base32Encode130(new Uint8Array(digest));
 };
