@@ -22,11 +22,27 @@ const GenerateResponseSchema = z.object({
 });
 
 /**
- * Fixed seed for the summarizer. Combined with `temperature: 0` it makes Ollama
- * decode greedily and reproducibly, so re-ingesting a corpus yields byte-identical
- * contextual summaries (and therefore identical embeddings / retrieval).
+ * Fixed seed for the summarizer. Reproducibility comes from the **seed** (not
+ * from `temperature: 0`): given the same seed, prompt, and host, Ollama's sampler
+ * draws identically, so re-ingesting a corpus yields byte-identical contextual
+ * summaries (and therefore identical embeddings / retrieval) on the BYO host.
  */
 const SUMMARIZER_SEED = 42;
+
+/**
+ * Anti-degeneration decoding. Pure greedy decoding (`temperature: 0`) makes
+ * gemma4:26b fall into token-repetition loops on some chunks ("…the and the…",
+ * collapsing into "fulfulful…" until the token cap) — the JSON string then never
+ * closes, fails to parse, and silently falls back to the template. On the real-doc
+ * holdout this hit ~11% of chunks, and a repetition penalty alone only halved it
+ * (the worst chunks loop under greedy regardless). A **low non-zero temperature**
+ * gives the sampler enough freedom to escape the loop, while the fixed seed keeps
+ * it reproducible; the repetition penalty (with a widened `repeat_last_n` window)
+ * further discourages phrase-level repeats.
+ */
+const SUMMARIZER_TEMPERATURE = 0.5;
+const SUMMARIZER_REPEAT_PENALTY = 1.3;
+const SUMMARIZER_REPEAT_LAST_N = 256;
 
 const postWithTimeout = async (
   url: string,
@@ -58,6 +74,7 @@ const generate = async (
   prompt: string,
   timeoutMs: number,
   jsonMode = false,
+  attempt = 0,
 ): Promise<string> => {
   const res = await postWithTimeout(
     `${url}/api/generate`,
@@ -65,8 +82,17 @@ const generate = async (
       model,
       prompt,
       stream: false,
-      // Deterministic decoding — see SUMMARIZER_SEED.
-      options: { temperature: 0, seed: SUMMARIZER_SEED },
+      // Reproducible (seeded) + anti-degeneration decoding — see
+      // SUMMARIZER_SEED / SUMMARIZER_TEMPERATURE / SUMMARIZER_REPEAT_PENALTY.
+      // `attempt` offsets the seed so a re-roll after an unparseable output
+      // decodes differently (escaping a deterministic degeneration) while each
+      // attempt stays individually reproducible.
+      options: {
+        temperature: SUMMARIZER_TEMPERATURE,
+        seed: SUMMARIZER_SEED + attempt,
+        repeat_penalty: SUMMARIZER_REPEAT_PENALTY,
+        repeat_last_n: SUMMARIZER_REPEAT_LAST_N,
+      },
       ...(jsonMode ? { format: "json" } : {}),
     },
     timeoutMs,
@@ -153,9 +179,9 @@ export const createOllamaSummarizer = (): Summarizer => {
 
   return createSummarizerFromGenerate({
     name: model,
-    generate: (prompt, jsonMode) =>
+    generate: (prompt, jsonMode, attempt) =>
       retryLoop("generate", () =>
-        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), jsonMode),
+        generate(env.OLLAMA_URL, model, prompt, timeoutFor(), jsonMode, attempt),
       ),
     unload: () => unloadOllamaSummarizer(env.OLLAMA_URL, model),
   });

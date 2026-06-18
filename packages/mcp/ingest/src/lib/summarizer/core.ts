@@ -40,9 +40,23 @@ const ChunkSummaryJsonSchema = z.object({
  * Generates raw model text for a built prompt. Implementations own their
  * transport, retry, and timeout; `jsonMode` lets a backend opt into a native
  * JSON-only decode mode (Ollama) — backends without one ignore it and rely on
- * the balanced-brace extraction below.
+ * the balanced-brace extraction below. `attempt` (0-based) lets the validation
+ * loop request a *different* sampling on a re-roll — Ollama offsets its seed by
+ * it so a degenerate greedy loop on attempt 0 doesn't recur identically; other
+ * backends may ignore it.
  */
-export type GenerateFn = (prompt: string, jsonMode: boolean) => Promise<string>;
+export type GenerateFn = (
+  prompt: string,
+  jsonMode: boolean,
+  attempt?: number,
+) => Promise<string>;
+
+/**
+ * Max generate+validate attempts for one chunk before the template fallback.
+ * Re-rolls use a varied seed (see GenerateFn.attempt) so a deterministic
+ * degeneration on the first pass gets a genuinely different decode.
+ */
+const SUMMARY_VALIDATION_ATTEMPTS = 3;
 
 export type SummarizerCoreOptions = {
   readonly name: string;
@@ -189,19 +203,23 @@ export const createSummarizerFromGenerate = (
             document_body: input.containing_text,
             chunk_content: input.chunk_content,
           });
-    try {
-      const raw = await generate(prompt, true);
-      const summary = extractSummary(raw);
-      if (summary === null) {
-        // Generation succeeded but the output isn't a `{"summary": string}`
-        // object — historically a SILENT fallback. Log it with a raw snippet.
-        logger.warn("summarizer_rejected", {
-          event: "summarizer_rejected",
-          chunk_id: input.chunk_id as string,
-          reason: "extract_null",
-          raw_preview: raw.trim().slice(0, 200),
-        });
-      } else {
+    for (let attempt = 0; attempt < SUMMARY_VALIDATION_ATTEMPTS; attempt++) {
+      try {
+        const raw = await generate(prompt, true, attempt);
+        const summary = extractSummary(raw);
+        if (summary === null) {
+          // Generation succeeded but the output isn't a `{"summary": string}`
+          // object (e.g. a degenerate repetition loop leaves the JSON unclosed).
+          // Historically a SILENT fallback — log it and re-roll with a new seed.
+          logger.warn("summarizer_rejected", {
+            event: "summarizer_rejected",
+            chunk_id: input.chunk_id as string,
+            reason: "extract_null",
+            attempt,
+            raw_preview: raw.trim().slice(0, 200),
+          });
+          continue;
+        }
         const check = checkSummary(summary);
         if (check.ok) {
           return {
@@ -216,15 +234,20 @@ export const createSummarizerFromGenerate = (
           event: "summarizer_rejected",
           chunk_id: input.chunk_id as string,
           reason: check.reason,
+          attempt,
           raw_preview: summary.slice(0, 200),
         });
+      } catch (err) {
+        // Transport failure — the backend already retried timeouts internally,
+        // so a re-roll won't help. Log and fall straight through to the template.
+        logger.warn("summarizer_failure", {
+          event: "summarizer_failure",
+          chunk_id: input.chunk_id as string,
+          error_type: err instanceof Error ? err.name : "unknown",
+          attempt,
+        });
+        break;
       }
-    } catch (err) {
-      logger.warn("summarizer_failure", {
-        event: "summarizer_failure",
-        chunk_id: input.chunk_id as string,
-        error_type: err instanceof Error ? err.name : "unknown",
-      });
     }
     return {
       chunk_id: input.chunk_id,

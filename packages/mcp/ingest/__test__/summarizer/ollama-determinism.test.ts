@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe("ollama summarizer determinism", () => {
-  test("sends temperature 0 and a fixed seed on /api/generate", async () => {
+  test("sends a fixed seed and bounded temperature on /api/generate", async () => {
     const s = createOllamaSummarizer();
     await s.summarizeChunk(input());
 
@@ -54,9 +54,26 @@ describe("ollama summarizer determinism", () => {
       format?: string;
     };
     expect(captured!.url).toContain("/api/generate");
-    expect(body.options?.temperature).toBe(0);
+    // Reproducibility comes from the fixed seed; a low (<1) non-zero temperature
+    // escapes greedy repetition loops without sacrificing it.
     expect(typeof body.options?.seed).toBe("number");
+    expect(body.options?.temperature).toBeGreaterThan(0);
+    expect(body.options?.temperature).toBeLessThan(1);
     // JSON-mode decode is still requested.
     expect(body.format).toBe("json");
+  });
+
+  test("sends an anti-degeneration repetition penalty (breaks greedy loops)", async () => {
+    const s = createOllamaSummarizer();
+    await s.summarizeChunk(input());
+
+    const body = captured!.body as {
+      options?: { repeat_penalty?: number; repeat_last_n?: number };
+    };
+    // Pure greedy decoding loops on some chunks ("fulfulful…" → unterminated
+    // JSON → silent fallback). A >1 repetition penalty breaks the loop and stays
+    // deterministic given the fixed seed.
+    expect(body.options?.repeat_penalty).toBeGreaterThan(1);
+    expect(typeof body.options?.repeat_last_n).toBe("number");
   });
 });

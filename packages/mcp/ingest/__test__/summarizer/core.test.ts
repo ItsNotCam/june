@@ -115,4 +115,23 @@ describe("createSummarizerFromGenerate.summarizeChunk", () => {
     const out = await s.summarizeChunk(baseInput());
     expect(out.contextual_summary).toBe(fallbackSummary(baseInput()));
   });
+
+  test("re-rolls on unparseable output and accepts a later valid attempt", async () => {
+    const good = "y".repeat(80);
+    let calls = 0;
+    const s = createSummarizerFromGenerate({
+      name: "fake",
+      // Attempt 0 returns an unterminated JSON string (a degeneration loop's
+      // signature → extract_null); attempt 1 returns valid JSON.
+      generate: async (_prompt, _jsonMode, attempt) => {
+        calls++;
+        return (attempt ?? 0) === 0
+          ? '{"summary": "never closes'
+          : `{"summary":"${good}"}`;
+      },
+    });
+    const out = await s.summarizeChunk(baseInput());
+    expect(out.contextual_summary).toBe(good);
+    expect(calls).toBe(2);
+  });
 });
