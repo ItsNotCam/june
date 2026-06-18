@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "name": "glorbulon-v2",
+  "fixture_id": "VZJWC40R0WZG024SRQ7368QSMM",
+  "fixture_hash": "bd9b5bdb9f60001d2cb28be2ff3f2069abb4b1e67480810a1fe755b01d0fd5e3",
+  "domain": "Glorbulon Protocol",
+  "seed": 31337,
+  "authoring": {
+    "facts": "deterministic",
+    "corpus_author": {
+      "provider": "claude-code-agent",
+      "model": "claude-sonnet-4-6"
+    },
+    "query_author": {
+      "provider": "claude-code-agent",
+      "model": "claude-opus-4-8"
+    },
+    "anti_collusion": true
+  },
+  "query_count": 80,
+  "per_tier_counts": {
+    "T1": 10,
+    "T2": 10,
+    "T3": 10,
+    "T4": 12,
+    "T5": 10,
+    "T6": 14,
+    "T7": 14
+  },
+  "anti_leakage": {
+    "threshold": 0.4,
+    "max_score": 0.4,
+    "mean_score": 0.17931702126442514,
+    "scored_count": 60
+  },
+  "files": [
+    {
+      "path": "corpus/borghyl-control.md",
+      "sha256": "5fd53de7d3cd7105ec9babf79fd1683bdf362405cbe491e938e7dec2d86fa39c"
+    },
+    {
+      "path": "corpus/dargwave-transport.md",
+      "sha256": "5fbef884aa32bc4ce749b4f95d81f47aaf265d7786e2ca800ebb391305874f05"
+    },
+    {
+      "path": "corpus/froznet-v2.md",
+      "sha256": "65a93ea6f5ae05c2e9a4e768365382814e678652202109533ccd399a894d4a7e"
+    },
+    {
+      "path": "corpus/glorbulon-protocol.md",
+      "sha256": "38951bacb3b639dd735caa90c6fd3ea5ec5ef738dd3e5b582467b1dd6aa5333b"
+    },
+    {
+      "path": "corpus/kreznak-signal.md",
+      "sha256": "4291a4530d98787995e93a378b8f68223f872b0c07a29b2b7329fa474055ad10"
+    },
+    {
+      "path": "corpus/plirnode-framework.md",
+      "sha256": "fe0aeff3298ff8087083496e0c183a8dcbdd9f10e5eaa1016ba38c5cf6e659d6"
+    },
+    {
+      "path": "corpus/querban-layer.md",
+      "sha256": "da351e33e1d0df839f4b45f51661b218a9dc008a5de272ac7f26d0d1df015ca4"
+    },
+    {
+      "path": "corpus/snorblath-protocol.md",
+      "sha256": "cc2b41183283fd395f66da552a328169f76dfd64ce8f7ba5529322e4c14aa058"
+    },
+    {
+      "path": "corpus/viznet-exchange.md",
+      "sha256": "63ab282d58b44d73af75108b1ffd3ea5aeb80b8b94d30ccc95ce17325f0d894d"
+    },
+    {
+      "path": "corpus/wexmar-session.md",
+      "sha256": "7ef2b91f19b647581ee706b81dac5ab9bbd0dbb3ab393929a95529ccb782c538"
+    },
+    {
+      "path": "corpus_manifest.json",
+      "sha256": "fc4d85bf95f92f94615f1d0573791d88957c0fd142e9be5a3ddf60f031d1097c"
+    },
+    {
+      "path": "facts.json",
+      "sha256": "31d2b8c3700d3c928e0631169e6ff26ed035f25c7804c2b61eeaf54ad9fc99d7"
+    },
+    {
+      "path": "queries.json",
+      "sha256": "9f56cf8dd392cd7fbbd72da6c4125b091982c0ab638e7b615d3642e4b699ecac"
+    }
+  ],
+  "frozen_at": "2026-06-18T21:20:22.814Z",
+  "human_signoff": "cam — 7-tier (sonnet corpus / opus queries)"
+}

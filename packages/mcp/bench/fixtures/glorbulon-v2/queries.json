@@ -1,0 +1,872 @@
+{
+  "fixture_id": "VZJWC40R0WZG024SRQ7368QSMM",
+  "schema_version": 1,
+  "query_author": {
+    "provider": "claude-code-agent",
+    "model": "claude-opus-4-8"
+  },
+  "queries": [
+    {
+      "id": "q-0001",
+      "tier": "T1",
+      "text": "How often does the Wexmar Session send heartbeats, in milliseconds?",
+      "expected_fact_ids": [
+        "f-atomic-0051"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0002",
+      "tier": "T1",
+      "text": "Which port does the Glorbulon Protocol use for control messages?",
+      "expected_fact_ids": [
+        "f-atomic-0001"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0003",
+      "tier": "T1",
+      "text": "What transport does Froznet v2 tunnel through?",
+      "expected_fact_ids": [
+        "f-rel-0006"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0004",
+      "tier": "T1",
+      "text": "What is the session timeout of the Snorblath Protocol in seconds?",
+      "expected_fact_ids": [
+        "f-atomic-0020"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0005",
+      "tier": "T1",
+      "text": "Which protocol does the Snorblath Protocol extend?",
+      "expected_fact_ids": [
+        "f-rel-0011"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0006",
+      "tier": "T1",
+      "text": "What does the Glorbulon Protocol authenticate via?",
+      "expected_fact_ids": [
+        "f-rel-0004"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0007",
+      "tier": "T1",
+      "text": "What is the maximum packet size of Froznet v2 in bytes?",
+      "expected_fact_ids": [
+        "f-atomic-0013"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0008",
+      "tier": "T1",
+      "text": "How many seconds does the Dargwave Transport handshake take?",
+      "expected_fact_ids": [
+        "f-atomic-0040"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0009",
+      "tier": "T1",
+      "text": "Which protocol does the Querban Layer extend?",
+      "expected_fact_ids": [
+        "f-rel-0024"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0010",
+      "tier": "T1",
+      "text": "What does the Viznet Exchange tunnel through?",
+      "expected_fact_ids": [
+        "f-rel-0014"
+      ],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0011",
+      "tier": "T2",
+      "text": "Which other system is the Querban Layer able to work together with?",
+      "expected_fact_ids": [
+        "f-rel-0022"
+      ],
+      "anti_leakage_score": 0.2,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0012",
+      "tier": "T2",
+      "text": "What serialization format does the Viznet Exchange use to package its data on the wire?",
+      "expected_fact_ids": [
+        "f-atomic-0030"
+      ],
+      "anti_leakage_score": 0.16666666666666666,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0013",
+      "tier": "T2",
+      "text": "Which older system did the Plirnode Framework come along to replace?",
+      "expected_fact_ids": [
+        "f-rel-0031"
+      ],
+      "anti_leakage_score": 0.18181818181818182,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0014",
+      "tier": "T2",
+      "text": "When Dargwave Transport carries traffic, which protocol does it enclose inside its frames?",
+      "expected_fact_ids": [
+        "f-rel-0020"
+      ],
+      "anti_leakage_score": 0.25,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0015",
+      "tier": "T2",
+      "text": "What lower layer must be present for the Glorbulon Protocol to function?",
+      "expected_fact_ids": [
+        "f-rel-0003"
+      ],
+      "anti_leakage_score": 0.2,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0016",
+      "tier": "T2",
+      "text": "Which counterpart system can the Snorblath Protocol communicate with?",
+      "expected_fact_ids": [
+        "f-rel-0010"
+      ],
+      "anti_leakage_score": 0.2222222222222222,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0017",
+      "tier": "T2",
+      "text": "What algorithm does Dargwave Transport apply to shrink the bytes it sends?",
+      "expected_fact_ids": [
+        "f-atomic-0039"
+      ],
+      "anti_leakage_score": 0.2,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0018",
+      "tier": "T2",
+      "text": "In what serialization format does the Snorblath Protocol package its message bodies?",
+      "expected_fact_ids": [
+        "f-atomic-0022"
+      ],
+      "anti_leakage_score": 0.18181818181818182,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0019",
+      "tier": "T2",
+      "text": "What other component does the Viznet Exchange rely on to operate?",
+      "expected_fact_ids": [
+        "f-rel-0013"
+      ],
+      "anti_leakage_score": 0.2222222222222222,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0020",
+      "tier": "T2",
+      "text": "How large is the biggest single frame that Froznet v2 will allow over the link?",
+      "expected_fact_ids": [
+        "f-atomic-0013"
+      ],
+      "anti_leakage_score": 0.06666666666666667,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0021",
+      "tier": "T3",
+      "text": "I'm sizing a send buffer for Froznet v2 and need to know the largest single datagram it will accept before fragmentation kicks in — what's that ceiling in bytes?",
+      "expected_fact_ids": [
+        "f-atomic-0013"
+      ],
+      "anti_leakage_score": 0.09523809523809523,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0022",
+      "tier": "T3",
+      "text": "We're opening a firewall rule so Plirnode Framework can move payloads between nodes; which TCP port carries that bulk traffic?",
+      "expected_fact_ids": [
+        "f-atomic-0058"
+      ],
+      "anti_leakage_score": 0.15789473684210525,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0023",
+      "tier": "T3",
+      "text": "A monitoring dashboard for the Snorblath Protocol keeps flagging connections as dead; how often does it emit its keep-alive signal so I can set the right liveness threshold?",
+      "expected_fact_ids": [
+        "f-atomic-0019"
+      ],
+      "anti_leakage_score": 0.08695652173913043,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0024",
+      "tier": "T3",
+      "text": "An idle Borghyl Control connection eventually drops on its own. After how long with no activity does it close the session?",
+      "expected_fact_ids": [
+        "f-atomic-0068"
+      ],
+      "anti_leakage_score": 0.1875,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0025",
+      "tier": "T3",
+      "text": "I'm whitelisting Wexmar Session through a proxy and need the channel it uses to exchange command and signaling traffic — which port should I open for that?",
+      "expected_fact_ids": [
+        "f-atomic-0049"
+      ],
+      "anti_leakage_score": 0.21052631578947367,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0026",
+      "tier": "T3",
+      "text": "Our Plirnode Framework clients get disconnected after sitting idle for a while; what's the inactivity limit before it tears the session down?",
+      "expected_fact_ids": [
+        "f-atomic-0060"
+      ],
+      "anti_leakage_score": 0.16666666666666666,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0027",
+      "tier": "T3",
+      "text": "I'm allocating reassembly memory for Glorbulon Protocol and need the upper bound on a single frame's length in bytes — what's the cap?",
+      "expected_fact_ids": [
+        "f-atomic-0005"
+      ],
+      "anti_leakage_score": 0.17647058823529413,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0028",
+      "tier": "T3",
+      "text": "A load balancer fronting Wexmar Session keeps recycling connections too early; what's the duration of inactivity it tolerates before the session expires?",
+      "expected_fact_ids": [
+        "f-atomic-0052"
+      ],
+      "anti_leakage_score": 0.11764705882352941,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0029",
+      "tier": "T3",
+      "text": "I'm decoding a payload from Plirnode Framework and the bytes look encoded rather than raw — which algorithm does it apply to shrink data on the wire?",
+      "expected_fact_ids": [
+        "f-atomic-0063"
+      ],
+      "anti_leakage_score": 0.15789473684210525,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0030",
+      "tier": "T3",
+      "text": "When a client first connects to Plirnode Framework, the initial negotiation feels slow; roughly how long does that setup exchange take to complete?",
+      "expected_fact_ids": [
+        "f-atomic-0064"
+      ],
+      "anti_leakage_score": 0.09523809523809523,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0031",
+      "tier": "T4",
+      "text": "Which compression algorithm is used by the older system that Wexmar Session was built to replace?",
+      "expected_fact_ids": [
+        "f-rel-0025",
+        "f-atomic-0047"
+      ],
+      "anti_leakage_score": 0.125,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0032",
+      "tier": "T4",
+      "text": "How does the protocol that Plirnode Framework relies on for authentication squeeze its bytes before sending them?",
+      "expected_fact_ids": [
+        "f-rel-0030",
+        "f-atomic-0039"
+      ],
+      "anti_leakage_score": 0.1,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0033",
+      "tier": "T4",
+      "text": "Which network port carries data traffic for the base protocol that Querban Layer builds upon?",
+      "expected_fact_ids": [
+        "f-rel-0024",
+        "f-atomic-0002"
+      ],
+      "anti_leakage_score": 0.3125,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0034",
+      "tier": "T4",
+      "text": "What serialization format does the underlying protocol extended by Snorblath Protocol rely on for its payloads?",
+      "expected_fact_ids": [
+        "f-rel-0011",
+        "f-atomic-0014"
+      ],
+      "anti_leakage_score": 0.23076923076923078,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0035",
+      "tier": "T4",
+      "text": "How often does the legacy system replaced by Snorblath Protocol emit its keep-alive pulses?",
+      "expected_fact_ids": [
+        "f-rel-0012",
+        "f-atomic-0051"
+      ],
+      "anti_leakage_score": 0.1111111111111111,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0036",
+      "tier": "T4",
+      "text": "After how long of inactivity does the foundational protocol that Querban Layer builds upon drop an idle session?",
+      "expected_fact_ids": [
+        "f-rel-0024",
+        "f-atomic-0004"
+      ],
+      "anti_leakage_score": 0.2222222222222222,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0037",
+      "tier": "T4",
+      "text": "Which network port carries data traffic for the service that Dargwave Transport relies on as a dependency?",
+      "expected_fact_ids": [
+        "f-rel-0018",
+        "f-atomic-0026"
+      ],
+      "anti_leakage_score": 0.25,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0038",
+      "tier": "T4",
+      "text": "What is the largest single packet permitted by the protocol that Kreznak Signal relies on as a dependency?",
+      "expected_fact_ids": [
+        "f-rel-0038",
+        "f-atomic-0021"
+      ],
+      "anti_leakage_score": 0.26666666666666666,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0039",
+      "tier": "T4",
+      "text": "Which network port carries data traffic for the underlying service that Borghyl Control builds upon?",
+      "expected_fact_ids": [
+        "f-rel-0034",
+        "f-atomic-0026"
+      ],
+      "anti_leakage_score": 0.23529411764705882,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0040",
+      "tier": "T4",
+      "text": "How many seconds does the initial connection negotiation take for the service that Froznet v2 relies on as a dependency?",
+      "expected_fact_ids": [
+        "f-rel-0005",
+        "f-atomic-0032"
+      ],
+      "anti_leakage_score": 0.11764705882352941,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0041",
+      "tier": "T4",
+      "text": "How long does the initial connection negotiation take for the framework that Wexmar Session encloses?",
+      "expected_fact_ids": [
+        "f-rel-0026",
+        "f-atomic-0064"
+      ],
+      "anti_leakage_score": 0.1875,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0042",
+      "tier": "T4",
+      "text": "How long does the initial connection negotiation take for the transport that Kreznak Signal encloses?",
+      "expected_fact_ids": [
+        "f-rel-0040",
+        "f-atomic-0040"
+      ],
+      "anti_leakage_score": 0.1875,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0043",
+      "tier": "T5",
+      "text": "What is the default cipher suite negotiated by Froznet v2 during session setup?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0044",
+      "tier": "T5",
+      "text": "What is the maximum retry count the Snorblath Protocol allows before it aborts a connection?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0045",
+      "tier": "T5",
+      "text": "Which checksum algorithm does the Snorblath Protocol use to validate each packet?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0046",
+      "tier": "T5",
+      "text": "What is the default keepalive timeout, in seconds, for Borghyl Control sessions?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0047",
+      "tier": "T5",
+      "text": "What port number does Dargwave Transport listen on by default?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0048",
+      "tier": "T5",
+      "text": "What is the minimum supported MTU for the Plirnode Framework?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0049",
+      "tier": "T5",
+      "text": "What link-layer encoding does Borghyl Control require for its outbound frames?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0050",
+      "tier": "T5",
+      "text": "How many concurrent streams can Kreznak Signal multiplex over a single channel?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0051",
+      "tier": "T5",
+      "text": "Which key-exchange curve does the Glorbulon Protocol use for its initial handshake?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0052",
+      "tier": "T5",
+      "text": "What is the maximum payload size, in bytes, that Kreznak Signal will accept in a single message?",
+      "expected_fact_ids": [],
+      "anti_leakage_score": null,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0053",
+      "tier": "T6",
+      "text": "Dargwave Transport routes its traffic over one component, and that component relies on a more foundational thing. What serialization format does that foundational thing apply to its payloads?",
+      "expected_fact_ids": [
+        "f-rel-0017",
+        "f-rel-0038",
+        "f-atomic-0022"
+      ],
+      "anti_leakage_score": 0.1111111111111111,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0054",
+      "tier": "T6",
+      "text": "Viznet Exchange encapsulates one component, and that component works together with a separate service. On which numbered channel does that separate service carry its signaling traffic?",
+      "expected_fact_ids": [
+        "f-rel-0015",
+        "f-rel-0022",
+        "f-atomic-0057"
+      ],
+      "anti_leakage_score": 0.07407407407407407,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0055",
+      "tier": "T6",
+      "text": "Borghyl Control works together with one component, and that component verifies its connections through a lower-level thing. How many milliseconds elapse between consecutive keep-alive pulses emitted by that lower-level thing?",
+      "expected_fact_ids": [
+        "f-rel-0035",
+        "f-rel-0028",
+        "f-atomic-0035"
+      ],
+      "anti_leakage_score": 0.05714285714285714,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0056",
+      "tier": "T6",
+      "text": "Wexmar Session replaces an older component, and that older component is built as an extension of a more foundational thing. After how many seconds of inactivity does that foundational thing drop an idle connection?",
+      "expected_fact_ids": [
+        "f-rel-0025",
+        "f-rel-0024",
+        "f-atomic-0004"
+      ],
+      "anti_leakage_score": 0.1111111111111111,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0057",
+      "tier": "T6",
+      "text": "How frequently, in milliseconds, does the transport extended by the exchange that Froznet v2 depends on send its heartbeats?",
+      "expected_fact_ids": [
+        "f-rel-0005",
+        "f-rel-0016",
+        "f-atomic-0035"
+      ],
+      "anti_leakage_score": 0.29411764705882354,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0058",
+      "tier": "T6",
+      "text": "At what interval in milliseconds does the layer extended by the protocol that Glorbulon Protocol tunnels through emit heartbeats?",
+      "expected_fact_ids": [
+        "f-rel-0002",
+        "f-rel-0011",
+        "f-atomic-0011"
+      ],
+      "anti_leakage_score": 0.3125,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0059",
+      "tier": "T6",
+      "text": "How many milliseconds elapse between heartbeats on the signal that the transport which Froznet v2 tunnels through itself tunnels through?",
+      "expected_fact_ids": [
+        "f-rel-0006",
+        "f-rel-0017",
+        "f-atomic-0075"
+      ],
+      "anti_leakage_score": 0.35294117647058826,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0060",
+      "tier": "T6",
+      "text": "Kreznak Signal works together with one component, and that component in turn replaces an older thing. What is the largest amount of data, in bytes, that the older thing can move in a single transmission?",
+      "expected_fact_ids": [
+        "f-rel-0037",
+        "f-rel-0025",
+        "f-atomic-0045"
+      ],
+      "anti_leakage_score": 0.10344827586206896,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0061",
+      "tier": "T6",
+      "text": "Borghyl Control verifies its connections through one component, and that component encapsulates a lower-level thing. What is the largest amount of data, in bytes, that the lower-level thing can move in a single transmission?",
+      "expected_fact_ids": [
+        "f-rel-0036",
+        "f-rel-0040",
+        "f-atomic-0037"
+      ],
+      "anti_leakage_score": 0.09375,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0062",
+      "tier": "T6",
+      "text": "Borghyl Control verifies its connections through one component, and that component works together with a separate thing. What serialization format does that separate thing apply to its payloads?",
+      "expected_fact_ids": [
+        "f-rel-0036",
+        "f-rel-0037",
+        "f-atomic-0054"
+      ],
+      "anti_leakage_score": 0.1111111111111111,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0063",
+      "tier": "T6",
+      "text": "Wexmar Session verifies its connections through one component, and that component routes its traffic over a separate thing. What serialization format does that separate thing apply to its payloads?",
+      "expected_fact_ids": [
+        "f-rel-0028",
+        "f-rel-0017",
+        "f-atomic-0078"
+      ],
+      "anti_leakage_score": 0.14285714285714285,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0064",
+      "tier": "T6",
+      "text": "What compression scheme is applied by the framework that the exchange extended by Borghyl Control depends on?",
+      "expected_fact_ids": [
+        "f-rel-0034",
+        "f-rel-0013",
+        "f-atomic-0063"
+      ],
+      "anti_leakage_score": 0.3125,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0065",
+      "tier": "T6",
+      "text": "Plirnode Framework verifies its connections through one component; that component in turn relies on a downstream service. On which numbered channel does that downstream service exchange its signaling traffic?",
+      "expected_fact_ids": [
+        "f-rel-0030",
+        "f-rel-0018",
+        "f-atomic-0025"
+      ],
+      "anti_leakage_score": 0.10714285714285714,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0066",
+      "tier": "T6",
+      "text": "Wexmar Session replaces an older component, and that older component relies on a separate service. On which numbered channel does that separate service handle its signaling traffic?",
+      "expected_fact_ids": [
+        "f-rel-0025",
+        "f-rel-0023",
+        "f-atomic-0009"
+      ],
+      "anti_leakage_score": 0.08,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0067",
+      "tier": "T7",
+      "text": "What is the largest packet that can be sent by the system superseded by the framework wrapped by the protocol that Glorbulon Protocol tunnels through?",
+      "expected_fact_ids": [
+        "f-rel-0002",
+        "f-rel-0009",
+        "f-rel-0031",
+        "f-atomic-0069"
+      ],
+      "anti_leakage_score": 0.2727272727272727,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0068",
+      "tier": "T7",
+      "text": "What is the largest packet accepted by the session superseded by the protocol depended on by the framework that Borghyl Control supersedes?",
+      "expected_fact_ids": [
+        "f-rel-0033",
+        "f-rel-0029",
+        "f-rel-0012",
+        "f-atomic-0053"
+      ],
+      "anti_leakage_score": 0.3684210526315789,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0069",
+      "tier": "T7",
+      "text": "Begin with Borghyl Control and take what it replaces; that thing verifies its connections through a second component, which encapsulates a final module. For that final module, which network channel carries its command and signaling traffic?",
+      "expected_fact_ids": [
+        "f-rel-0033",
+        "f-rel-0030",
+        "f-rel-0020",
+        "f-atomic-0001"
+      ],
+      "anti_leakage_score": 0.05555555555555555,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0070",
+      "tier": "T7",
+      "text": "How often does the layer wrapped by the exchange depended on by the system that Snorblath Protocol extends emit its heartbeats?",
+      "expected_fact_ids": [
+        "f-rel-0011",
+        "f-rel-0005",
+        "f-rel-0015",
+        "f-atomic-0043"
+      ],
+      "anti_leakage_score": 0.2857142857142857,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0071",
+      "tier": "T7",
+      "text": "Start from Wexmar Session and follow what it relies on; that thing verifies its connections through a second component, which in turn routes its traffic over a final endpoint. For that final endpoint, which network channel carries its file payloads?",
+      "expected_fact_ids": [
+        "f-rel-0027",
+        "f-rel-0004",
+        "f-rel-0006",
+        "f-atomic-0034"
+      ],
+      "anti_leakage_score": 0.07692307692307693,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0072",
+      "tier": "T7",
+      "text": "Starting from Snorblath Protocol, take what it builds on; that thing relies on a second component, which routes its traffic over a final endpoint. For that final endpoint, which network channel carries its command and signaling traffic?",
+      "expected_fact_ids": [
+        "f-rel-0011",
+        "f-rel-0005",
+        "f-rel-0014",
+        "f-atomic-0001"
+      ],
+      "anti_leakage_score": 0.05714285714285714,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0073",
+      "tier": "T7",
+      "text": "Begin with Viznet Exchange and look at what it encapsulates; that thing relies on a second component, which works together with a final endpoint. For that final endpoint, which network channel carries its file payloads?",
+      "expected_fact_ids": [
+        "f-rel-0015",
+        "f-rel-0023",
+        "f-rel-0007",
+        "f-atomic-0074"
+      ],
+      "anti_leakage_score": 0.06060606060606061,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0074",
+      "tier": "T7",
+      "text": "How long before the session expires on the framework wrapped by the session that the protocol that Viznet Exchange tunnels through interoperates with?",
+      "expected_fact_ids": [
+        "f-rel-0014",
+        "f-rel-0001",
+        "f-rel-0026",
+        "f-atomic-0060"
+      ],
+      "anti_leakage_score": 0.4,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0075",
+      "tier": "T7",
+      "text": "Begin with Querban Layer and find what it builds on; that thing works together with a second component, which encapsulates a final module. Which algorithm does that final module use to shrink its payloads?",
+      "expected_fact_ids": [
+        "f-rel-0024",
+        "f-rel-0001",
+        "f-rel-0026",
+        "f-atomic-0063"
+      ],
+      "anti_leakage_score": 0.0625,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0076",
+      "tier": "T7",
+      "text": "Which port handles data transfer for the protocol depended on by the framework superseded by the system that Froznet v2 authenticates via?",
+      "expected_fact_ids": [
+        "f-rel-0008",
+        "f-rel-0033",
+        "f-rel-0029",
+        "f-atomic-0018"
+      ],
+      "anti_leakage_score": 0.4,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0077",
+      "tier": "T7",
+      "text": "Start from Querban Layer and find what it builds on; that thing verifies its connections through a second component, which itself verifies its connections through a final endpoint. For that final endpoint, which network channel carries its file payloads?",
+      "expected_fact_ids": [
+        "f-rel-0024",
+        "f-rel-0004",
+        "f-rel-0008",
+        "f-atomic-0066"
+      ],
+      "anti_leakage_score": 0.05714285714285714,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0078",
+      "tier": "T7",
+      "text": "How long until a session lapses on the transport extended by the exchange extended by the system that Plirnode Framework supersedes?",
+      "expected_fact_ids": [
+        "f-rel-0031",
+        "f-rel-0034",
+        "f-rel-0016",
+        "f-atomic-0036"
+      ],
+      "anti_leakage_score": 0.3,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0079",
+      "tier": "T7",
+      "text": "How often does the protocol extended by the layer superseded by the session that Dargwave Transport supersedes emit its heartbeats?",
+      "expected_fact_ids": [
+        "f-rel-0019",
+        "f-rel-0025",
+        "f-rel-0024",
+        "f-atomic-0003"
+      ],
+      "anti_leakage_score": 0.35,
+      "generation_attempts": 1
+    },
+    {
+      "id": "q-0080",
+      "tier": "T7",
+      "text": "Starting from Querban Layer, follow what it relies on; that thing routes its traffic over a second component, which replaces a final module. Which format does that final module use to serialize its outgoing content?",
+      "expected_fact_ids": [
+        "f-rel-0023",
+        "f-rel-0006",
+        "f-rel-0019",
+        "f-atomic-0054"
+      ],
+      "anti_leakage_score": 0.058823529411764705,
+      "generation_attempts": 1
+    }
+  ]
+}

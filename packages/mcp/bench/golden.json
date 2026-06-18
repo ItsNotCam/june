@@ -127,5 +127,180 @@
       }
     },
     "note": "Pinned gemma4:26b control baseline — the bar for 'expected results'. See packages/mcp/bench/CLAUDE.md."
+  },
+  "bd9b5bdb9f60001d2cb28be2ff3f2069abb4b1e67480810a1fe755b01d0fd5e3": {
+    "schema_version": 2,
+    "run_id": "20260618212051-YATWG5TC",
+    "fixture_hash": "bd9b5bdb9f60001d2cb28be2ff3f2069abb4b1e67480810a1fe755b01d0fd5e3",
+    "noise_floor": 0.10000000000000009,
+    "judge": {
+      "provider": "claude-code-agent",
+      "model": "claude-sonnet-4-6",
+      "prompt_template_hash": "cbba4ecceba82690f09209b76e1fd9b8aa5306f6e54b04b1d0d7a8850d4b3e77"
+    },
+    "per_tier": {
+      "T1": {
+        "query_count": 10,
+        "reader_correct_pct": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "recall_at_1": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "recall_at_5": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "mrr": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        }
+      },
+      "T2": {
+        "query_count": 10,
+        "reader_correct_pct": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "recall_at_1": {
+          "point": 0.7,
+          "ci_low": 0.4,
+          "ci_high": 0.9
+        },
+        "recall_at_5": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "mrr": {
+          "point": 0.85,
+          "ci_low": 0.7,
+          "ci_high": 1
+        }
+      },
+      "T3": {
+        "query_count": 10,
+        "reader_correct_pct": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "recall_at_1": {
+          "point": 0.8,
+          "ci_low": 0.6,
+          "ci_high": 1
+        },
+        "recall_at_5": {
+          "point": 1,
+          "ci_low": 1,
+          "ci_high": 1
+        },
+        "mrr": {
+          "point": 0.8833333333333334,
+          "ci_low": 0.7,
+          "ci_high": 1
+        }
+      },
+      "T4": {
+        "query_count": 12,
+        "reader_correct_pct": {
+          "point": 0.6666666666666666,
+          "ci_low": 0.4166666666666667,
+          "ci_high": 0.9166666666666666
+        },
+        "recall_at_1": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        },
+        "recall_at_5": {
+          "point": 0.6666666666666666,
+          "ci_low": 0.4166666666666667,
+          "ci_high": 0.9166666666666666
+        },
+        "mrr": {
+          "point": 0.16689814814814816,
+          "ci_low": 0.13009259259259257,
+          "ci_high": 0.19375
+        }
+      },
+      "T5": {
+        "query_count": 10,
+        "reader_correct_pct": {
+          "point": 0.7,
+          "ci_low": 0.4,
+          "ci_high": 1
+        },
+        "recall_at_1": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        },
+        "recall_at_5": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        },
+        "mrr": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        }
+      },
+      "T6": {
+        "query_count": 14,
+        "reader_correct_pct": {
+          "point": 0.07142857142857142,
+          "ci_low": 0,
+          "ci_high": 0.21428571428571427
+        },
+        "recall_at_1": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        },
+        "recall_at_5": {
+          "point": 0.07142857142857142,
+          "ci_low": 0,
+          "ci_high": 0.21428571428571427
+        },
+        "mrr": {
+          "point": 0.04047619047619048,
+          "ci_low": 0.0071428571428571435,
+          "ci_high": 0.07857142857142856
+        }
+      },
+      "T7": {
+        "query_count": 14,
+        "reader_correct_pct": {
+          "point": 0.14285714285714285,
+          "ci_low": 0,
+          "ci_high": 0.35714285714285715
+        },
+        "recall_at_1": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        },
+        "recall_at_5": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        },
+        "mrr": {
+          "point": 0,
+          "ci_low": 0,
+          "ci_high": 0
+        }
+      }
+    },
+    "note": "Pinned gemma4:26b control baseline — the bar for 'expected results'. See packages/mcp/bench/CLAUDE.md."
   }
 }
