@@ -31,6 +31,17 @@ echo "multi-line or piped body" | ~/.local/bin/tg-send
 
 Credentials (bot token + default chat id) live in `~/.config/tg-send/credentials` (chmod 600) and must **never** be printed, committed, or echoed. The script prints `sent` on success and a non-zero error otherwise.
 
+#### Progress pings while waiting on a long task (mandatory)
+
+Whenever you are blocked waiting on a long-running task **whose progress is pollable** (an ingest/bench run writing to a log or sidecar, a build, a CI job, a job ID with a status endpoint), **kick off a background subagent that pings the user via `tg-send` every ~2.5 minutes with a one-line progress update** until the task finishes. Don't sit idle and don't make the user ask. The subagent should:
+
+- poll the concrete progress signal (e.g. `tail` the log, count rows in the sidecar, `grep` for the done/error event, hit the status endpoint) on a ~150s loop;
+- send a **terse** line each tick — what's advanced since last time (e.g. `holdout ingest 7/22 chunks, 0 fallbacks, ~3m elapsed`), not a wall of text;
+- send a final ping when the task completes or errors (include the headline result), then exit;
+- **never** print/echo credentials; reuse the `~/.local/bin/tg-send` helper.
+
+If the task is **not** pollable (no log, no status, opaque), skip the ping loop — just wait. One ping loop per wait; don't stack multiple.
+
 ### Bench reader-by-purpose (flash iterates, gemma4:26b is the bar)
 
 Running `@june/mcp-bench`? The reader model is chosen **by purpose — you know which, you don't ask**:
