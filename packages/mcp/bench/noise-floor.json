@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "fixture_hash": "d6a2713b110aac3d63dc80c8244e437ed60d34f94c13f6cb55f59e87d195ba40",
+  "determinism": {
+    "runs": 2,
+    "source_run_ids": [
+      "20260618233817-CQKRNWF3",
+      "20260619031802-0P1C6N97"
+    ],
+    "ingest_run_ids": [
+      "01KVEHK683XF779JRNN6TH71HH",
+      "01KVEY5JG9A7M334K9Q429RPDJ"
+    ],
+    "shared_ingest": false,
+    "per_tier": {
+      "T1": {
+        "recall_at_1": {
+          "n": 2,
+          "mean": 0.915,
+          "stddev": 0.007071067811865481,
+          "min": 0.91,
+          "max": 0.92,
+          "range": 0.010000000000000009
+        },
+        "recall_at_5": {
+          "n": 2,
+          "mean": 0.99,
+          "stddev": 0,
+          "min": 0.99,
+          "max": 0.99,
+          "range": 0
+        },
+        "mrr": {
+          "n": 2,
+          "mean": 0.9473809523809524,
+          "stddev": 0.006902709054440176,
+          "min": 0.9425,
+          "max": 0.9522619047619049,
+          "range": 0.00976190476190486
+        }
+      },
+      "T2": {
+        "recall_at_1": {
+          "n": 2,
+          "mean": 0.705,
+          "stddev": 0.021213203435596444,
+          "min": 0.69,
+          "max": 0.72,
+          "range": 0.030000000000000027
+        },
+        "recall_at_5": {
+          "n": 2,
+          "mean": 1,
+          "stddev": 0,
+          "min": 1,
+          "max": 1,
+          "range": 0
+        },
+        "mrr": {
+          "n": 2,
+          "mean": 0.8349166666666668,
+          "stddev": 0.011195857368786947,
+          "min": 0.8270000000000001,
+          "max": 0.8428333333333333,
+          "range": 0.015833333333333255
+        }
+      },
+      "T3": {
+        "recall_at_1": {
+          "n": 2,
+          "mean": 0.855,
+          "stddev": 0.021213203435596444,
+          "min": 0.84,
+          "max": 0.87,
+          "range": 0.030000000000000027
+        },
+        "recall_at_5": {
+          "n": 2,
+          "mean": 0.99,
+          "stddev": 0,
+          "min": 0.99,
+          "max": 0.99,
+          "range": 0
+        },
+        "mrr": {
+          "n": 2,
+          "mean": 0.9124999999999999,
+          "stddev": 0.012963624321753592,
+          "min": 0.9033333333333331,
+          "max": 0.9216666666666667,
+          "range": 0.018333333333333646
+        }
+      },
+      "T4": {
+        "recall_at_1": {
+          "n": 2,
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "range": 0
+        },
+        "recall_at_5": {
+          "n": 2,
+          "mean": 0.265,
+          "stddev": 0.021213203435596444,
+          "min": 0.25,
+          "max": 0.28,
+          "range": 0.030000000000000027
+        },
+        "mrr": {
+          "n": 2,
+          "mean": 0.06693849206349209,
+          "stddev": 0.0083646242647504,
+          "min": 0.06102380952380955,
+          "max": 0.07285317460317464,
+          "range": 0.011829365079365092
+        }
+      },
+      "T6": {
+        "recall_at_1": {
+          "n": 2,
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "range": 0
+        },
+        "recall_at_5": {
+          "n": 2,
+          "mean": 0.15000000000000002,
+          "stddev": 0.014142135623730944,
+          "min": 0.14,
+          "max": 0.16,
+          "range": 0.01999999999999999
+        },
+        "mrr": {
+          "n": 2,
+          "mean": 0.033047619047619055,
+          "stddev": 0.0036028774089028864,
+          "min": 0.030500000000000006,
+          "max": 0.0355952380952381,
+          "range": 0.005095238095238097
+        }
+      },
+      "T7": {
+        "recall_at_1": {
+          "n": 2,
+          "mean": 0,
+          "stddev": 0,
+          "min": 0,
+          "max": 0,
+          "range": 0
+        },
+        "recall_at_5": {
+          "n": 2,
+          "mean": 0.07,
+          "stddev": 0,
+          "min": 0.07,
+          "max": 0.07,
+          "range": 0
+        },
+        "mrr": {
+          "n": 2,
+          "mean": 0.01533333333333333,
+          "stddev": 0.0004714045207910325,
+          "min": 0.014999999999999998,
+          "max": 0.015666666666666666,
+          "range": 0.0006666666666666678
+        }
+      }
+    },
+    "max_drift": 0.030000000000000027,
+    "epsilon": 1e-9,
+    "deterministic": false,
+    "measured_at": "2026-06-19T04:46:44.077Z"
+  },
+  "consistency": {
+    "runs": 2,
+    "source_run_id": "20260618233817-CQKRNWF3",
+    "source_verdicts": [
+      "/home/cam/june/packages/mcp/bench/state/judge/verdicts-v3r1.json",
+      "/home/cam/june/packages/mcp/bench/state/judge/verdicts-v3r1b.json"
+    ],
+    "judge": {
+      "model": "claude-sonnet-4-6",
+      "prompt_template_hash": "cbba4ecceba82690f09209b76e1fd9b8aa5306f6e54b04b1d0d7a8850d4b3e77"
+    },
+    "per_tier": {
+      "T1": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.99,
+          "stddev": 0,
+          "min": 0.99,
+          "max": 0.99,
+          "range": 0
+        }
+      },
+      "T2": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.99,
+          "stddev": 0,
+          "min": 0.99,
+          "max": 0.99,
+          "range": 0
+        }
+      },
+      "T3": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.98,
+          "stddev": 0,
+          "min": 0.98,
+          "max": 0.98,
+          "range": 0
+        }
+      },
+      "T4": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.255,
+          "stddev": 0.007071067811865481,
+          "min": 0.25,
+          "max": 0.26,
+          "range": 0.010000000000000009
+        }
+      },
+      "T5": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.98,
+          "stddev": 0,
+          "min": 0.98,
+          "max": 0.98,
+          "range": 0
+        }
+      },
+      "T6": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.165,
+          "stddev": 0.007071067811865481,
+          "min": 0.16,
+          "max": 0.17,
+          "range": 0.010000000000000009
+        }
+      },
+      "T7": {
+        "reader_correct_pct": {
+          "n": 2,
+          "mean": 0.07,
+          "stddev": 0,
+          "min": 0.07,
+          "max": 0.07,
+          "range": 0
+        }
+      }
+    },
+    "max_drift": 0.010000000000000009,
+    "measured_at": "2026-06-19T16:06:24.405Z"
+  },
+  "recommended_noise_floor": 0.030000000000000027
+}
