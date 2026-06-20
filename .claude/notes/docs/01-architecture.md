@@ -92,11 +92,11 @@ YAML anchor.
 ```bash
 QDRANT_URL=http://localhost:6333
 # QDRANT_API_KEY=your_key_here
-OLLAMA_URL=https://ollama.your-lan.example   # remote home GPU box
+OLLAMA_URL=https://ollama.your-lan.example   # remote home GPU box (set to your host)
 ```
 
 Ollama is **not** run in Docker by default — it points at a remote home server
-(`ollama.your-lan.example`) that hosts the embedding, summarizer, and reference reader
+(the host in `$OLLAMA_URL`) that hosts the embedding, summarizer, and reference reader
 models. This is the BYO-AI posture: one GPU box, several local models, no hosted LLM
 inference required for the core product.
 

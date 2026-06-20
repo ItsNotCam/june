@@ -140,7 +140,7 @@ inferred type in the same change. Schema and usage must never drift.
 - **`docker-compose.yml`** — qdrant, next, mcp-ingest, mcp-server (+ optional ollama);
   see [01 — Architecture](./01-architecture.md) §2.
 - **`.gitleaks.toml`** — custom rules flag personal identifiers
-  (`example.invalid`, `/home/cam/`, the email, the name); lock files allow-listed.
+  (the personal hostname, `/home/cam/`, the email, the name); lock files allow-listed.
 - **`.gitignore`** — excludes `qdrant_storage/*`, `.claude/scratch/`, the bench
   `state/`, and `.mcp.json` (local paths/secrets).
 - **Lockfiles** — `bun.lock` is canonical (Bun is the runtime); a legacy `yarn.lock`
