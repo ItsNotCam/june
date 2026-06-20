@@ -12,7 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "dashboard": "bun --watch cli/bench.ts dashboard"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",

@@ -1,0 +1,15 @@
+FROM oven/bun:1
+WORKDIR /app
+
+# Copy workspace manifests so dep install is cached independently of source changes
+COPY package.json bun.lock ./
+COPY packages/mcp/bench/package.json ./packages/mcp/bench/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN bun install
+
+WORKDIR /app/packages/mcp/bench
+EXPOSE 4317
+# Source (incl. state/runs + golden.json) is mounted by docker-compose; the
+# dashboard reads those live. Bind 0.0.0.0 so the port is reachable from the host.
+CMD ["bun", "cli/bench.ts", "dashboard", "--host", "0.0.0.0", "--port", "4317"]

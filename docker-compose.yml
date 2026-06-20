@@ -56,6 +56,19 @@ services:
       - qdrant
       # - ollama
 
+  bench-dashboard:
+    <<: *env
+    build:
+      context: .
+      dockerfile: packages/mcp/bench/Dockerfile.dev
+    ports:
+      - "4317:4317"
+    # Read-only over the bench run artifacts; mount the package so state/runs +
+    # golden.json are read live (no rebuild needed when new runs land).
+    volumes:
+      - ./packages/mcp/bench:/app/packages/mcp/bench
+      - ./packages/shared:/app/packages/shared
+
   # ollama:
   #   image: ollama/ollama:latest
   #   ports:
