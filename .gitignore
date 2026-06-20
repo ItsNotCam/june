@@ -91,8 +91,22 @@ packages/mcp/bench/state/calibration-build/
 .claude/worktrees
 .claude/plans/*
 !.claude/plans/*.md
+# Vault notes — scratch, research, engineering log, and canvas files live in
+# the Obsidian vault and are NOT committed to the repo.
+.claude/notes/
 
 # Config
 .env
+.env.*
+**/.env.*
 config.yaml
 config.yml
+
+# bench state — ad-hoc run logs, watcher/driver shell scripts, .out files,
+# per-run judge outputs, and any backup files produced during experiments.
+packages/mcp/bench/state/*.log
+packages/mcp/bench/state/*.sh
+packages/mcp/bench/state/*.out
+packages/mcp/bench/state/judge/
+*-bak
+*.bak
