@@ -16,7 +16,7 @@ uses hosted **`deepseek-v4-flash`** as a fast scratchpad. These never blur. Ever
 - **`--mode iterate`** → reader = `deepseek-v4-flash`. The scratchpad. **Directional
   signal ONLY — flash numbers are NEVER "expected results."** Use this for fast loops.
 - **`--mode control`** → reader = `gemma4:26b` (Ollama @ `OLLAMA_URL`, the home host
-  `https://ollama.your-lan.example:443`). **The bar.** The only runs that certify quality.
+  the host in `$OLLAMA_URL`, e.g. `https://ollama.your-lan.example:443`). **The bar.** The only runs that certify quality.
 - explicit `--reader-provider/--reader-model` → `freeform` (e.g. a model bake-off).
   Never a baseline, never a control. (Mutually exclusive with `--mode`.)
 
