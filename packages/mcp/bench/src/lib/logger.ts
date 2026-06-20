@@ -123,5 +123,7 @@ const handle = createLogger<BenchLogFields>();
 export const logger = handle.logger;
 export const setLogLevel = handle.setLogLevel;
 export const setPrettyMode = handle.setPrettyMode;
+/** Tee subsequent log lines into a per-run `run.log` the dashboard tails. */
+export const addLogFile = handle.addFileTransport;
 
 export type { Logger };

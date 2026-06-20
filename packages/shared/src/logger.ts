@@ -28,6 +28,8 @@ export type LoggerHandle<F extends LogFieldsBase = LogFieldsBase> = {
   logger: Logger<F>;
   setLogLevel: (level: LogLevel) => void;
   setPrettyMode: (enabled: boolean) => void;
+  /** Additionally append every log line to `path`, in plain (no-ANSI) pretty format. */
+  addFileTransport: (path: string) => void;
 };
 
 export type LoggerOptions = {
@@ -48,7 +50,12 @@ const LEVEL_STYLES: Readonly<Record<string, LevelStyle>> = {
 
 const FALLBACK_STYLE: LevelStyle = { color: "", emoji: "  " };
 
-const makePrettyFormat = (): winston.Logform.Format =>
+/**
+ * Human-readable line format. `color` toggles the ANSI level coloring — on for
+ * the console, off for the file transport so a tail (e.g. the dashboard) shows
+ * clean text instead of escape codes.
+ */
+const makePrettyFormat = (color = true): winston.Logform.Format =>
   winston.format.combine(
     winston.format.timestamp({ format: "HH:mm:ss.SSS" }),
     winston.format.printf(({ level, message, timestamp, ...rest }) => {
@@ -58,7 +65,8 @@ const makePrettyFormat = (): winston.Logform.Format =>
         entries.length > 0
           ? `  ${entries.map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(" ")}`
           : "";
-      return `${style.color}${String(timestamp)} | ${style.emoji} ${level.padEnd(5)} | ${String(message)}${meta}${ANSI_RESET}`;
+      const line = `${String(timestamp)} | ${style.emoji} ${level.padEnd(5)} | ${String(message)}${meta}`;
+      return color ? `${style.color}${line}${ANSI_RESET}` : line;
     }),
   );
 
@@ -130,5 +138,17 @@ export const createLogger = <F extends LogFieldsBase = LogFieldsBase>(
     _winston = null;
   };
 
-  return { logger, setLogLevel, setPrettyMode };
+  /**
+   * Tee every subsequent log line into `path`. Used per-run so a run persists
+   * its own `run.log` that the dashboard can tail. Always the plain (no-ANSI)
+   * pretty format, independent of console pretty/JSON mode. Additive — the
+   * console transport is untouched.
+   */
+  const addFileTransport = (path: string): void => {
+    getWinston().add(
+      new winston.transports.File({ filename: path, format: makePrettyFormat(false) }),
+    );
+  };
+
+  return { logger, setLogLevel, setPrettyMode, addFileTransport };
 };
