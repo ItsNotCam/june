@@ -8,6 +8,30 @@
 //  - holdout runs lead with retrieval metrics; reader correctness is caveated.
 
 const TIERS = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"];
+// Plain-English query tiers (source of truth: src/types/query.ts).
+const TIER_INFO = {
+  T1: "lexical — query words overlap the source sentence",
+  T2: "paraphrase — same fact, different words",
+  T3: "conceptual — scenario framing; the fact must be inferred",
+  T4: "2-hop — two facts chained (both must be retrieved)",
+  T5: "negative — no answer exists; refusing is correct",
+  T6: "3-hop — three facts chained (all required)",
+  T7: "4-hop — four facts chained (all required)",
+};
+function tierGlossaryHtml() {
+  const rows = TIERS.map((t) => `<dt>${t}</dt><dd>${TIER_INFO[t]}</dd>`).join("");
+  return `<details class="glossary"><summary>What do T1–T7 mean?</summary><dl class="kv">${rows}</dl></details>`;
+}
+// Plain-English metric definitions.
+const METRIC_INFO = {
+  "correct %": "share of answers the judge graded CORRECT (for negative T5 queries, refusing counts as correct).",
+  "recall@k": "share of queries where a correct chunk landed in the top-k retrieved results. recall@5 = in the top 5 — higher means retrieval surfaced the answer.",
+  "MRR": "mean reciprocal rank — averages 1 ÷ (rank of the first correct chunk). 1.0 = always ranked #1, 0.5 = typically #2, lower = buried deeper.",
+};
+function metricGlossaryHtml() {
+  const rows = Object.entries(METRIC_INFO).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  return `<details class="glossary"><summary>What do the metrics mean?</summary><dl class="kv wide">${rows}</dl></details>`;
+}
 const METRIC_COLORS = {
   reader_correct_pct: "#5eead4",
   recall_at_5: "#60a5fa",
@@ -28,10 +52,25 @@ const state = {
   view: "overall",
   series: { reader_correct_pct: true, recall_at_5: true, mrr: true },
   chart: null,
+  tierChart: null, // per-tier bar chart inside the detail pane
+  tierData: null, // last per-tier payload, kept so charts can re-color on theme switch
+  selected: null, // run_id shown in the persistent detail pane
   active: null, // { run_id, kind, stages: [{num,name}], stageState: {} }
+  logRunId: null, // run_id whose run.log the live-log card is polling
+  logTimer: null, // setInterval handle for the 5s log poll
+  logFollow: true, // auto-scroll the log to the newest line
 };
 
 const $ = (id) => document.getElementById(id);
+// Chart.js can't read CSS variables, so pull the live theme palette off :root.
+// Re-read on every render so a theme switch repaints axes/legend correctly.
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const chartColors = () => ({
+  tick: cssVar("--muted"),
+  grid: cssVar("--border"),
+  gridSoft: cssVar("--surface-2"),
+  legend: cssVar("--fg"),
+});
 const pct = (x) => (x == null ? "—" : `${(x * 100).toFixed(1)}%`);
 const shortHash = (h) => (h ? h.slice(0, 8) : "—");
 const escapeHtml = (s) =>
@@ -104,7 +143,10 @@ function renderFixtureSelect() {
 function renderSeriesToggle() {
   const box = $("series-toggle");
   if (state.view !== "overall") {
-    box.innerHTML = '<span class="muted">per-tier reader-correct %, with golden baselines (dashed). Legend-click to hide a tier.</span>';
+    box.innerHTML =
+      '<span class="muted">per-tier reader-correct %, with golden baselines (dashed). Legend-click to hide a tier.</span>' +
+      tierGlossaryHtml() +
+      metricGlossaryHtml();
     return;
   }
   box.innerHTML = "";
@@ -120,6 +162,7 @@ function renderSeriesToggle() {
     };
     box.appendChild(chip);
   }
+  box.insertAdjacentHTML("beforeend", metricGlossaryHtml());
 }
 
 // ---- rendering: chart ----------------------------------------------------
@@ -181,6 +224,7 @@ function renderChart() {
   const { datasets, annotations } =
     state.view === "overall" ? buildOverallDatasets(runs, labels) : buildPerTierDatasets(runs);
 
+  const c = chartColors();
   const cfg = {
     type: "line",
     data: { labels, datasets },
@@ -191,13 +235,13 @@ function renderChart() {
       scales: {
         y: {
           min: 0, max: 1,
-          ticks: { color: "#8b94a7", callback: (v) => `${Math.round(v * 100)}%` },
-          grid: { color: "#232a3a" },
+          ticks: { color: c.tick, callback: (v) => `${Math.round(v * 100)}%` },
+          grid: { color: c.grid },
         },
-        x: { ticks: { color: "#8b94a7", maxRotation: 0, autoSkip: true }, grid: { color: "#1a2030" } },
+        x: { ticks: { color: c.tick, maxRotation: 0, autoSkip: true }, grid: { color: c.gridSoft } },
       },
       plugins: {
-        legend: { labels: { color: "#e6e9ef", boxWidth: 12 } },
+        legend: { labels: { color: c.legend, boxWidth: 12 } },
         annotation: { annotations },
         tooltip: {
           callbacks: {
@@ -302,6 +346,8 @@ function renderRunsTable() {
   const controlJudges = new Set(rows.filter((r) => r.mode === "control" && r.judge).map((r) => r.judge.model));
   for (const r of rows) {
     const tr = document.createElement("tr");
+    tr.dataset.runid = r.run_id;
+    if (r.run_id === state.selected) tr.classList.add("selected");
     const judgeMismatch = r.mode === "control" && controlJudges.size > 1;
     tr.innerHTML = `
       <td>${escapeHtml(fmtWhen(r.completed_at || r.started_at))}</td>
@@ -314,7 +360,7 @@ function renderRunsTable() {
       <td class="num">${r.overall.mrr ? r.overall.mrr.point.toFixed(3) : "—"}</td>
       <td><span class="badge ${r.status}">${escapeHtml(r.run_status || r.status)}</span></td>
       <td class="num">${r.cost_total != null ? "$" + r.cost_total.toFixed(2) : "—"}</td>`;
-    tr.onclick = () => openDetail(r.run_id);
+    tr.onclick = () => selectRun(r.run_id);
     tbody.appendChild(tr);
   }
 }
@@ -324,25 +370,105 @@ function renderAll() {
   renderChart();
   renderGate();
   renderRunsTable();
+  autoSelect();
 }
 
-// ---- detail drawer -------------------------------------------------------
+// ---- detail pane (persistent right column) -------------------------------------------------------
 function metricCell(m) {
   if (!m) return "—";
   return `${pct(m.point)} <span class="ci">${pct(m.ci_low)}–${pct(m.ci_high)}</span>`;
 }
 
-async function openDetail(runId) {
-  $("drawer").hidden = false;
-  $("drawer-scrim").hidden = false;
-  $("drawer-title").textContent = runId;
-  $("drawer-body").innerHTML = '<p class="empty">Loading…</p>';
+// Render trusted, locally-generated summary markdown (GFM tables). Falls back to
+// escaped preformatted text if the CDN marked lib didn't load.
+function renderMarkdown(md) {
+  if (window.marked && typeof window.marked.parse === "function") {
+    return `<div class="markdown">${window.marked.parse(md, { gfm: true })}</div>`;
+  }
+  return `<pre class="summary">${escapeHtml(md)}</pre>`;
+}
+
+async function selectRun(runId) {
+  state.selected = runId;
+  highlightSelectedRow();
+  $("detail-title").textContent = runId;
+  $("detail-sub").textContent = "";
+  $("detail-body").innerHTML = '<p class="empty">Loading…</p>';
+  if (state.tierChart) { state.tierChart.destroy(); state.tierChart = null; }
+  state.tierData = null;
   try {
     const detail = await fetchJson(`/api/runs/${runId}`);
-    $("drawer-body").innerHTML = detail.kind === "holdout" ? renderHoldoutDetail(detail) : renderSyntheticDetail(detail);
+    if (state.selected !== runId) return; // a newer selection won the race
+    $("detail-sub").textContent = detail.kind;
+    $("detail-body").innerHTML = detail.kind === "holdout" ? renderHoldoutDetail(detail) : renderSyntheticDetail(detail);
+    if (detail.kind === "synthetic") renderTierChart(detail.results.per_tier);
   } catch (e) {
-    $("drawer-body").innerHTML = `<p class="empty">Failed to load: ${escapeHtml(e.message)}</p>`;
+    $("detail-body").innerHTML = `<p class="empty">Failed to load: ${escapeHtml(e.message)}</p>`;
   }
+}
+
+function highlightSelectedRow() {
+  for (const tr of document.querySelectorAll("#runs-body tr")) {
+    tr.classList.toggle("selected", tr.dataset.runid === state.selected);
+  }
+}
+
+// Keep the persistent pane populated: keep the current selection if it's still in
+// the active fixture, else default to the newest completed run (or the newest run).
+function autoSelect() {
+  const rows = fixtureRuns();
+  if (state.selected && rows.some((r) => r.run_id === state.selected)) {
+    highlightSelectedRow();
+    return;
+  }
+  const def = rows.find((r) => r.status === "completed") || rows[0];
+  if (def) {
+    selectRun(def.run_id);
+  } else {
+    state.selected = null;
+    $("detail-title").textContent = "Run detail";
+    $("detail-sub").textContent = "";
+    $("detail-body").innerHTML = '<p class="empty">No runs for this fixture.</p>';
+  }
+}
+
+// Grouped bar chart of per-tier correct% + recall@5, drawn into the detail pane.
+function renderTierChart(perTier) {
+  const canvas = document.getElementById("tier-chart");
+  if (!canvas || !perTier) return;
+  state.tierData = perTier; // remembered so a theme switch can repaint this chart
+  const tiers = Object.keys(perTier).sort();
+  if (!tiers.length) return;
+  const c = chartColors();
+  const ds = (key, label, color) => ({
+    label,
+    backgroundColor: color,
+    borderColor: color,
+    data: tiers.map((t) => (perTier[t][key] ? perTier[t][key].point : null)),
+  });
+  state.tierChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: tiers,
+      datasets: [
+        ds("reader_correct_pct", "correct %", METRIC_COLORS.reader_correct_pct),
+        ds("recall_at_5", "recall@5", METRIC_COLORS.recall_at_5),
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, max: 1, ticks: { color: c.tick, callback: (v) => `${Math.round(v * 100)}%` }, grid: { color: c.grid } },
+        x: { ticks: { color: c.tick }, grid: { display: false } },
+      },
+      plugins: {
+        legend: { labels: { color: c.legend, boxWidth: 12 } },
+        annotation: { annotations: {} },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${pct(ctx.parsed.y)}` } },
+      },
+    },
+  });
 }
 
 function renderSyntheticDetail(detail) {
@@ -361,7 +487,7 @@ function renderSyntheticDetail(detail) {
         <td class="num">${metricCell(t.reader_correct_pct)}</td>
         <td class="num">${metricCell(t.reader_refused_pct)}</td></tr>`;
     })
-    .join("");
+    .join("") + `<tr><td colspan="8" style="border:0;padding-top:8px">${metricGlossaryHtml()}${tierGlossaryHtml()}</td></tr>`;
   const integ = r.integrity || {};
   return `
     <h3>Manifest</h3>
@@ -374,7 +500,8 @@ function renderSyntheticDetail(detail) {
       <dt>embedding</dt><dd>${escapeHtml(m.june ? m.june.embedding_model : "—")}</dd>
       <dt>cost</dt><dd>$${(r.cost_usd ? r.cost_usd.total : 0).toFixed(4)}</dd>
     </dl>
-    <h3>Per-tier (point · 95% CI)</h3>
+    <h3>Per-tier</h3>
+    <div class="tier-chart-wrap"><canvas id="tier-chart"></canvas></div>
     <div class="table-wrap"><table>
       <thead><tr><th>tier</th><th class="num">n</th><th class="num">r@1</th><th class="num">r@5</th><th class="num">r@10</th><th class="num">mrr</th><th class="num">correct</th><th class="num">refused</th></tr></thead>
       <tbody>${tierRows}</tbody></table></div>
@@ -385,7 +512,7 @@ function renderSyntheticDetail(detail) {
       <dt>unjudged</dt><dd>${pct(integ.unjudged_pct)}</dd>
       <dt>leakage warns</dt><dd>${integ.queries_with_leakage_warning ?? 0}</dd>
     </dl>
-    ${detail.summary_md ? `<h3>summary.md</h3><pre class="summary">${escapeHtml(detail.summary_md)}</pre>` : ""}`;
+    ${detail.summary_md ? `<h3>summary.md</h3>${renderMarkdown(detail.summary_md)}` : ""}`;
 }
 
 function renderHoldoutDetail(detail) {
@@ -417,12 +544,59 @@ function renderHoldoutDetail(detail) {
       <dt>no-RAG correct</dt><dd>${metricCell(r.reader_norag_correct_pct)}</dd>
       <dt>unanswerable refused</dt><dd>${metricCell(u.reader_refused_pct)}</dd>
     </dl>
-    ${detail.summary_md ? `<h3>holdout_summary.md</h3><pre class="summary">${escapeHtml(detail.summary_md)}</pre>` : ""}`;
+    ${detail.summary_md ? `<h3>holdout_summary.md</h3>${renderMarkdown(detail.summary_md)}` : ""}`;
 }
 
-function closeDrawer() {
-  $("drawer").hidden = true;
-  $("drawer-scrim").hidden = true;
+// ---- live log tail (polled every 5s for the active run) ------------------
+const LOG_POLL_MS = 5000;
+// Colorize a run.log line by its level token (format: "ts | <emoji> level | msg").
+function logLineClass(line) {
+  const m = line.match(/\|\s*\S*\s*(debug|info|warn|error)\s*\|/);
+  return m ? `log-${m[1]}` : "";
+}
+function renderLogLines(log) {
+  const view = $("logview");
+  if (!log.present) {
+    view.innerHTML = '<span class="empty">waiting for run.log…</span>';
+    return;
+  }
+  if (!log.lines.length) {
+    view.innerHTML = '<span class="empty">run.log is empty so far…</span>';
+    return;
+  }
+  const head = log.truncated ? '<span class="log-trunc">… earlier lines trimmed …</span>\n' : "";
+  view.innerHTML =
+    head + log.lines.map((l) => `<span class="${logLineClass(l)}">${escapeHtml(l)}</span>`).join("\n");
+  if (state.logFollow) view.scrollTop = view.scrollHeight;
+}
+
+async function pollLog() {
+  const runId = state.logRunId;
+  if (!runId) return;
+  try {
+    const log = await fetchJson(`/api/runs/${runId}/log`);
+    if (state.logRunId !== runId) return; // active run changed mid-fetch
+    renderLogLines(log);
+  } catch {
+    /* a transient read error must not kill the poll loop */
+  }
+}
+
+function startLogPolling(runId) {
+  stopLogPolling();
+  state.logRunId = runId;
+  $("logcard").hidden = false;
+  $("log-meta").textContent = `tailing ${runId} · every ${LOG_POLL_MS / 1000}s`;
+  $("logview").innerHTML = '<span class="empty">waiting for run.log…</span>';
+  void pollLog();
+  state.logTimer = setInterval(() => void pollLog(), LOG_POLL_MS);
+}
+
+function stopLogPolling() {
+  if (state.logTimer) clearInterval(state.logTimer);
+  state.logTimer = null;
+  state.logRunId = null;
+  $("logcard").hidden = true;
 }
 
 // ---- in-flight (SSE) -----------------------------------------------------
@@ -432,32 +606,72 @@ function setStatus(stateName, label) {
   el.querySelector(".label").textContent = label;
 }
 
+// Render the stage progress bar: one dot per stage, evenly spaced, with a fill
+// that "jumps" to the dot of the stage currently running (or the furthest done
+// stage when nothing is active). Lives under the "Live log" header.
 function renderStages() {
-  const list = $("stage-list");
-  if (!state.active) return;
-  list.innerHTML = "";
-  for (const s of state.active.stages) {
-    const st = state.active.stageState[s.num] || {};
-    const li = document.createElement("li");
-    li.className = "stage" + (st.done ? " done" : st.active ? " active" : "");
-    const sub = st.total ? `${st.done_count || 0}/${st.total}` : st.done ? "done" : st.active ? "running…" : "";
-    li.innerHTML = `<span class="ix">${st.done ? "✓" : s.num}</span><span class="name">${escapeHtml(s.name)}</span><span class="sub">${sub}</span>`;
-    list.appendChild(li);
+  const wrap = $("stage-progress");
+  const stages = state.active?.stages || [];
+  if (!state.active || !stages.length) {
+    wrap.hidden = true;
+    wrap.innerHTML = "";
+    return;
   }
+  wrap.hidden = false;
+  const ss = state.active.stageState;
+  const n = stages.length;
+  const posOf = (i) => (n === 1 ? 0 : (i / (n - 1)) * 100);
+
+  // Marker = the active stage; else the furthest done stage (run just completed).
+  let activeIx = -1, lastDone = -1;
+  stages.forEach((s, i) => {
+    const st = ss[s.num] || {};
+    if (st.active) activeIx = i;
+    if (st.done) lastDone = i;
+  });
+  const markerIx = activeIx >= 0 ? activeIx : lastDone;
+  const fillPct = markerIx < 0 ? 0 : posOf(markerIx);
+
+  const dots = stages
+    .map((s, i) => {
+      const st = ss[s.num] || {};
+      const cls = st.done ? "done" : st.active ? "active" : "pending";
+      return `<div class="stage-dot ${cls}" style="left:${posOf(i)}%">
+        <span class="stage-tip">${s.num}. ${escapeHtml(s.name)}</span></div>`;
+    })
+    .join("");
+
+  let caption = `${state.active.run_id}`;
+  if (markerIx >= 0) {
+    const cur = stages[markerIx];
+    const st = ss[cur.num] || {};
+    const count = st.total ? ` · ${st.done_count || 0}/${st.total}` : "";
+    const verb = activeIx >= 0 ? "running" : st.done ? "complete" : "";
+    caption = `stage ${cur.num}/${stages[n - 1].num} · ${escapeHtml(cur.name)}${count} · ${verb}`;
+  }
+
+  wrap.innerHTML = `
+    <div class="stage-line">
+      <div class="stage-rail"></div>
+      <div class="stage-fill" style="width:${fillPct}%"></div>
+      ${dots}
+    </div>
+    <div class="stage-caption">${escapeHtml(caption)}</div>`;
 }
 
 function showInflight(runId, kind, stages) {
-  state.active = { run_id: runId, kind, stages: stages || [], stageState: {} };
-  $("inflight").hidden = false;
-  $("inflight-meta").textContent = `${runId} · ${kind}`;
+  const initial = stages && stages.length ? stages : FALLBACK_STAGES;
+  state.active = { run_id: runId, kind, stages: initial, stageState: {} };
   setStatus("running", `running ${runId}`);
+  if (state.logRunId !== runId) startLogPolling(runId);
   renderStages();
 }
 
 function hideInflight() {
   state.active = null;
-  $("inflight").hidden = true;
   setStatus("live", "live · idle");
+  renderStages();
+  stopLogPolling();
 }
 
 // Default 6-stage roster (used when artifacts-mode progress has no run_start).
@@ -474,7 +688,7 @@ function handleProgress(ev) {
     case "run_start":
       state.active.stages = ev.stages && ev.stages.length ? ev.stages : FALLBACK_STAGES;
       state.active.run_id = ev.run_id;
-      $("inflight-meta").textContent = `${ev.run_id} · ${ev.fixture_id || ""}`;
+      state.active.fixture_id = ev.fixture_id || null;
       break;
     case "stage_start":
       ss[ev.stage] = { active: true, total: ev.total, done_count: 0 };
@@ -515,6 +729,26 @@ function connectStream() {
   es.onerror = () => setStatus("error", "stream disconnected — retrying…");
 }
 
+// ---- theme (light/dark) --------------------------------------------------
+const THEME_KEY = "june-bench-theme";
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch {}
+  // Chart.js bakes colors in at build time, so repaint the live charts.
+  if (state.chart) renderChart();
+  if (state.tierChart && state.tierData) {
+    state.tierChart.destroy();
+    state.tierChart = null;
+    renderTierChart(state.tierData);
+  }
+}
+function toggleTheme() {
+  applyTheme(currentTheme() === "light" ? "dark" : "light");
+}
+
 // ---- wire up -------------------------------------------------------------
 function init() {
   if (window.Chart && window["chartjs-plugin-annotation"]) {
@@ -523,9 +757,8 @@ function init() {
   $("fixture-select").onchange = (e) => { state.fixture = e.target.value; renderAll(); };
   $("mode-select").onchange = (e) => { state.mode = e.target.value; renderChart(); renderRunsTable(); };
   $("view-select").onchange = (e) => { state.view = e.target.value; renderSeriesToggle(); renderChart(); };
-  $("drawer-close").onclick = closeDrawer;
-  $("drawer-scrim").onclick = closeDrawer;
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+  $("log-follow").onchange = (e) => { state.logFollow = e.target.checked; if (state.logFollow) void pollLog(); };
+  $("theme-toggle").onclick = toggleTheme;
 
   loadAll().catch((e) => setStatus("error", `load failed: ${e.message}`));
   connectStream();

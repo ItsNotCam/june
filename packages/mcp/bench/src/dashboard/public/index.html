@@ -6,9 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>june · RSI bench</title>
     <link rel="stylesheet" href="/static/style.css" />
+    <!-- Set the saved theme before first paint to avoid a flash of the wrong theme. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("june-bench-theme");
+          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
     <!-- Chart.js + annotation plugin from CDN (needs network on first load). -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <!-- Markdown renderer for summary.md (GFM tables). -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
   </head>
   <body>
     <header class="topbar">
@@ -18,19 +29,32 @@
         <span class="title">RSI bench</span>
         <span class="tagline">the gauge — never the goal</span>
       </div>
-      <div class="status" id="live-status" data-state="idle">
-        <span class="dot"></span><span class="label">connecting…</span>
+      <div class="topbar-right">
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme">
+          <span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
+          <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
+        </button>
+        <div class="status" id="live-status" data-state="idle">
+          <span class="dot"></span><span class="label">connecting…</span>
+        </div>
       </div>
     </header>
 
+    <div class="layout">
     <main>
-      <!-- In-flight run progress (shown only while a run is executing) -->
-      <section class="card inflight" id="inflight" hidden>
+      <!-- Live log tail + stage progress of the active run (hidden when idle) -->
+      <section class="card logcard" id="logcard" hidden>
         <div class="card-head">
-          <h2>Run in progress</h2>
-          <span class="muted" id="inflight-meta"></span>
+          <h2>Live log</h2>
+          <div class="log-controls">
+            <span class="muted" id="log-meta"></span>
+            <label class="log-follow"><input type="checkbox" id="log-follow" checked /> follow</label>
+          </div>
         </div>
-        <ol class="stages" id="stage-list"></ol>
+        <!-- Stage progress bar: one dot per benchmark stage; the fill jumps dot
+             to dot as the run advances along the pipeline. -->
+        <div class="stage-progress" id="stage-progress" hidden></div>
+        <pre class="logview" id="logview"><span class="empty">waiting for run.log…</span></pre>
       </section>
 
       <!-- Trend -->
@@ -85,15 +109,15 @@
       </section>
     </main>
 
-    <!-- Detail drawer -->
-    <div class="drawer-scrim" id="drawer-scrim" hidden></div>
-    <aside class="drawer" id="drawer" hidden>
-      <div class="drawer-head">
-        <h2 id="drawer-title">Run detail</h2>
-        <button class="close" id="drawer-close" aria-label="close">×</button>
-      </div>
-      <div class="drawer-body" id="drawer-body"></div>
-    </aside>
+      <!-- Run detail — persistent right-hand column -->
+      <aside class="detail" id="detail">
+        <div class="detail-head">
+          <h2 id="detail-title">Run detail</h2>
+          <span class="muted" id="detail-sub"></span>
+        </div>
+        <div class="detail-body" id="detail-body"><p class="empty">Select a run from the table.</p></div>
+      </aside>
+    </div>
 
     <script src="/static/app.js"></script>
   </body>
