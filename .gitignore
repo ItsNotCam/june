@@ -101,6 +101,9 @@ packages/mcp/bench/state/calibration-build/
 **/.env.*
 config.yaml
 config.yml
+# …but the bench eval config (the gauge configuration) IS versioned for
+# reproducibility — it has no secrets/local paths (OLLAMA_URL etc. live in .env).
+!packages/mcp/bench/config.yaml
 
 # bench state — ad-hoc run logs, watcher/driver shell scripts, .out files,
 # per-run judge outputs, and any backup files produced during experiments.
