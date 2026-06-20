@@ -26,7 +26,7 @@ import { openJuneDatabase } from "@/lib/sqlite";
 import { qdrantCollectionExists } from "@/retriever/qdrant";
 import { buildProviders, resolveSyncProvider, wrapRegistryWithCache } from "@/providers";
 import { BudgetMeter, buildCostPreview } from "@/lib/cost";
-import { logger } from "@/lib/logger";
+import { logger, addLogFile } from "@/lib/logger";
 import { getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 import { readJson, writeJsonAtomic, fileExists } from "@/lib/artifacts";
@@ -288,6 +288,10 @@ export const runRun = async (argv: readonly string[]): Promise<void> => {
   const run_id = newRunId(facts.fixture_id);
   const run_dir = join(outRoot, run_id);
   await mkdir(run_dir, { recursive: true });
+
+  // Tee the full human log into <run_dir>/run.log so the dashboard can tail it
+  // live (additive — the console transport is untouched).
+  addLogFile(join(run_dir, "run.log"));
 
   // Persist progress to the run dir so the dashboard can tail it live (the file
   // sink is additive — stdout/null behavior is unchanged).

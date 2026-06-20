@@ -55,7 +55,7 @@ import {
   listMarkdownFiles,
 } from "@/lib/artifacts";
 import { UsageError, FixtureTamperedError } from "@/lib/errors";
-import { logger } from "@/lib/logger";
+import { logger, addLogFile } from "@/lib/logger";
 import { getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
 import { RUN_MODES, isControlReader, type RunMode, type ReaderProvider } from "@/lib/modes";
@@ -324,6 +324,11 @@ export const runRunHoldout = async (argv: readonly string[]): Promise<void> => {
   const run_id = newRunId(holdoutQueries.holdout_id);
   const run_dir = join(outRoot, run_id);
   await mkdir(run_dir, { recursive: true });
+  // Tee the full human log into <run_dir>/run.log so the dashboard can tail it
+  // AND so the run dir has a continuously-appended liveness signal — without it,
+  // a holdout run (no progress.ndjson) sits in stage-4 ingest writing nothing to
+  // the run dir, and detectActiveRun's staleness check hides it from the UI.
+  addLogFile(join(run_dir, "run.log"));
   const budget = new BudgetMeter();
   const started_at = new Date().toISOString();
 
