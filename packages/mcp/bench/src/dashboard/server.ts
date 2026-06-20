@@ -11,6 +11,7 @@
  *   GET /static/<file>         → public/<file>            (path-traversal guarded)
  *   GET /api/runs              → RunSummary[]             (newest first)
  *   GET /api/runs/:id          → { kind, results, summary_md }
+ *   GET /api/runs/:id/log      → { present, lines, truncated }  (run.log tail)
  *   GET /api/golden            → Record<fixture_hash, GoldenNormalized>
  *   GET /api/stream            → text/event-stream: active-run progress + runs_changed
  */
@@ -21,6 +22,7 @@ import {
   getRunDetail,
   loadGolden,
   detectActiveRun,
+  readRunLog,
   readProgressEvents,
   inferStageFromArtifacts,
   RUN_ID_RE,
@@ -182,6 +184,13 @@ export const createHandler = (opts: DashboardServerOptions) => {
     if (path.startsWith("/static/")) return serveStatic(publicDir, path.slice("/static".length));
 
     if (path === "/api/runs") return json(await listRunSummaries(opts.runsRoot));
+
+    const logMatch = path.match(/^\/api\/runs\/([^/]+)\/log$/);
+    if (logMatch) {
+      const runId = decodeURIComponent(logMatch[1]!);
+      if (!RUN_ID_RE.test(runId)) return json({ error: "invalid run id" }, 400);
+      return json(await readRunLog(opts.runsRoot, runId));
+    }
 
     const detailMatch = path.match(/^\/api\/runs\/([^/]+)$/);
     if (detailMatch) {

@@ -321,13 +321,24 @@ export const loadGolden = async (goldenPath: string): Promise<Record<string, Gol
 /**
  * The newest run dir with no results file yet — the candidate in-flight run.
  *
- * Returns null when nothing is active. A dir is only considered active if its
- * `progress.ndjson` (or the dir itself, as a fallback) was touched within
- * `staleMs`, so an aborted-without-results dir doesn't masquerade as live.
+ * Returns null when nothing is active. A dir is only considered active if one of
+ * its continuously-appended logs (`progress.ndjson` or `run.log`) was touched
+ * within `staleMs`, so an aborted-without-results dir doesn't masquerade as live.
+ *
+ * Liveness is read from a *log file's* mtime, never the directory's: a dir's
+ * mtime only changes when entries are added/removed, NOT when a file inside it
+ * is appended. A long stage-4 ingest writes no new files into the run dir (it
+ * only appends run.log / progress.ndjson), so watching the dir would make a
+ * live run look stale within `staleMs`. This bit holdout runs in particular —
+ * they have no progress.ndjson and sit in ingest for many minutes. The dir
+ * mtime is only a last-resort fallback for a brand-new run with no log yet.
+ *
+ * `staleMs` is generous because the BYO-AI reference reader/summarizer
+ * (`gemma4:26b`, local Ollama) can stall for minutes on a single chunk/query.
  */
 export const detectActiveRun = async (
   runsRoot: string,
-  staleMs = 120_000,
+  staleMs = 300_000,
   nowMs?: number,
 ): Promise<ActiveRun | null> => {
   const ids = await listRunIds(runsRoot);
@@ -339,12 +350,22 @@ export const detectActiveRun = async (
 
     const progressPath = join(dir, "progress.ndjson");
     const hasEvents = await fileExists(progressPath);
-    const watched = hasEvents ? progressPath : dir;
-    let mtimeMs: number;
-    try {
-      mtimeMs = (await stat(watched)).mtimeMs;
-    } catch {
-      continue;
+    // Freshest of the continuously-appended logs; fall back to the dir mtime
+    // only when neither log exists yet (a run that hasn't written anything).
+    let mtimeMs = -Infinity;
+    for (const p of [progressPath, join(dir, "run.log")]) {
+      try {
+        mtimeMs = Math.max(mtimeMs, (await stat(p)).mtimeMs);
+      } catch {
+        /* this log not present yet */
+      }
+    }
+    if (mtimeMs === -Infinity) {
+      try {
+        mtimeMs = (await stat(dir)).mtimeMs;
+      } catch {
+        continue;
+      }
     }
     if (now - mtimeMs > staleMs) return null; // newest in-flight dir is stale → idle
     const kind: "synthetic" | "holdout" =
@@ -373,6 +394,51 @@ export const readProgressEvents = async (runDir: string): Promise<TestEvent[] | 
     }
   }
   return events;
+};
+
+/** A bounded tail of a run's `run.log` — the live human log the dashboard polls. */
+export type RunLog = {
+  /** Whether `<run_dir>/run.log` exists yet (a run predating run.log, or pre-ingest). */
+  present: boolean;
+  /** The last `lines` lines of the log (oldest first), or [] when absent. */
+  lines: string[];
+  /** True when the file was longer than `maxBytes` and the head was dropped. */
+  truncated: boolean;
+};
+
+/**
+ * Read the tail of a run's `run.log`. Reads at most `maxBytes` from the END of
+ * the file (a long run's log is unbounded) and returns the last `maxLines`
+ * lines. Robust over strict: a missing file is `{ present:false }`, never a throw.
+ */
+export const readRunLog = async (
+  runsRoot: string,
+  runId: string,
+  maxBytes = 64_000,
+  maxLines = 400,
+): Promise<RunLog> => {
+  if (!RUN_ID_RE.test(runId)) return { present: false, lines: [], truncated: false };
+  const path = join(runsRoot, runId, "run.log");
+  let size: number;
+  try {
+    size = (await stat(path)).size;
+  } catch {
+    return { present: false, lines: [], truncated: false };
+  }
+  const start = Math.max(0, size - maxBytes);
+  let body: string;
+  try {
+    // Slice the tail via Bun.file so we never pull a multi-MB log into memory.
+    body = await Bun.file(path).slice(start, size).text();
+  } catch {
+    return { present: true, lines: [], truncated: start > 0 };
+  }
+  // A non-zero start likely cut a line mid-way — drop the first partial line.
+  let lines = body.split("\n");
+  if (start > 0 && lines.length > 1) lines = lines.slice(1);
+  lines = lines.filter((l) => l.length > 0);
+  const truncated = start > 0 || lines.length > maxLines;
+  return { present: true, lines: lines.slice(-maxLines), truncated };
 };
 
 /** Stage roster mirrored from cli/run.ts `RUN_STAGES` (the artifact-inference fallback). */

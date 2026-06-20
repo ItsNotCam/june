@@ -9,6 +9,7 @@ import {
   detectActiveRun,
   inferStageFromArtifacts,
   getRunDetail,
+  readRunLog,
 } from "@/dashboard/reader";
 import { startDashboardServer } from "@/dashboard/server";
 
@@ -122,6 +123,10 @@ beforeAll(async () => {
     join(runsRoot, ACTIVE_ID, "progress.ndjson"),
     `${JSON.stringify({ type: "run_start", fixture_id: "fix-synth", run_id: ACTIVE_ID, stages: [{ num: 4, name: "ingest" }] })}\n${JSON.stringify({ type: "stage_start", stage: 6, name: "retrieval evaluation" })}\n`,
   );
+  await writeFile(
+    join(runsRoot, ACTIVE_ID, "run.log"),
+    "12:00:00.001 | 💬 info  | stage.4.spawn  subcommand=\"ingest\"\n12:00:01.002 | ⚠️  warn  | stage.4.retry  attempt=2\n",
+  );
 
   await writeFile(goldenPath, JSON.stringify(goldenV1));
 });
@@ -215,9 +220,61 @@ describe("active run + stage inference", () => {
     expect(active).toBeNull();
   });
 
+  test("a holdout-shaped run (only run.log, no progress.ndjson) is active via run.log mtime", async () => {
+    // A run mid stage-4 ingest writes NOTHING new into the run dir — only appends
+    // run.log — so the dir mtime is frozen at creation. Liveness must come from
+    // the freshly-appended run.log, else the run vanishes from the dashboard.
+    const HOLDOUT_ACTIVE = "20260104120000-DDDD4444";
+    const dir = join(runsRoot, HOLDOUT_ACTIVE);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "holdout_judge_tasks.json"), "{}");
+    await writeFile(join(dir, "run.log"), "12:00:00.001 | 💬 info  | stage.4.spawn\n");
+    try {
+      const active = await detectActiveRun(runsRoot);
+      expect(active?.run_id).toBe(HOLDOUT_ACTIVE);
+      expect(active?.kind).toBe("holdout");
+      expect(active?.observability).toBe("artifacts"); // no progress.ndjson
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   test("inferStageFromArtifacts returns the highest reached stage", async () => {
     expect(await inferStageFromArtifacts(join(runsRoot, ACTIVE_ID))).toBe(6);
     expect(await inferStageFromArtifacts(join(runsRoot, SYNTH_ID))).toBe(9);
+  });
+});
+
+describe("readRunLog", () => {
+  test("tails the run.log lines, oldest first", async () => {
+    const log = await readRunLog(runsRoot, ACTIVE_ID);
+    expect(log.present).toBe(true);
+    expect(log.truncated).toBe(false);
+    expect(log.lines).toHaveLength(2);
+    expect(log.lines[0]).toContain("stage.4.spawn");
+    expect(log.lines[1]).toContain("stage.4.retry");
+  });
+
+  test("absent run.log → present:false, no throw", async () => {
+    const log = await readRunLog(runsRoot, SYNTH_ID);
+    expect(log).toEqual({ present: false, lines: [], truncated: false });
+  });
+
+  test("oversized log is byte-capped and flagged truncated", async () => {
+    const big = Array.from({ length: 500 }, (_, i) => `line ${i} ${"x".repeat(200)}`).join("\n");
+    await writeFile(join(runsRoot, ACTIVE_ID, "run.log"), big);
+    const log = await readRunLog(runsRoot, ACTIVE_ID, 4_000, 100);
+    expect(log.truncated).toBe(true);
+    expect(log.lines.length).toBeLessThanOrEqual(100);
+    // restore the small fixture for any later-running test
+    await writeFile(
+      join(runsRoot, ACTIVE_ID, "run.log"),
+      "12:00:00.001 | 💬 info  | stage.4.spawn  subcommand=\"ingest\"\n12:00:01.002 | ⚠️  warn  | stage.4.retry  attempt=2\n",
+    );
+  });
+
+  test("rejects a malformed run id", async () => {
+    expect(await readRunLog(runsRoot, "../etc/passwd")).toEqual({ present: false, lines: [], truncated: false });
   });
 });
 
@@ -245,6 +302,9 @@ describe("HTTP API (Bun.serve)", () => {
       expect(detail.kind).toBe("synthetic");
       const bad = await fetch(`http://localhost:${server.port}/api/runs/not-a-run`);
       expect(bad.status).toBe(400);
+      const log = (await fetch(`http://localhost:${server.port}/api/runs/${ACTIVE_ID}/log`).then((r) => r.json())) as { present: boolean; lines: string[] };
+      expect(log.present).toBe(true);
+      expect(log.lines.length).toBeGreaterThan(0);
     } finally {
       server.stop(true);
     }
