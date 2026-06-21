@@ -37,6 +37,7 @@ Operational tunables (chunk sizes, retry policy, classifier fallbacks, etc.) liv
 ```bash
 june init                                 # create Qdrant collections + apply SQLite DDL
 june ingest ./docs                        # ingest a file or directory (recursive)
+june ingest ./docs --source-root <dir>    # derive doc_id relative to <dir> (portable across checkouts)
 june status [<doc_id>]                    # read-only run + document status
 june resume                               # replay non-terminal documents
 june reindex <doc_id>                     # force full re-run for one doc
@@ -149,7 +150,9 @@ Returns the same `IngestResult` shape as `ingestPath` (see below); for a single-
 
 #### Security note
 
-`ingestContent` is the entry point that's safe to expose to a model. It performs no filesystem I/O during ingestion — the content is taken straight from the caller, and the `sourceUri` is treated as an opaque identifier (`deriveDocId` hashes it; `bindingFor` does a config-`sources` prefix match on it; nothing else reads or resolves it).
+`ingestContent` is the entry point that's safe to expose to a model. It performs no filesystem I/O during ingestion — the content is taken straight from the caller, and the `sourceUri` is treated as an opaque identifier (`deriveDocIdFromUri` hashes it; `bindingFor` does a config-`sources` prefix match on it; nothing else reads or resolves it).
+
+> **`doc_id` derivation.** For the **CLI/filesystem path**, `doc_id` is `sha256` of the file's path **relative to a `source_root`** (`deriveDocIdFromRelPath`), so the same file ingested from different checkouts/worktrees gets the same id while staying stable across content edits (versioning). `source_root` is resolved as `--source-root` flag > `config.ingest.source_root` > git toplevel of the ingest dir; files outside it fall back to the URI hash. The **content/MCP path** always uses the URI hash (`deriveDocIdFromUri`). The two id namespaces are domain-tagged so they never collide.
 
 `ingestPath`, by contrast, accepts an arbitrary path and reads it. Exposing it through an MCP tool would let any caller exfiltrate the contents of any file the server can read.
 

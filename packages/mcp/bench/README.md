@@ -20,6 +20,16 @@ Given a fictional-domain fixture (facts + corpus + queries), the bench:
 
 Optional sibling pass: no-RAG Opus baseline for the headline "does RAG beat Opus" answer.
 
+> **doc_id mirror (must match ingest).** Step 2 maps a fixture file to june's chunks via
+> `juneDocId` (`src/lib/ids.ts`), which **must** derive the same `doc_id` ingest stored or recall
+> is silently 0%. It delegates to the **shared** helpers from `@june/mcp-ingest`
+> (`canonicalizeRelativePathSync` + `deriveDocIdFromRelPath`, URI fallback outside the root) — no
+> reimplementation. A single `source_root` (`src/lib/source-root.ts`: `JUNE_SOURCE_ROOT` env > git
+> toplevel) is passed both to `june ingest --source-root` (Stage 4) and to `juneDocId`, so the
+> two can't disagree across checkouts/worktrees. Guard: `__test__/lib/docid-mirror.test.ts`.
+> (Corpora generated outside the repo fall back to the URI hash — self-consistent within a run,
+> not worktree-portable; keep `source_root` an ancestor of the corpus dir.)
+
 ## Prerequisites
 
 - [Bun](https://bun.sh) ≥ 1.2
