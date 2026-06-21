@@ -16,6 +16,7 @@ import { CorpusTamperedError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { getConfig } from "@/lib/config";
 import { getEnv } from "@/lib/env";
+import { juneSourceRoot } from "@/lib/source-root";
 
 /**
  * Stage 4 — delegated ingest (§18).
@@ -67,9 +68,11 @@ export const runStage4 = async (args: {
     label: "init",
   });
 
+  // Pass the SAME source_root the juneDocId mirror uses, so ingest derives the
+  // portable repo-relative doc_id that Stage 5 resolution will look up.
   await runJuneCommand({
     juneBin: env.JUNE_BIN,
-    args: ["ingest", resolve(args.corpus_dir)],
+    args: ["ingest", resolve(args.corpus_dir), "--source-root", juneSourceRoot()],
     configPath: mcpConfigPath,
     qdrantUrl: env.QDRANT_URL,
     label: "ingest",

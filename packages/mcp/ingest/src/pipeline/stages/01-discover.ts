@@ -4,7 +4,12 @@ import { resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
 import { getConfig } from "#internal/lib/config";
 import { FileTooLargeError } from "#internal/lib/errors";
-import { deriveContentHashBytes, deriveDocId } from "#internal/lib/ids";
+import {
+  canonicalizeRelativePath,
+  deriveContentHashBytes,
+  deriveDocIdFromRelPath,
+  deriveDocIdFromUri,
+} from "#internal/lib/ids";
 import { logger } from "#internal/lib/logger";
 import { SOURCE_SYSTEM_TO_SOURCE_TYPE } from "#internal/types/vocab";
 import type { Document } from "#internal/types/document";
@@ -30,6 +35,12 @@ export type Stage1Input = {
   readonly tx: Tx;
   /** When true, skip the unchanged short-circuit and re-ingest even if content hash + status match. */
   readonly force?: boolean;
+  /**
+   * Root that `doc_id` is derived relative to (portable across worktrees). When the
+   * file resolves under it, `doc_id = sha256(relpath)`; otherwise it falls back to the
+   * URI hash. Undefined ⇒ URI fallback (legacy behavior).
+   */
+  readonly sourceRoot?: string;
 };
 
 /**
@@ -39,7 +50,7 @@ export type Stage1Input = {
  */
 export type Stage1ContentInput = {
   readonly rawBytes: Uint8Array;
-  /** Caller-supplied virtual URI; participates in `doc_id` derivation. */
+  /** Caller-supplied virtual URI; used for the versioning lookup + URI-fallback `doc_id`. */
   readonly sourceUri: string;
   readonly source_modified_at?: string | undefined;
   readonly runId: RunId;
@@ -48,6 +59,14 @@ export type Stage1ContentInput = {
   readonly sidecar: SidecarStorage;
   readonly tx: Tx;
   readonly force?: boolean;
+  /**
+   * Real filesystem path of the document, when one exists (the CLI/FS path). Used
+   * together with {@link sourceRoot} to derive a portable relative-path `doc_id`.
+   * Absent for the content/MCP path (no file) ⇒ URI-fallback `doc_id`.
+   */
+  readonly absolutePath?: string;
+  /** Root to derive `doc_id` relative to (see {@link Stage1Input.sourceRoot}). */
+  readonly sourceRoot?: string;
 };
 
 export type Stage1Result =
@@ -176,7 +195,17 @@ export const runStage1FromContent = async (
   }
 
   const sourceUri = input.sourceUri;
-  const doc_id: DocId = deriveDocId(sourceUri);
+  // Portable doc_id: derive from the source-root-relative path when we have a real
+  // file under a configured root; otherwise fall back to hashing the URI (MCP/content
+  // path, files outside the root, or no root configured).
+  let doc_id: DocId = deriveDocIdFromUri(sourceUri);
+  if (input.absolutePath && input.sourceRoot) {
+    const relPath = await canonicalizeRelativePath(
+      input.absolutePath,
+      input.sourceRoot,
+    );
+    if (relPath !== null) doc_id = deriveDocIdFromRelPath(relPath);
+  }
   const content_hash = deriveContentHashBytes(input.rawBytes);
 
   // Peek at frontmatter for version + title. A strict-UTF8 decode may fail
@@ -332,6 +361,8 @@ export const runStage1 = async (input: Stage1Input): Promise<Stage1Result> => {
     sidecar: input.sidecar,
     tx: input.tx,
     force: input.force,
+    absolutePath: input.absolutePath,
+    sourceRoot: input.sourceRoot,
   });
 };
 

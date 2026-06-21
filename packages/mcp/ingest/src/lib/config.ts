@@ -57,6 +57,10 @@ export const ConfigSchema = z
     ingest: z
       .object({
         max_file_bytes: z.number().int().positive().default(52_428_800),
+        // Root that `doc_id` is derived relative to, making ids portable across
+        // checkouts/worktrees. Precedence: CLI `--source-root` > this > git
+        // toplevel autodetect > URI-hash fallback. Optional; absent ⇒ autodetect.
+        source_root: z.string().optional(),
       })
       .prefault({}),
     embedding: z

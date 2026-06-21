@@ -2,6 +2,12 @@
 import { createHash } from "crypto";
 import { realpathSync } from "fs";
 import { pathToFileURL } from "url";
+import {
+  canonicalizeRelativePathSync,
+  deriveDocIdFromRelPath,
+  deriveDocIdFromUri,
+} from "@june/mcp-ingest";
+import { juneSourceRoot } from "@/lib/source-root";
 
 /** Crockford base32 alphabet (no I, L, O, U) — same choice as ULID for readability. */
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -75,15 +81,22 @@ export const newRunId = (fixture_id: string): string => {
 };
 
 /**
- * june's per-document id — `sha256_hex(canonical_file_uri)` per `SPEC.md §11`
- * and `packages/mcp/src/pipeline/stages/01-discover.ts:toCanonicalFileUri`.
+ * june's per-document id — the PORTABLE, source-root-relative id (Phase 1). Mirrors
+ * ingest exactly by delegating to the SAME shared helpers from `@june/mcp-ingest`
+ * (a divergent reimplementation here is the classic 0%-recall footgun):
+ *   - under `sourceRoot` ⇒ `sha256("relpath|" + canonical-relative-posix-path)`
+ *   - outside the root ⇒ URI fallback (`sha256("uri|" + file://realpath)`), matching
+ *     ingest's `toCanonicalFileUri` → `deriveDocIdFromUri`.
  *
- * mcp doesn't hash the bare path — it first resolves symlinks via `realpath`
- * then converts to a `file://` URI via Node's `pathToFileURL`. The bench
- * mirrors both transforms exactly; otherwise `doc_id` lookup misses.
+ * `sourceRoot` defaults to {@link juneSourceRoot} — the SAME value Stage 4 passes to
+ * `june ingest --source-root`, so the bench mirror and the stored ids always agree.
  */
-export const juneDocId = (absolute_path: string): string => {
-  const real = realpathSync(absolute_path);
-  const sourceUri = pathToFileURL(real).toString();
-  return createHash("sha256").update(sourceUri, "utf-8").digest("hex");
+export const juneDocId = (
+  absolute_path: string,
+  sourceRoot: string = juneSourceRoot(),
+): string => {
+  const rel = canonicalizeRelativePathSync(absolute_path, sourceRoot);
+  if (rel !== null) return deriveDocIdFromRelPath(rel) as string;
+  const sourceUri = pathToFileURL(realpathSync(absolute_path)).toString();
+  return deriveDocIdFromUri(sourceUri) as string;
 };

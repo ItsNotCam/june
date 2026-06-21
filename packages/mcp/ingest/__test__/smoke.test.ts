@@ -16,7 +16,7 @@ import {
   chunkIdToQdrantPointId,
   deriveChunkId,
   deriveContentHash,
-  deriveDocId,
+  deriveDocIdFromUri,
   deriveSectionId,
 } from "@/lib/ids";
 import { ChunkSchema } from "@/schemas";
@@ -81,15 +81,15 @@ describe("Part II smoke — branded IDs", () => {
 });
 
 describe("Part II smoke — deterministic ID derivation", () => {
-  test("deriveDocId is pure sha256 of URI", () => {
+  test("deriveDocIdFromUri returns a deterministic 64-char hex DocId", () => {
     const uri = "file:///repo/docs/auth/oauth-refresh.md";
-    const id = deriveDocId(uri);
+    const id = deriveDocIdFromUri(uri);
     expect(id).toMatch(/^[0-9a-f]{64}$/);
-    expect(deriveDocId(uri)).toBe(id); // deterministic
+    expect(deriveDocIdFromUri(uri)).toBe(id); // deterministic
   });
 
   test("deriveChunkId excludes embedding model from hash", () => {
-    const doc = deriveDocId("file:///x.md");
+    const doc = deriveDocIdFromUri("file:///x.md");
     const id1 = deriveChunkId(doc, "v1", 0, 100, 1);
     const id2 = deriveChunkId(doc, "v1", 0, 100, 1);
     expect(id1).toBe(id2);
@@ -99,7 +99,7 @@ describe("Part II smoke — deterministic ID derivation", () => {
   });
 
   test("deriveSectionId uses pipe-separated doc_id|heading_path|offset", () => {
-    const doc = deriveDocId("file:///x.md");
+    const doc = deriveDocIdFromUri("file:///x.md");
     const a = deriveSectionId(doc, ["Auth", "Refresh"], 0);
     const b = deriveSectionId(doc, ["Auth", "Refresh"], 100);
     expect(a).not.toBe(b);

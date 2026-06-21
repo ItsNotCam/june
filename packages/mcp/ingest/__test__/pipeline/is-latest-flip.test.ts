@@ -8,7 +8,6 @@ import { createStubEmbedder } from "@/lib/embedder/stub";
 import { createStubSummarizer } from "@/lib/summarizer/stub";
 import { createSqliteSidecar } from "@/lib/storage/sqlite";
 import { ingestPath } from "@/pipeline/ingest";
-import { deriveDocId } from "@/lib/ids";
 import { asVersion } from "@/types/ids";
 import type { PipelineDeps } from "@/pipeline/factory";
 import type { VectorPoint, VectorStorage } from "@/lib/storage/types";
@@ -103,7 +102,12 @@ describe("I1 — is_latest flip on new version", () => {
     });
     expect(second.processed).toBe(1);
 
-    const doc_id = deriveDocId(`file://${path}`);
+    // Read the doc_id off the stored row (decoupled from the derivation scheme).
+    const latest = await deps.storage.sidecar.getLatestDocumentByUri(
+      `file://${path}`,
+    );
+    expect(latest).toBeDefined();
+    const doc_id = latest!.doc_id;
     const versions = await deps.storage.sidecar.listVersionsForDoc(doc_id);
     expect(versions.length).toBe(2);
 
@@ -123,7 +127,11 @@ describe("I1 — is_latest flip on new version", () => {
     await writeFile(path, "# Title\n\nBody two, different.\n");
     await ingestPath({ path, deps, cliVersion: asVersion("v2") });
 
-    const doc_id = deriveDocId(`file://${path}`);
+    const latest = await deps.storage.sidecar.getLatestDocumentByUri(
+      `file://${path}`,
+    );
+    expect(latest).toBeDefined();
+    const doc_id = latest!.doc_id;
     expect(vector.flips.length).toBeGreaterThan(0);
     const flip = vector.flips.find((f) => f.doc_id === doc_id);
     expect(flip).toBeDefined();

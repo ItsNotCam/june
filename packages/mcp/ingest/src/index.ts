@@ -159,12 +159,16 @@ export { runCli } from "../cli/june";
 
 // ID derivation
 export {
+  canonicalizeRelativePath,
+  canonicalizeRelativePathSync,
   chunkIdToQdrantPointId,
   deriveChunkId,
   deriveContentHash,
   deriveContentHashBytes,
-  deriveDocId,
+  deriveDocIdFromRelPath,
+  deriveDocIdFromUri,
   deriveSectionId,
+  relativizeAndNormalize,
 } from "#internal/lib/ids";
 
 // Embedder interface (implementation factories land in Part III; v1 ships Ollama only)

@@ -15,7 +15,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "verify:docid": "bun scripts/verify-docid-git-autodetect.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
