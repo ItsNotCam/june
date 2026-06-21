@@ -26,6 +26,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "^0.60.0",
         "@huggingface/transformers": "^4.2.0",
+        "@june/mcp-ingest": "workspace:*",
         "@june/shared": "workspace:*",
         "openai": "^4.76.0",
         "winston": "^3.19.0",
