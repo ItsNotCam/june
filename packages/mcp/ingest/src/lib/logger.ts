@@ -25,6 +25,7 @@ export type LogFields = {
   event?: string;
   status?: string;
   source_uri?: string;
+  source_root?: string;
   model_name?: string;
   model_version?: string;
   heartbeat_age_s?: number;

@@ -17,7 +17,7 @@ import { runStage9 } from "@/pipeline/stages/09-embed";
 import { createStubSummarizer } from "@/lib/summarizer/stub";
 import { createStubEmbedder } from "@/lib/embedder/stub";
 import { createSqliteSidecar } from "@/lib/storage/sqlite";
-import { deriveContentHashBytes, deriveDocId } from "@/lib/ids";
+import { deriveContentHashBytes, deriveDocIdFromUri } from "@/lib/ids";
 import { pathToFileURL } from "node:url";
 import { realpath } from "node:fs/promises";
 import type { Document } from "@/types/document";
@@ -120,7 +120,8 @@ const main = async (): Promise<void> => {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const real = await realpath(abs);
       const source_uri = pathToFileURL(real).toString();
-      const doc_id = deriveDocId(source_uri);
+      // Perf harness only (not the eval-correctness path) — URI-domain id is fine.
+      const doc_id = deriveDocIdFromUri(source_uri);
       const version = asVersion(new Date().toISOString());
       const binding = bindingFor(source_uri);
       const baseDoc: Document = {

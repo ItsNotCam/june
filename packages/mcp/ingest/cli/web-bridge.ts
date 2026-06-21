@@ -23,7 +23,7 @@ import { createSqliteSidecar } from "@/lib/storage/sqlite";
 import { createQdrantStorage } from "@/lib/storage/qdrant";
 import { createStubEmbedder } from "@/lib/embedder/stub";
 import { createStubSummarizer } from "@/lib/summarizer/stub";
-import { deriveDocId } from "@/lib/ids";
+import { deriveDocIdFromUri } from "@/lib/ids";
 import { getConfig } from "@/lib/config";
 import { SidecarLockHeldError } from "@/lib/errors";
 import { asDocId } from "@/types/ids";
@@ -97,7 +97,14 @@ const runIngest = async (
     type: "run_start",
     files: files.map((f) => {
       const sourceUri = pathToFileURL(f.path).toString();
-      return { id: f.id, name: f.name, sourceUri, docId: deriveDocId(sourceUri) as string };
+      // Display-only id for the dashboard. NOTE: this is the URI-domain id and may
+      // differ from the stored relpath-based doc_id when ingest runs under a source_root.
+      return {
+        id: f.id,
+        name: f.name,
+        sourceUri,
+        docId: deriveDocIdFromUri(sourceUri) as string,
+      };
     }),
   });
 

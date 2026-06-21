@@ -1,5 +1,8 @@
 // author: Claude
 import { createHash } from "node:crypto";
+import { realpathSync } from "node:fs";
+import { realpath } from "node:fs/promises";
+import { isAbsolute, relative as pathRelative, sep as pathSep } from "node:path";
 import {
   asChunkId,
   asDocId,
@@ -20,13 +23,66 @@ const HASH_SEP = "|";
 const sha256Hex = (value: string): string =>
   createHash("sha256").update(value, "utf8").digest("hex");
 
+// `doc_id` hash domains — tag the input so a relative path can never collide
+// with a URI-derived id, keeping the two id namespaces unambiguous.
+const DOCID_DOMAIN_RELPATH = "relpath";
+const DOCID_DOMAIN_URI = "uri";
+
 /**
- * `doc_id = sha256(absolute_source_uri)` ([§11](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#11-deterministic-id-scheme)). Path normalization (symlink
- * resolution, URI-encoding) is the caller's responsibility — this function
- * treats its input as already canonical.
+ * `doc_id` from a **source-root-relative POSIX path** — the portable, content-stable
+ * identity. The same file ingested from `main` or from a git worktree relativizes to
+ * the same path ⇒ the same `doc_id`; editing the file's content does NOT change it
+ * (that's what `version` + `content_hash` are for). Input must already be canonical
+ * (see {@link canonicalizeRelativePath}). Domain-tagged (see above).
  */
-export const deriveDocId = (absolute_source_uri: string): DocId =>
-  asDocId(sha256Hex(absolute_source_uri));
+export const deriveDocIdFromRelPath = (canonical_rel_path: string): DocId =>
+  asDocId(sha256Hex([DOCID_DOMAIN_RELPATH, canonical_rel_path].join(HASH_SEP)));
+
+/**
+ * `doc_id` from a source URI — the **fallback** when a path is outside any
+ * `source_root`, or the origin is a non-`file://` URI (e.g. `mcp://…` from the
+ * content/MCP ingest path). Domain-tagged (see above).
+ */
+export const deriveDocIdFromUri = (source_uri: string): DocId =>
+  asDocId(sha256Hex([DOCID_DOMAIN_URI, source_uri].join(HASH_SEP)));
+
+/**
+ * Pure relative-path normalizer (no IO): the POSIX, NFC-normalized path of
+ * `realAbs` relative to `realRoot`, or `null` if `realAbs` is not strictly under
+ * `realRoot`. Both inputs MUST already be realpath-resolved absolute paths.
+ * No case-folding (POSIX is case-sensitive).
+ */
+export const relativizeAndNormalize = (
+  realAbs: string,
+  realRoot: string,
+): string | null => {
+  const rel = pathRelative(realRoot, realAbs);
+  if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) return null;
+  return rel.split(pathSep).join("/").normalize("NFC");
+};
+
+/**
+ * Canonical source-root-relative path for `doc_id` derivation: realpath BOTH the
+ * file and the root (so a symlinked worktree dir and its real target agree), then
+ * {@link relativizeAndNormalize}. Returns `null` when the file is outside the root.
+ */
+export const canonicalizeRelativePath = async (
+  absPath: string,
+  sourceRoot: string,
+): Promise<string | null> => {
+  const [realAbs, realRoot] = await Promise.all([
+    realpath(absPath),
+    realpath(sourceRoot),
+  ]);
+  return relativizeAndNormalize(realAbs, realRoot);
+};
+
+/** Sync mirror of {@link canonicalizeRelativePath} (used by the bench id mirror). */
+export const canonicalizeRelativePathSync = (
+  absPath: string,
+  sourceRoot: string,
+): string | null =>
+  relativizeAndNormalize(realpathSync(absPath), realpathSync(sourceRoot));
 
 /**
  * `section_id = sha256(doc_id|heading_path_joined|char_offset_start)` ([§11](../../../../../.claude/plans/ingestion-pipeline-v1/SPEC.md#11-deterministic-id-scheme)).

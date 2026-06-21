@@ -20,12 +20,16 @@ export const runIngest = async (argv: ReadonlyArray<string>): Promise<number> =>
 
   let cliVersion: string | undefined;
   let force = false;
+  let sourceRoot: string | undefined;
   for (let i = 0; i < remaining.length; i++) {
     if (remaining[i] === "--version") {
       cliVersion = remaining[i + 1];
       i++;
     } else if (remaining[i] === "--force") {
       force = true;
+    } else if (remaining[i] === "--source-root") {
+      sourceRoot = remaining[i + 1];
+      i++;
     }
   }
 
@@ -46,6 +50,7 @@ export const runIngest = async (argv: ReadonlyArray<string>): Promise<number> =>
       deps,
       progress,
       force,
+      sourceRoot,
     });
     if (!flags.quiet) {
       process.stdout.write(

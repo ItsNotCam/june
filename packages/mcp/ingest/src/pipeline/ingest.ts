@@ -1,8 +1,9 @@
 // author: Claude
 import { readdir, stat } from "node:fs/promises";
-import { join, resolve as resolvePath } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ulid } from "ulid";
+import { getConfig } from "#internal/lib/config";
 import { logger } from "#internal/lib/logger";
 import { startHeartbeat } from "#internal/lib/lock";
 import { createSilentReporter, type ProgressReporter } from "#internal/lib/progress";
@@ -36,6 +37,12 @@ export type IngestOptions = {
   readonly progress?: ProgressReporter;
   /** Re-ingest even if the file is already stored and content hash matches. */
   readonly force?: boolean;
+  /**
+   * Root that `doc_id` is derived relative to (portable across worktrees). Highest
+   * precedence; falls back to `config.ingest.source_root`, then git-toplevel
+   * autodetect, then the URI hash. See {@link resolveSourceRoot}.
+   */
+  readonly sourceRoot?: string;
 };
 
 export type IngestResult = {
@@ -46,6 +53,39 @@ export type IngestResult = {
 };
 
 const MD_EXTS = new Set([".md", ".markdown"]);
+
+/** Git toplevel of `startDir`, or undefined if not in a repo / git unavailable. */
+const gitToplevel = (startDir: string): string | undefined => {
+  try {
+    const res = Bun.spawnSync([
+      "git",
+      "-C",
+      startDir,
+      "rev-parse",
+      "--show-toplevel",
+    ]);
+    if (res.exitCode !== 0) return undefined;
+    const out = new TextDecoder().decode(res.stdout).trim();
+    return out.length > 0 ? resolvePath(out) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Resolve the `source_root` for portable `doc_id` derivation, once per run.
+ * Precedence: explicit opt > `config.ingest.source_root` > git toplevel of the
+ * ingest dir > undefined (⇒ URI-hash fallback in Stage 1).
+ */
+const resolveSourceRoot = (
+  ingestDir: string,
+  optsRoot: string | undefined,
+): string | undefined => {
+  if (optsRoot) return resolvePath(optsRoot);
+  const cfgRoot = getConfig().ingest.source_root;
+  if (cfgRoot) return resolvePath(cfgRoot);
+  return gitToplevel(ingestDir);
+};
 
 const walkMarkdownFiles = async (root: string): Promise<string[]> => {
   const out: string[] = [];
@@ -109,6 +149,7 @@ const discoverFile = async (
     runVersion: Version;
     cliVersion: Version | undefined;
     force: boolean;
+    sourceRoot: string | undefined;
   },
 ): Promise<Stage1Result> => {
   const sidecar = opts.deps.storage.sidecar;
@@ -122,6 +163,7 @@ const discoverFile = async (
       sidecar,
       tx: tx1,
       force: opts.force,
+      sourceRoot: opts.sourceRoot,
     });
     await tx1.commit();
     return stage1;
@@ -379,6 +421,16 @@ export const ingestPath = async (opts: IngestOptions): Promise<IngestResult> => 
       ? await walkMarkdownFiles(absRoot)
       : [absRoot];
 
+    // Resolve the portable-doc_id root once for the whole run.
+    const sourceRoot = resolveSourceRoot(
+      st.isDirectory() ? absRoot : dirname(absRoot),
+      opts.sourceRoot,
+    );
+    logger.info("ingest_source_root", {
+      event: "ingest_source_root",
+      source_root: sourceRoot ?? "(none — URI-hash doc_id)",
+    });
+
     progress.start(files.length);
 
     const phaseOpts: PhaseOpts = { deps: opts.deps, runId, progress };
@@ -413,6 +465,7 @@ export const ingestPath = async (opts: IngestOptions): Promise<IngestResult> => 
             runVersion,
             cliVersion: opts.cliVersion,
             force: opts.force ?? false,
+            sourceRoot,
           });
           const r = await runSummarizePhase(stage1, source_uri, phaseOpts);
           if (r.kind === "ok") summarizedDocs.push(r.doc);
