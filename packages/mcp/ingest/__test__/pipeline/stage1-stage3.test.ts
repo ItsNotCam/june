@@ -9,7 +9,7 @@ import { parseMarkdown } from "@/lib/parser/markdown";
 import { computeProtectedRanges, isInsideProtected } from "@/lib/chunker/protect";
 import { chunkSection } from "@/lib/chunker/split";
 import { sectionize } from "@/lib/chunker/sectionize";
-import { deriveChunkId, deriveDocId } from "@/lib/ids";
+import { deriveChunkId, deriveDocIdFromUri } from "@/lib/ids";
 import { asVersion } from "@/types/ids";
 
 /**
@@ -106,7 +106,7 @@ describe("Stage 3 sectionize", () => {
     const sections = sectionize(
       ast,
       body,
-      deriveDocId("file:///x.md"),
+      deriveDocIdFromUri("file:///x.md"),
       asVersion("v1"),
       "A",
     );
@@ -122,7 +122,7 @@ describe("Stage 3 sectionize", () => {
     const sections = sectionize(
       ast,
       body,
-      deriveDocId("file:///x.md"),
+      deriveDocIdFromUri("file:///x.md"),
       asVersion("v1"),
       "Doc Title",
     );
@@ -140,7 +140,7 @@ describe("Stage 3 sectionize", () => {
     const sections = sectionize(
       ast,
       body,
-      deriveDocId("file:///x.md"),
+      deriveDocIdFromUri("file:///x.md"),
       asVersion("v1"),
       "Doc",
     );
@@ -178,7 +178,7 @@ describe("Stage 3 sectionize", () => {
     const sections = sectionize(
       ast,
       body,
-      deriveDocId("file:///x.md"),
+      deriveDocIdFromUri("file:///x.md"),
       asVersion("v1"),
       "Doc",
     );
@@ -200,13 +200,13 @@ describe("Stage 3 sectionize", () => {
 
 describe("Stage 3 chunk ID determinism (§37.2)", () => {
   test("same inputs → same chunk_id", () => {
-    const docA = deriveDocId("file:///x.md");
+    const docA = deriveDocIdFromUri("file:///x.md");
     const id1 = deriveChunkId(docA, "v1", 0, 100, 1);
     const id2 = deriveChunkId(docA, "v1", 0, 100, 1);
     expect(id1).toBe(id2);
   });
   test("different version → different chunk_id", () => {
-    const docA = deriveDocId("file:///x.md");
+    const docA = deriveDocIdFromUri("file:///x.md");
     const id1 = deriveChunkId(docA, "v1", 0, 100, 1);
     const id2 = deriveChunkId(docA, "v2", 0, 100, 1);
     expect(id1).not.toBe(id2);
